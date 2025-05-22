@@ -11,6 +11,7 @@ import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
 import { forwardRef } from 'react';
 import type { ForwardedRef } from 'react';
+import { useAuth } from '~/lib/hooks/useAuth';
 
 interface MessagesProps {
   id?: string;
@@ -24,6 +25,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
     const { id, isStreaming = false, messages = [] } = props;
     const location = useLocation();
     const profile = useStore(profileStore);
+    const { user } = useAuth();
 
     const handleRewind = (messageId: string) => {
       const searchParams = new URLSearchParams(location.search);
@@ -44,6 +46,11 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
         toast.error('Failed to fork chat: ' + (error as Error).message);
       }
     };
+
+    // Get user avatar or first letter of email or name
+    const userAvatar = user?.user_metadata?.avatar_url || profile?.avatar || null;
+    const userName = user?.user_metadata?.name || user?.email || profile?.username || 'User';
+    const userInitial = userName[0].toUpperCase();
 
     return (
       <div id={id} className={props.className} ref={ref}>
@@ -70,17 +77,26 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                   })}
                 >
                   {isUserMessage && (
-                    <div className="flex items-center justify-center w-[40px] h-[40px] overflow-hidden bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-500 rounded-full shrink-0 self-start">
-                      {profile?.avatar ? (
-                        <img
-                          src={profile.avatar}
-                          alt={profile?.username || 'User'}
-                          className="w-full h-full object-cover"
-                          loading="eager"
-                          decoding="sync"
+                    <div className="flex items-center justify-center w-[40px] h-[40px] overflow-hidden rounded-full shrink-0 self-start">
+                      {userAvatar ? (
+                        <img 
+                          src={userAvatar} 
+                          alt="User avatar" 
+                          className="w-full h-full rounded-full object-cover border border-gray-700"
+                          onError={(e) => {
+                            // If image fails to load, replace with initial
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.parentElement!.innerHTML = `
+                              <div class="user-avatar">
+                                ${userInitial}
+                              </div>
+                            `;
+                          }}
                         />
                       ) : (
-                        <div className="i-ph:user-fill text-2xl" />
+                        <div className="user-avatar">
+                          {userInitial}
+                        </div>
                       )}
                     </div>
                   )}
