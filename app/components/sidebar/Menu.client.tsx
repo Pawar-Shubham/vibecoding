@@ -6,7 +6,7 @@ import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 import { SettingsButton } from '~/components/ui/SettingsButton';
 import { Button } from '~/components/ui/Button';
-import { db, deleteById, getAll, chatId, type ChatHistoryItem, useChatHistory } from '~/lib/persistence';
+import { db, deleteById, getAll, chatId, type ChatHistoryItem, useChatHistory, migrateExistingChatsToUser } from '~/lib/persistence';
 import { cubicEasingFn } from '~/utils/easings';
 import { HistoryItem } from './HistoryItem';
 import { binDates } from './date-binning';
@@ -14,23 +14,27 @@ import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
+import { authStore } from '~/lib/stores/auth';
+import { useAuth } from '~/lib/hooks/useAuth';
 
 const menuVariants = {
   closed: {
     opacity: 0,
     visibility: 'hidden',
-    left: '-340px',
+    y: 20,
+    scale: 0.95,
     transition: {
-      duration: 0.2,
+      duration: 0.3,
       ease: cubicEasingFn,
     },
   },
   open: {
     opacity: 1,
     visibility: 'initial',
-    left: 0,
+    y: 0,
+    scale: 1,
     transition: {
-      duration: 0.2,
+      duration: 0.3,
       ease: cubicEasingFn,
     },
   },
@@ -63,7 +67,7 @@ function CurrentDateTime() {
   );
 }
 
-export const Menu = () => {
+const MenuComponent = () => {
   const { duplicateCurrentChat, exportChat } = useChatHistory();
   const menuRef = useRef<HTMLDivElement>(null);
   const [list, setList] = useState<ChatHistoryItem[]>([]);
@@ -73,20 +77,21 @@ export const Menu = () => {
   const profile = useStore(profileStore);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-
+  const { user } = useAuth();
   const { filteredItems: filteredList, handleSearchChange } = useSearchFilter({
     items: list,
     searchFields: ['description'],
   });
+  const [hasMigrated, setHasMigrated] = useState(false);
 
   const loadEntries = useCallback(() => {
-    if (db) {
-      getAll(db)
+    if (db && user?.id) {
+      getAll(db, user.id)
         .then((list) => list.filter((item) => item.urlId && item.description))
         .then(setList)
         .catch((error) => toast.error(error.message));
     }
-  }, []);
+  }, [user?.id]);
 
   const deleteChat = useCallback(
     async (id: string): Promise<void> => {
@@ -115,7 +120,6 @@ export const Menu = () => {
       event.preventDefault();
       event.stopPropagation();
 
-      // Log the delete operation to help debugging
       console.log('Attempting to delete chat:', { id: item.id, description: item.description });
 
       deleteChat(item.id)
@@ -125,11 +129,9 @@ export const Menu = () => {
             autoClose: 3000,
           });
 
-          // Always refresh the list
           loadEntries();
 
           if (chatId.get() === item.id) {
-            // hard page navigation to clear the stores
             console.log('Navigating away from deleted chat');
             window.location.pathname = '/';
           }
@@ -141,7 +143,6 @@ export const Menu = () => {
             autoClose: 3000,
           });
 
-          // Still try to reload entries in case data has changed
           loadEntries();
         });
     },
@@ -162,7 +163,6 @@ export const Menu = () => {
       const currentChatId = chatId.get();
       let shouldNavigate = false;
 
-      // Process deletions sequentially using the shared deleteChat logic
       for (const id of itemsToDeleteIds) {
         try {
           await deleteChat(id);
@@ -177,7 +177,6 @@ export const Menu = () => {
         }
       }
 
-      // Show appropriate toast message
       if (errors.length === 0) {
         toast.success(`${deletedCount} chat${deletedCount === 1 ? '' : 's'} deleted successfully`);
       } else {
@@ -186,14 +185,11 @@ export const Menu = () => {
         });
       }
 
-      // Reload the list after all deletions
       await loadEntries();
 
-      // Clear selection state
       setSelectedItems([]);
       setSelectionMode(false);
 
-      // Navigate if needed
       if (shouldNavigate) {
         console.log('Navigating away from deleted chat');
         window.location.pathname = '/';
@@ -202,43 +198,13 @@ export const Menu = () => {
     [deleteChat, loadEntries, db],
   );
 
-  const closeDialog = () => {
-    setDialogContent(null);
-  };
-
-  const toggleSelectionMode = () => {
-    setSelectionMode(!selectionMode);
-
-    if (selectionMode) {
-      // If turning selection mode OFF, clear selection
-      setSelectedItems([]);
-    }
-  };
-
   const toggleItemSelection = useCallback((id: string) => {
     setSelectedItems((prev) => {
       const newSelectedItems = prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id];
       console.log('Selected items updated:', newSelectedItems);
-
-      return newSelectedItems; // Return the new array
+      return newSelectedItems;
     });
-  }, []); // No dependencies needed
-
-  const handleBulkDeleteClick = useCallback(() => {
-    if (selectedItems.length === 0) {
-      toast.info('Select at least one chat to delete');
-      return;
-    }
-
-    const selectedChats = list.filter((item) => selectedItems.includes(item.id));
-
-    if (selectedChats.length === 0) {
-      toast.error('Could not find selected chats');
-      return;
-    }
-
-    setDialogContent({ type: 'bulkDelete', items: selectedChats });
-  }, [selectedItems, list]); // Keep list dependency
+  }, []);
 
   const selectAll = useCallback(() => {
     const allFilteredIds = filteredList.map((item) => item.id);
@@ -246,20 +212,21 @@ export const Menu = () => {
       const allFilteredAreSelected = allFilteredIds.length > 0 && allFilteredIds.every((id) => prev.includes(id));
 
       if (allFilteredAreSelected) {
-        // Deselect only the filtered items
         const newSelectedItems = prev.filter((id) => !allFilteredIds.includes(id));
         console.log('Deselecting all filtered items. New selection:', newSelectedItems);
-
         return newSelectedItems;
       } else {
-        // Select all filtered items, adding them to any existing selections
         const newSelectedItems = [...new Set([...prev, ...allFilteredIds])];
         console.log('Selecting all filtered items. New selection:', newSelectedItems);
-
         return newSelectedItems;
       }
     });
-  }, [filteredList]); // Depends only on filteredList
+  }, [filteredList]);
+
+  const setDialogContentWithLogging = useCallback((content: DialogContent) => {
+    console.log('Setting dialog content:', content);
+    setDialogContent(content);
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -267,41 +234,11 @@ export const Menu = () => {
     }
   }, [open, loadEntries]);
 
-  // Exit selection mode when sidebar is closed
   useEffect(() => {
     if (!open && selectionMode) {
-      /*
-       * Don't clear selection state anymore when sidebar closes
-       * This allows the selection to persist when reopening the sidebar
-       */
       console.log('Sidebar closed, preserving selection state');
     }
   }, [open, selectionMode]);
-
-  useEffect(() => {
-    const enterThreshold = 40;
-    const exitThreshold = 40;
-
-    function onMouseMove(event: MouseEvent) {
-      if (isSettingsOpen) {
-        return;
-      }
-
-      if (event.pageX < enterThreshold) {
-        setOpen(true);
-      }
-
-      if (menuRef.current && event.clientX > menuRef.current.getBoundingClientRect().right + exitThreshold) {
-        setOpen(false);
-      }
-    }
-
-    window.addEventListener('mousemove', onMouseMove);
-
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-    };
-  }, [isSettingsOpen]);
 
   const handleDuplicate = async (id: string) => {
     await duplicateCurrentChat(id);
@@ -317,13 +254,53 @@ export const Menu = () => {
     setIsSettingsOpen(false);
   };
 
-  const setDialogContentWithLogging = useCallback((content: DialogContent) => {
-    console.log('Setting dialog content:', content);
-    setDialogContent(content);
-  }, []);
+  const handleBulkDeleteClick = useCallback(() => {
+    if (selectedItems.length === 0) {
+      toast.info('Select at least one chat to delete');
+      return;
+    }
+
+    const selectedChats = list.filter((item) => selectedItems.includes(item.id));
+
+    if (selectedChats.length === 0) {
+      toast.error('Could not find selected chats');
+      return;
+    }
+
+    setDialogContent({ type: 'bulkDelete', items: selectedChats });
+  }, [selectedItems, list]);
+
+  useEffect(() => {
+    if (user?.id && !hasMigrated && db) {
+      migrateExistingChatsToUser(db, user.id)
+        .then(() => {
+          setHasMigrated(true);
+          console.log('Successfully migrated existing chats to user:', user.id);
+        })
+        .catch((error) => {
+          console.error('Failed to migrate chats:', error);
+        });
+    }
+  }, [user?.id, hasMigrated]);
 
   return (
     <>
+      {!open && (
+        <motion.button
+          onClick={() => setOpen(true)}
+          className={classNames(
+            'fixed bottom-4 left-4 z-[100]',
+            'flex items-center rounded-md p-1',
+            'text-[#666] bg-transparent',
+            'hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive/10',
+            'transition-colors'
+          )}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <div className="i-ph:list text-2xl" />
+        </motion.button>
+      )}
       <motion.div
         ref={menuRef}
         initial="closed"
@@ -331,20 +308,20 @@ export const Menu = () => {
         variants={menuVariants}
         style={{ width: '340px' }}
         className={classNames(
-          'flex selection-accent flex-col side-menu fixed top-0 h-full',
-          'bg-white dark:bg-gray-950 border-r border-gray-100 dark:border-gray-800/50',
-          'shadow-sm text-sm',
+          'flex selection-accent flex-col side-menu fixed',
+          'min-h-[300px] max-h-[calc(100vh-180px)]',
+          'bg-white dark:bg-gray-950',
+          'shadow-2xl rounded-2xl',
+          'text-sm overflow-hidden',
+          'left-4 bottom-4',
           isSettingsOpen ? 'z-40' : 'z-sidebar',
         )}
       >
-        <div className="h-12 flex items-center justify-between px-4 border-b border-gray-100 dark:border-gray-800/50 bg-gray-50/50 dark:bg-gray-900/50">
-          <div className="text-gray-900 dark:text-white font-medium"></div>
+        <div className="h-14 flex items-center justify-between px-5 bg-gray-50/80 dark:bg-gray-900/50 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800/50 rounded-t-2xl">
+          <div className="text-gray-900 dark:text-white font-medium text-base">Menu</div>
           <div className="flex items-center gap-3">
-            <span className="font-medium text-sm text-gray-900 dark:text-white truncate">
-              {profile?.username || 'Guest User'}
-            </span>
-            <div className="flex items-center justify-center w-[32px] h-[32px] overflow-hidden bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-500 rounded-full shrink-0">
-              {profile?.avatar ? (
+            {profile?.avatar && (
+              <div className="flex items-center justify-center w-8 h-8 overflow-hidden bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-500 rounded-full shrink-0 ring-2 ring-purple-100 dark:ring-purple-900">
                 <img
                   src={profile.avatar}
                   alt={profile?.username || 'User'}
@@ -352,74 +329,77 @@ export const Menu = () => {
                   loading="eager"
                   decoding="sync"
                 />
-              ) : (
-                <div className="i-ph:user-fill text-lg" />
+              </div>
+            )}
+            <motion.button
+              onClick={() => setOpen(false)}
+              className={classNames(
+                'flex items-center rounded-md p-1',
+                'text-[#666] bg-transparent',
+                'hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive/10',
+                'transition-colors'
               )}
-            </div>
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <div className="i-ph:x text-xl" />
+            </motion.button>
           </div>
         </div>
-        <CurrentDateTime />
         <div className="flex-1 flex flex-col h-full w-full overflow-hidden">
-          <div className="p-4 space-y-3">
-            <div className="flex gap-2">
-              <a
-                href="/"
-                className="flex-1 flex gap-2 items-center bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-500/20 rounded-lg px-4 py-2 transition-colors"
-              >
-                <span className="inline-block i-ph:plus-circle h-4 w-4" />
-                <span className="text-sm font-medium">Start new chat</span>
-              </a>
-              <button
-                onClick={toggleSelectionMode}
-                className={classNames(
-                  'flex gap-1 items-center rounded-lg px-3 py-2 transition-colors',
-                  selectionMode
-                    ? 'bg-purple-600 dark:bg-purple-500 text-white border border-purple-700 dark:border-purple-600'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700',
-                )}
-                aria-label={selectionMode ? 'Exit selection mode' : 'Enter selection mode'}
-              >
-                <span className={selectionMode ? 'i-ph:x h-4 w-4' : 'i-ph:check-square h-4 w-4'} />
-              </button>
-            </div>
+          <div className="p-5 space-y-4">
+            <motion.a
+              href="/"
+              className="flex-1 flex gap-2 items-center justify-center bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-500/20 rounded-xl px-4 py-2.5 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <span className="inline-block i-ph:plus-circle h-5 w-5" />
+              <span className="text-sm font-medium">Start new chat</span>
+            </motion.a>
             <div className="relative w-full">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2">
                 <span className="i-ph:magnifying-glass h-4 w-4 text-gray-400 dark:text-gray-500" />
               </div>
               <input
-                className="w-full bg-gray-50 dark:bg-gray-900 relative pl-9 pr-3 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500/50 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-800"
+                className="w-full bg-gray-50 dark:bg-gray-900 relative pl-10 pr-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-800 transition-all duration-200"
                 type="search"
                 placeholder="Search chats..."
                 onChange={handleSearchChange}
                 aria-label="Search chats"
               />
             </div>
+            <div className="flex items-center justify-between">
+              <Button variant="ghost" size="sm" onClick={() => setSelectionMode(!selectionMode)}>
+                {selectionMode ? 'Cancel Selection' : 'Select Chats'}
+              </Button>
+              {selectionMode && (
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={selectAll}>
+                    {selectedItems.length === filteredList.length ? 'Deselect all' : 'Select all'}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBulkDeleteClick}
+                    disabled={selectedItems.length === 0}
+                  >
+                    Delete selected
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex items-center justify-between text-sm px-4 py-2">
-            <div className="font-medium text-gray-600 dark:text-gray-400">Your Chats</div>
-            {selectionMode && (
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={selectAll}>
-                  {selectedItems.length === filteredList.length ? 'Deselect all' : 'Select all'}
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleBulkDeleteClick}
-                  disabled={selectedItems.length === 0}
-                >
-                  Delete selected
-                </Button>
-              </div>
-            )}
-          </div>
-          <div className="flex-1 overflow-auto px-3 pb-3">
-            {filteredList.length === 0 && (
-              <div className="px-4 text-gray-500 dark:text-gray-400 text-sm">
-                {list.length === 0 ? 'No previous conversations' : 'No matches found'}
-              </div>
-            )}
-            <DialogRoot open={dialogContent !== null}>
+          <div className="flex-1 overflow-auto">
+            <div className="flex items-center justify-between text-sm px-5 py-2">
+              <div className="font-medium text-gray-900 dark:text-gray-100">Your Chats</div>
+            </div>
+            <div className="px-3 pb-3 hover:pr-2 transition-all duration-200">
+              {filteredList.length === 0 && (
+                <div className="px-4 text-gray-500 dark:text-gray-400 text-sm">
+                  {list.length === 0 ? 'No previous conversations' : 'No matches found'}
+                </div>
+              )}
               {binDates(filteredList).map(({ category, items }) => (
                 <div key={category} className="mt-2 first:mt-0 space-y-1">
                   <div className="text-xs font-medium text-gray-500 dark:text-gray-400 sticky top-0 z-1 bg-white dark:bg-gray-950 px-4 py-1">
@@ -446,92 +426,96 @@ export const Menu = () => {
                   </div>
                 </div>
               ))}
-              <Dialog onBackdrop={closeDialog} onClose={closeDialog}>
-                {dialogContent?.type === 'delete' && (
-                  <>
-                    <div className="p-6 bg-white dark:bg-gray-950">
-                      <DialogTitle className="text-gray-900 dark:text-white">Delete Chat?</DialogTitle>
-                      <DialogDescription className="mt-2 text-gray-600 dark:text-gray-400">
-                        <p>
-                          You are about to delete{' '}
-                          <span className="font-medium text-gray-900 dark:text-white">
-                            {dialogContent.item.description}
-                          </span>
-                        </p>
-                        <p className="mt-2">Are you sure you want to delete this chat?</p>
-                      </DialogDescription>
-                    </div>
-                    <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
-                      <DialogButton type="secondary" onClick={closeDialog}>
-                        Cancel
-                      </DialogButton>
-                      <DialogButton
-                        type="danger"
-                        onClick={(event) => {
-                          console.log('Dialog delete button clicked for item:', dialogContent.item);
-                          deleteItem(event, dialogContent.item);
-                          closeDialog();
-                        }}
-                      >
-                        Delete
-                      </DialogButton>
-                    </div>
-                  </>
-                )}
-                {dialogContent?.type === 'bulkDelete' && (
-                  <>
-                    <div className="p-6 bg-white dark:bg-gray-950">
-                      <DialogTitle className="text-gray-900 dark:text-white">Delete Selected Chats?</DialogTitle>
-                      <DialogDescription className="mt-2 text-gray-600 dark:text-gray-400">
-                        <p>
-                          You are about to delete {dialogContent.items.length}{' '}
-                          {dialogContent.items.length === 1 ? 'chat' : 'chats'}:
-                        </p>
-                        <div className="mt-2 max-h-32 overflow-auto border border-gray-100 dark:border-gray-800 rounded-md bg-gray-50 dark:bg-gray-900 p-2">
-                          <ul className="list-disc pl-5 space-y-1">
-                            {dialogContent.items.map((item) => (
-                              <li key={item.id} className="text-sm">
-                                <span className="font-medium text-gray-900 dark:text-white">{item.description}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        <p className="mt-3">Are you sure you want to delete these chats?</p>
-                      </DialogDescription>
-                    </div>
-                    <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
-                      <DialogButton type="secondary" onClick={closeDialog}>
-                        Cancel
-                      </DialogButton>
-                      <DialogButton
-                        type="danger"
-                        onClick={() => {
-                          /*
-                           * Pass the current selectedItems to the delete function.
-                           * This captures the state at the moment the user confirms.
-                           */
-                          const itemsToDeleteNow = [...selectedItems];
-                          console.log('Bulk delete confirmed for', itemsToDeleteNow.length, 'items', itemsToDeleteNow);
-                          deleteSelectedItems(itemsToDeleteNow);
-                          closeDialog();
-                        }}
-                      >
-                        Delete
-                      </DialogButton>
-                    </div>
-                  </>
-                )}
-              </Dialog>
-            </DialogRoot>
+            </div>
           </div>
-          <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-800 px-4 py-3">
-            <SettingsButton onClick={handleSettingsClick} />
-            <ThemeSwitch />
+          <div className="flex items-center justify-end border-t border-gray-100 dark:border-gray-800 px-5 py-4 bg-gray-50/80 dark:bg-gray-900/50 backdrop-blur-sm">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <SettingsButton onClick={handleSettingsClick} />
+            </motion.div>
           </div>
         </div>
       </motion.div>
 
       <ControlPanel open={isSettingsOpen} onClose={handleSettingsClose} />
+
+      <DialogRoot open={dialogContent !== null}>
+        {dialogContent?.type === 'delete' && (
+          <>
+            <DialogTitle>Delete chat</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this chat? This action cannot be undone.
+            </DialogDescription>
+            <div className="flex justify-end gap-2 mt-4">
+              <DialogButton type="secondary" onClick={() => setDialogContent(null)}>
+                Cancel
+              </DialogButton>
+              <DialogButton
+                type="danger"
+                onClick={(event) => {
+                  event.preventDefault();
+                  if (dialogContent.item) {
+                    deleteItem(event, dialogContent.item);
+                  }
+                  setDialogContent(null);
+                }}
+              >
+                Delete
+              </DialogButton>
+            </div>
+          </>
+        )}
+        {dialogContent?.type === 'bulkDelete' && (
+          <>
+            <DialogTitle>Delete multiple chats</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {dialogContent.items.length} chat
+              {dialogContent.items.length === 1 ? '' : 's'}? This action cannot be undone.
+            </DialogDescription>
+            <div className="flex justify-end gap-2 mt-4">
+              <DialogButton type="secondary" onClick={() => setDialogContent(null)}>
+                Cancel
+              </DialogButton>
+              <DialogButton
+                type="danger"
+                onClick={(event) => {
+                  event.preventDefault();
+                  if (dialogContent.items) {
+                    deleteSelectedItems(dialogContent.items.map((item) => item.id));
+                  }
+                  setDialogContent(null);
+                }}
+              >
+                Delete
+              </DialogButton>
+            </div>
+          </>
+        )}
+      </DialogRoot>
     </>
   );
+};
+
+// Wrapper component that handles auth check
+export const Menu = () => {
+  const { user } = useAuth();
+  const [hasMigrated, setHasMigrated] = useState(false);
+  
+  useEffect(() => {
+    if (user?.id && !hasMigrated && db) {
+      migrateExistingChatsToUser(db, user.id)
+        .then(() => {
+          setHasMigrated(true);
+          console.log('Successfully migrated existing chats to user:', user.id);
+        })
+        .catch((error) => {
+          console.error('Failed to migrate chats:', error);
+        });
+    }
+  }, [user?.id, hasMigrated]);
+  
+  if (!user) {
+    return null;
+  }
+
+  return <MenuComponent />;
 };

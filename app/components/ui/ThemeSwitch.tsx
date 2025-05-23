@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { memo, useEffect, useState } from 'react';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
-import { IconButton } from './IconButton';
+import { classNames } from '~/utils/classNames';
 
 interface ThemeSwitchProps {
   className?: string;
@@ -17,14 +17,19 @@ export const ThemeSwitch = memo(({ className }: ThemeSwitchProps) => {
 
   return (
     domLoaded && (
-      <IconButton
-        className={`${className} p-2 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 shadow-sm`}
-        icon={theme === 'dark' ? 'i-ph:sun-dim-duotone' : 'i-ph:moon-stars-duotone'}
-        iconClassName="text-gray-800 dark:text-gray-200 text-lg"
-        size="xl"
-        title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      <button
+        className={classNames(
+          'flex items-center rounded-md p-1',
+          'text-[#666] bg-transparent',
+          'hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive/10',
+          'transition-colors',
+          className
+        )}
         onClick={toggleTheme}
-      />
+        title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      >
+        <div className={theme === 'dark' ? 'i-ph:sun-dim text-xl' : 'i-ph:moon-stars text-xl'} />
+      </button>
     )
   );
 });

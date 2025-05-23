@@ -10,18 +10,22 @@ import {
   getNextId,
   getUrlId,
   openDatabase,
+  ensureDatabase,
   setMessages,
   duplicateChat,
   createChatFromMessages,
   getSnapshot,
   setSnapshot,
   type IChatMetadata,
+  getAll,
 } from './db';
+import { syncChatToSupabase, syncChatsFromSupabase, deleteChatFromSupabase, performInitialSync } from './supabaseSync';
 import type { FileMap } from '~/lib/stores/files';
 import type { Snapshot } from './types';
 import { webcontainer } from '~/lib/webcontainer';
 import { detectProjectCommands, createCommandActionsString } from '~/utils/projectCommands';
 import type { ContextAnnotation } from '~/types/context';
+import { useAuth } from '~/lib/hooks/useAuth';
 
 export interface ChatHistoryItem {
   id: string;
@@ -30,10 +34,12 @@ export interface ChatHistoryItem {
   messages: Message[];
   timestamp: string;
   metadata?: IChatMetadata;
+  user_id: string;
 }
 
 const persistenceEnabled = !import.meta.env.VITE_DISABLE_PERSISTENCE;
 
+// Initialize database
 export const db = persistenceEnabled ? await openDatabase() : undefined;
 
 export const chatId = atom<string | undefined>(undefined);
@@ -43,165 +49,99 @@ export function useChatHistory() {
   const navigate = useNavigate();
   const { id: mixedId } = useLoaderData<{ id?: string }>();
   const [searchParams] = useSearchParams();
+  const { user, loading, initialized } = useAuth();
 
   const [archivedMessages, setArchivedMessages] = useState<Message[]>([]);
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
   const [ready, setReady] = useState<boolean>(false);
   const [urlId, setUrlId] = useState<string | undefined>();
+  const [database, setDatabase] = useState<IDBDatabase | undefined>(db);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
+  // Ensure database connection
   useEffect(() => {
-    if (!db) {
-      setReady(true);
+    if (persistenceEnabled) {
+      ensureDatabase().then(setDatabase);
+    }
+  }, []);
 
-      if (persistenceEnabled) {
-        const error = new Error('Chat persistence is unavailable');
-        logStore.logError('Chat persistence initialization failed', error);
-        toast.error('Chat persistence is unavailable');
-      }
-
+  // Initial load and sync effect
+  useEffect(() => {
+    if (loading || !initialized) {
       return;
     }
 
-    if (mixedId) {
-      Promise.all([
-        getMessages(db, mixedId),
-        getSnapshot(db, mixedId), // Fetch snapshot from DB
-      ])
-        .then(async ([storedMessages, snapshot]) => {
-          if (storedMessages && storedMessages.messages.length > 0) {
-            /*
-             * const snapshotStr = localStorage.getItem(`snapshot:${mixedId}`); // Remove localStorage usage
-             * const snapshot: Snapshot = snapshotStr ? JSON.parse(snapshotStr) : { chatIndex: 0, files: {} }; // Use snapshot from DB
-             */
-            const validSnapshot = snapshot || { chatIndex: '', files: {} }; // Ensure snapshot is not undefined
-            const summary = validSnapshot.summary;
+    if (!database && user?.id && persistenceEnabled) {
+      const error = new Error('Chat persistence is unavailable');
+      console.error('Database initialization failed');
+      logStore.logError('Chat persistence initialization failed', error);
+      toast.error('Chat persistence is unavailable');
+      setReady(true);
+      return;
+    }
 
-            const rewindId = searchParams.get('rewindTo');
-            let startingIdx = -1;
-            const endingIdx = rewindId
-              ? storedMessages.messages.findIndex((m) => m.id === rewindId) + 1
-              : storedMessages.messages.length;
-            const snapshotIndex = storedMessages.messages.findIndex((m) => m.id === validSnapshot.chatIndex);
+    if (!user?.id) {
+      setReady(true);
+      return;
+    }
 
-            if (snapshotIndex >= 0 && snapshotIndex < endingIdx) {
-              startingIdx = snapshotIndex;
-            }
+    const loadAndSync = async () => {
+      setIsSyncing(true);
+      try {
+        if (!database) {
+          setInitialMessages([]);
+          setReady(true);
+          return;
+        }
 
-            if (snapshotIndex > 0 && storedMessages.messages[snapshotIndex].id == rewindId) {
-              startingIdx = -1;
-            }
+        // Perform initial sync between IndexedDB and Supabase
+        await performInitialSync(database, user.id);
 
-            let filteredMessages = storedMessages.messages.slice(startingIdx + 1, endingIdx);
-            let archivedMessages: Message[] = [];
-
-            if (startingIdx >= 0) {
-              archivedMessages = storedMessages.messages.slice(0, startingIdx + 1);
-            }
-
-            setArchivedMessages(archivedMessages);
-
-            if (startingIdx > 0) {
-              const files = Object.entries(validSnapshot?.files || {})
-                .map(([key, value]) => {
-                  if (value?.type !== 'file') {
-                    return null;
-                  }
-
-                  return {
-                    content: value.content,
-                    path: key,
-                  };
-                })
-                .filter((x): x is { content: string; path: string } => !!x); // Type assertion
-              const projectCommands = await detectProjectCommands(files);
-
-              // Call the modified function to get only the command actions string
-              const commandActionsString = createCommandActionsString(projectCommands);
-
-              filteredMessages = [
-                {
-                  id: generateId(),
-                  role: 'user',
-                  content: `Restore project from snapshot`, // Removed newline
-                  annotations: ['no-store', 'hidden'],
-                },
-                {
-                  id: storedMessages.messages[snapshotIndex].id,
-                  role: 'assistant',
-
-                  // Combine followup message and the artifact with files and command actions
-                  content: `Bolt Restored your chat from a snapshot. You can revert this message to load the full chat history.
-                  <boltArtifact id="restored-project-setup" title="Restored Project & Setup" type="bundled">
-                  ${Object.entries(snapshot?.files || {})
-                    .map(([key, value]) => {
-                      if (value?.type === 'file') {
-                        return `
-                      <boltAction type="file" filePath="${key}">
-${value.content}
-                      </boltAction>
-                      `;
-                      } else {
-                        return ``;
-                      }
-                    })
-                    .join('\n')}
-                  ${commandActionsString} 
-                  </boltArtifact>
-                  `, // Added commandActionsString, followupMessage, updated id and title
-                  annotations: [
-                    'no-store',
-                    ...(summary
-                      ? [
-                          {
-                            chatId: storedMessages.messages[snapshotIndex].id,
-                            type: 'chatSummary',
-                            summary,
-                          } satisfies ContextAnnotation,
-                        ]
-                      : []),
-                  ],
-                },
-
-                // Remove the separate user and assistant messages for commands
-                /*
-                 *...(commands !== null // This block is no longer needed
-                 *  ? [ ... ]
-                 *  : []),
-                 */
-                ...filteredMessages,
-              ];
-              restoreSnapshot(mixedId);
-            }
-
-            setInitialMessages(filteredMessages);
-
-            setUrlId(storedMessages.urlId);
-            description.set(storedMessages.description);
-            chatId.set(storedMessages.id);
-            chatMetadata.set(storedMessages.metadata);
-          } else {
-            navigate('/', { replace: true });
+        // Load specific chat if ID is provided
+        if (mixedId) {
+          const chat = await getMessages(database, mixedId);
+          if (!chat) {
+            setReady(true);
+            return;
           }
 
-          setReady(true);
-        })
-        .catch((error) => {
-          console.error(error);
+          if (chat.user_id !== user.id) {
+            setReady(true);
+            toast.error('You do not have access to this chat');
+            navigate('/');
+            return;
+          }
 
-          logStore.logError('Failed to load chat messages or snapshot', error); // Updated error message
-          toast.error('Failed to load chat: ' + error.message); // More specific error
-        });
-    } else {
-      // Handle case where there is no mixedId (e.g., new chat)
-      setReady(true);
-    }
-  }, [mixedId, db, navigate, searchParams]); // Added db, navigate, searchParams dependencies
+          chatId.set(chat.id);
+          setUrlId(chat.urlId);
+          setInitialMessages(chat.messages);
+          description.set(chat.description);
+          chatMetadata.set(chat.metadata);
+
+          const snapshot = await getSnapshot(database, chat.id);
+          if (snapshot) {
+            workbenchStore.setDocuments(snapshot.files);
+          }
+        }
+
+        setReady(true);
+      } catch (error) {
+        console.error('Failed to sync chats:', error);
+        toast.error('Failed to sync chats with cloud storage');
+        setReady(true);
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+
+    loadAndSync();
+  }, [mixedId, navigate, user?.id, loading, initialized, database]);
 
   const takeSnapshot = useCallback(
     async (chatIdx: string, files: FileMap, _chatId?: string | undefined, chatSummary?: string) => {
       const id = chatId.get();
 
-      if (!id || !db) {
+      if (!id || !database) {
         return;
       }
 
@@ -213,13 +153,13 @@ ${value.content}
 
       // localStorage.setItem(`snapshot:${id}`, JSON.stringify(snapshot)); // Remove localStorage usage
       try {
-        await setSnapshot(db, id, snapshot);
+        await setSnapshot(database, id, snapshot);
       } catch (error) {
         console.error('Failed to save snapshot:', error);
         toast.error('Failed to save chat snapshot.');
       }
     },
-    [db],
+    [database],
   );
 
   const restoreSnapshot = useCallback(async (id: string, snapshot?: Snapshot) => {
@@ -258,23 +198,33 @@ ${value.content}
   return {
     ready: !mixedId || ready,
     initialMessages,
-    updateChatMestaData: async (metadata: IChatMetadata) => {
+    isSyncing,
+    updateChatMetadata: async (metadata: IChatMetadata) => {
       const id = chatId.get();
 
-      if (!db || !id) {
+      if (!database || !id || !user?.id) {
         return;
       }
 
       try {
-        await setMessages(db, id, initialMessages, urlId, description.get(), undefined, metadata);
+        await setMessages(database, id, initialMessages, user.id, urlId, description.get(), undefined, metadata);
         chatMetadata.set(metadata);
+        await syncChatToSupabase({
+          id,
+          user_id: user.id,
+          urlId,
+          description: description.get(),
+          messages: initialMessages,
+          timestamp: new Date().toISOString(),
+          metadata,
+        });
       } catch (error) {
         toast.error('Failed to update chat metadata');
         console.error(error);
       }
     },
     storeMessageHistory: async (messages: Message[]) => {
-      if (!db || messages.length === 0) {
+      if (!database || messages.length === 0 || !user?.id) {
         return;
       }
 
@@ -284,7 +234,7 @@ ${value.content}
       let _urlId = urlId;
 
       if (!urlId && firstArtifact?.id) {
-        const urlId = await getUrlId(db, firstArtifact.id);
+        const urlId = await getUrlId(database, firstArtifact.id);
         _urlId = urlId;
         navigateChat(urlId);
         setUrlId(urlId);
@@ -311,10 +261,8 @@ ${value.content}
         description.set(firstArtifact?.title);
       }
 
-      // Ensure chatId.get() is used here as well
       if (initialMessages.length === 0 && !chatId.get()) {
-        const nextId = await getNextId(db);
-
+        const nextId = await getNextId(database);
         chatId.set(nextId);
 
         if (!urlId) {
@@ -322,33 +270,58 @@ ${value.content}
         }
       }
 
-      // Ensure chatId.get() is used for the final setMessages call
       const finalChatId = chatId.get();
 
       if (!finalChatId) {
         console.error('Cannot save messages, chat ID is not set.');
         toast.error('Failed to save chat messages: Chat ID missing.');
-
         return;
       }
 
+      const timestamp = new Date().toISOString();
+      const allMessages = [...archivedMessages, ...messages];
+
       await setMessages(
-        db,
-        finalChatId, // Use the potentially updated chatId
-        [...archivedMessages, ...messages],
+        database,
+        finalChatId,
+        allMessages,
+        user.id,
         urlId,
         description.get(),
-        undefined,
+        timestamp,
         chatMetadata.get(),
       );
+
+      await syncChatToSupabase({
+        id: finalChatId,
+        user_id: user.id,
+        urlId,
+        description: description.get(),
+        messages: allMessages,
+        timestamp,
+        metadata: chatMetadata.get(),
+      });
     },
     duplicateCurrentChat: async (listItemId: string) => {
-      if (!db || (!mixedId && !listItemId)) {
+      if (!database || (!mixedId && !listItemId) || !user?.id) {
         return;
       }
 
       try {
-        const newId = await duplicateChat(db, mixedId || listItemId);
+        const chat = await getMessages(database, mixedId || listItemId);
+        if (!chat || chat.user_id !== user.id) {
+          toast.error('You do not have access to this chat');
+          return;
+        }
+
+        const newId = await duplicateChat(database, mixedId || listItemId, user.id);
+        
+        // Also duplicate in Supabase
+        const newChat = await getMessages(database, newId);
+        if (newChat) {
+          await syncChatToSupabase(newChat);
+        }
+
         navigate(`/chat/${newId}`);
         toast.success('Chat duplicated successfully');
       } catch (error) {
@@ -357,12 +330,19 @@ ${value.content}
       }
     },
     importChat: async (description: string, messages: Message[], metadata?: IChatMetadata) => {
-      if (!db) {
+      if (!database || !user?.id) {
         return;
       }
 
       try {
-        const newId = await createChatFromMessages(db, description, messages, metadata);
+        const newId = await createChatFromMessages(database, description, messages, user.id, metadata);
+        
+        // Also import to Supabase
+        const newChat = await getMessages(database, newId);
+        if (newChat) {
+          await syncChatToSupabase(newChat);
+        }
+
         window.location.href = `/chat/${newId}`;
         toast.success('Chat imported successfully');
       } catch (error) {
@@ -374,11 +354,11 @@ ${value.content}
       }
     },
     exportChat: async (id = urlId) => {
-      if (!db || !id) {
+      if (!database || !id) {
         return;
       }
 
-      const chat = await getMessages(db, id);
+      const chat = await getMessages(database, id);
       const chatData = {
         messages: chat.messages,
         description: chat.description,

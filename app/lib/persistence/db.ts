@@ -11,51 +11,129 @@ export interface IChatMetadata {
 
 const logger = createScopedLogger('ChatHistory');
 
+let dbInstance: IDBDatabase | undefined;
+
 // this is used at the top level and never rejects
 export async function openDatabase(): Promise<IDBDatabase | undefined> {
+  // If we already have a database instance, return it
+  if (dbInstance) {
+    return dbInstance;
+  }
+
   if (typeof indexedDB === 'undefined') {
     console.error('indexedDB is not available in this environment.');
     return undefined;
   }
 
+  console.log('Attempting to open IndexedDB database...');
+
   return new Promise((resolve) => {
-    const request = indexedDB.open('boltHistory', 2);
+    try {
+      // Increment version to 4 to force upgrade
+      const request = indexedDB.open('boltHistory', 4);
 
-    request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      const oldVersion = event.oldVersion;
+      request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
+        console.log('Database upgrade needed. Current version:', event.oldVersion);
+        const db = (event.target as IDBOpenDBRequest).result;
+        const oldVersion = event.oldVersion;
 
-      if (oldVersion < 1) {
-        if (!db.objectStoreNames.contains('chats')) {
-          const store = db.createObjectStore('chats', { keyPath: 'id' });
-          store.createIndex('id', 'id', { unique: true });
-          store.createIndex('urlId', 'urlId', { unique: true });
+        try {
+          // Create stores if they don't exist
+          if (!db.objectStoreNames.contains('chats')) {
+            console.log('Creating chats store...');
+            const store = db.createObjectStore('chats', { keyPath: 'id' });
+            store.createIndex('id', 'id', { unique: true });
+            store.createIndex('urlId', 'urlId', { unique: true });
+            store.createIndex('user_id', 'user_id', { unique: false });
+          }
+
+          if (!db.objectStoreNames.contains('snapshots')) {
+            console.log('Creating snapshots store...');
+            db.createObjectStore('snapshots', { keyPath: 'chatId' });
+          }
+
+          // Always ensure the user_id index exists
+          const store = db.transaction('chats', 'readwrite').objectStore('chats');
+          if (!store.indexNames.contains('user_id')) {
+            console.log('Adding user_id index...');
+            store.createIndex('user_id', 'user_id', { unique: false });
+          }
+
+          // If upgrading from version 3, we need to ensure all existing records have a user_id
+          if (oldVersion === 3) {
+            console.log('Migrating existing records to include user_id...');
+            const transaction = db.transaction('chats', 'readwrite');
+            const store = transaction.objectStore('chats');
+            const request = store.openCursor();
+
+            request.onsuccess = () => {
+              const cursor = request.result;
+              if (cursor) {
+                const chat = cursor.value;
+                if (!chat.user_id) {
+                  chat.user_id = 'migrated';
+                  cursor.update(chat);
+                }
+                cursor.continue();
+              }
+            };
+          }
+        } catch (error) {
+          console.error('Error during database upgrade:', error);
+          logger.error(error);
         }
-      }
+      };
 
-      if (oldVersion < 2) {
-        if (!db.objectStoreNames.contains('snapshots')) {
-          db.createObjectStore('snapshots', { keyPath: 'chatId' });
-        }
-      }
-    };
+      request.onsuccess = (event: Event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        console.log('Successfully opened database:', db.name, 'version:', db.version);
+        
+        // Store the database instance
+        dbInstance = db;
+        
+        // Handle connection loss
+        db.onversionchange = () => {
+          db.close();
+          dbInstance = undefined;
+          console.log('Database connection closed due to version change');
+        };
+        
+        resolve(db);
+      };
 
-    request.onsuccess = (event: Event) => {
-      resolve((event.target as IDBOpenDBRequest).result);
-    };
+      request.onerror = (event: Event) => {
+        const error = (event.target as IDBOpenDBRequest).error;
+        console.error('Failed to open database:', error);
+        logger.error(error);
+        resolve(undefined);
+      };
 
-    request.onerror = (event: Event) => {
+      request.onblocked = (event: Event) => {
+        console.error('Database opening blocked. Please close other tabs with this site open.');
+        resolve(undefined);
+      };
+    } catch (error) {
+      console.error('Error creating database connection:', error);
+      logger.error(error);
       resolve(undefined);
-      logger.error((event.target as IDBOpenDBRequest).error);
-    };
+    }
   });
 }
 
-export async function getAll(db: IDBDatabase): Promise<ChatHistoryItem[]> {
+// Add a function to check database connection
+export async function ensureDatabase(): Promise<IDBDatabase | undefined> {
+  if (!dbInstance) {
+    return openDatabase();
+  }
+  return dbInstance;
+}
+
+export async function getAll(db: IDBDatabase, userId: string): Promise<ChatHistoryItem[]> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('chats', 'readonly');
     const store = transaction.objectStore('chats');
-    const request = store.getAll();
+    const index = store.index('user_id');
+    const request = index.getAll(userId);
 
     request.onsuccess = () => resolve(request.result as ChatHistoryItem[]);
     request.onerror = () => reject(request.error);
@@ -66,6 +144,7 @@ export async function setMessages(
   db: IDBDatabase,
   id: string,
   messages: Message[],
+  userId: string,
   urlId?: string,
   description?: string,
   timestamp?: string,
@@ -87,6 +166,7 @@ export async function setMessages(
       description,
       timestamp: timestamp ?? new Date().toISOString(),
       metadata,
+      user_id: userId,
     });
 
     request.onsuccess = () => resolve();
@@ -242,36 +322,38 @@ export async function forkChat(db: IDBDatabase, chatId: string, messageId: strin
   return createChatFromMessages(db, chat.description ? `${chat.description} (fork)` : 'Forked chat', messages);
 }
 
-export async function duplicateChat(db: IDBDatabase, id: string): Promise<string> {
+export async function duplicateChat(db: IDBDatabase, id: string, userId: string): Promise<string> {
   const chat = await getMessages(db, id);
 
   if (!chat) {
     throw new Error('Chat not found');
   }
 
-  return createChatFromMessages(db, `${chat.description || 'Chat'} (copy)`, chat.messages);
+  return createChatFromMessages(db, `${chat.description || 'Chat'} (copy)`, chat.messages, userId, chat.metadata);
 }
 
 export async function createChatFromMessages(
   db: IDBDatabase,
   description: string,
   messages: Message[],
+  userId: string,
   metadata?: IChatMetadata,
 ): Promise<string> {
   const newId = await getNextId(db);
-  const newUrlId = await getUrlId(db, newId); // Get a new urlId for the duplicated chat
+  const newUrlId = await getUrlId(db, newId);
 
   await setMessages(
     db,
     newId,
     messages,
-    newUrlId, // Use the new urlId
+    userId,
+    newUrlId,
     description,
-    undefined, // Use the current timestamp
+    undefined,
     metadata,
   );
 
-  return newUrlId; // Return the urlId instead of id for navigation
+  return newUrlId;
 }
 
 export async function updateChatDescription(db: IDBDatabase, id: string, description: string): Promise<void> {
@@ -285,7 +367,7 @@ export async function updateChatDescription(db: IDBDatabase, id: string, descrip
     throw new Error('Description cannot be empty');
   }
 
-  await setMessages(db, id, chat.messages, chat.urlId, description, chat.timestamp, chat.metadata);
+  await setMessages(db, id, chat.messages, chat.userId, chat.urlId, description, chat.timestamp, chat.metadata);
 }
 
 export async function updateChatMetadata(
@@ -299,7 +381,7 @@ export async function updateChatMetadata(
     throw new Error('Chat not found');
   }
 
-  await setMessages(db, id, chat.messages, chat.urlId, chat.description, chat.timestamp, metadata);
+  await setMessages(db, id, chat.messages, chat.userId, chat.urlId, chat.description, chat.timestamp, metadata);
 }
 
 export async function getSnapshot(db: IDBDatabase, chatId: string): Promise<Snapshot | undefined> {
@@ -339,5 +421,30 @@ export async function deleteSnapshot(db: IDBDatabase, chatId: string): Promise<v
         reject(request.error);
       }
     };
+  });
+}
+
+export async function migrateExistingChatsToUser(db: IDBDatabase, userId: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('chats', 'readwrite');
+    const store = transaction.objectStore('chats');
+    const request = store.openCursor();
+
+    request.onsuccess = (event: Event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+      
+      if (cursor) {
+        const chat = cursor.value;
+        if (!chat.user_id) {
+          chat.user_id = userId;
+          cursor.update(chat);
+        }
+        cursor.continue();
+      } else {
+        resolve();
+      }
+    };
+
+    request.onerror = () => reject(request.error);
   });
 }

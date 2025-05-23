@@ -8,6 +8,7 @@ import { UserProfile } from '../auth/UserProfile';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { useState } from 'react';
 import { AuthModal } from '../auth/AuthModal';
+import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 
 export function Header() {
   const chat = useStore(chatStore);
@@ -28,9 +29,7 @@ export function Header() {
       })}
     >
       <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary cursor-pointer">
-        <div className="i-ph:sidebar-simple-duotone text-xl" />
         <a href="/" className="text-2xl font-semibold text-accent flex items-center">
-          {/* <span className="i-bolt:logo-text?mask w-[46px] inline-block" /> */}
           <img src="/logo-light-styled.png" alt="logo" className="w-[90px] inline-block dark:hidden" />
           <img src="/logo-dark-styled.png" alt="logo" className="w-[90px] inline-block hidden dark:block" />
         </a>
@@ -58,6 +57,9 @@ export function Header() {
         <ClientOnly>
           {() => (
             <div className="flex items-center gap-3">
+              <div className="text-gray-700 dark:text-gray-300">
+                <ThemeSwitch />
+              </div>
               {!isAuthenticated ? (
                 <>
                   <button

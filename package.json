@@ -38,7 +38,8 @@
     "electron:build:mac": "rm -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --mac",
     "electron:build:win": "rm -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --win",
     "electron:build:linux": "rm -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --linux",
-    "electron:build:dist": "rm -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --mwl"
+    "electron:build:dist": "rm -rf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --mwl",
+    "migrate:supabase": "node scripts/migrate-supabase.js"
   },
   "engines": {
     "node": ">=18.18.0"
@@ -194,6 +195,8 @@
     "rimraf": "^4.4.1",
     "sass-embedded": "^1.81.0",
     "stream-browserify": "^3.0.0",
+    "supabase": "^2.23.4",
+    "ts-node": "^10.9.2",
     "typescript": "^5.7.2",
     "unified": "^11.0.5",
     "unocss": "^0.61.9",
