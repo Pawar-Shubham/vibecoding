@@ -1,4 +1,4 @@
-.venv
-site/
-.python-version
-node_modules/
+    .venv
+    site/
+    .python-version
+    node_modules/
