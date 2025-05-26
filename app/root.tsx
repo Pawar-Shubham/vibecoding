@@ -21,8 +21,20 @@ import 'virtual:uno.css';
 export const links: LinksFunction = () => [
   {
     rel: 'icon',
-    href: '/favicon.svg',
-    type: 'image/svg+xml',
+    href: '/chat-logo-dark-styled.png',
+    type: 'image/png',
+    sizes: '32x32',
+  },
+  {
+    rel: 'icon',
+    href: '/chat-logo-dark-styled.png',
+    type: 'image/png',
+    sizes: '96x96',
+  },
+  {
+    rel: 'apple-touch-icon',
+    href: '/chat-logo-dark-styled.png',
+    sizes: '180x180',
   },
   { rel: 'stylesheet', href: reactToastifyStyles },
   { rel: 'stylesheet', href: tailwindReset },

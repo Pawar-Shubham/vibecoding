@@ -20,8 +20,8 @@
 
 /* Specific overrides for light mode */
 :root[data-theme='light'] {
-  --auth-primary-color: #7c3aed; /* Vibrant purple */
-  --auth-primary-hover: #6d28d9; /* Darker purple on hover */
+  --auth-primary-color: #ef4444; /* Vibrant red */
+  --auth-primary-hover: #dc2626; /* Darker red on hover */
   --auth-border-color: #d1d5db; /* Visible border */
   --auth-btn-secondary-bg: #f3f4f6; /* Light gray background */
   --auth-btn-secondary-hover: #e5e7eb; /* Slightly darker on hover */

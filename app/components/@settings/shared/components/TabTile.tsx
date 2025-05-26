@@ -39,9 +39,9 @@ export const TabTile: React.FC<TabTileProps> = ({
               'bg-white dark:bg-[#141414]',
               'border border-[#E5E5E5] dark:border-[#333333]',
               'group',
-              'hover:bg-purple-50 dark:hover:bg-[#1a1a1a]',
-              'hover:border-purple-200 dark:hover:border-purple-900/30',
-              isActive ? 'border-purple-500 dark:border-purple-500/50 bg-purple-500/5 dark:bg-purple-500/10' : '',
+              'hover:bg-red-50 dark:hover:bg-[#1a1a1a]',
+              'hover:border-red-200 dark:hover:border-red-900/30',
+              isActive ? 'border-red-500 dark:border-red-500/50 bg-red-500/5 dark:bg-red-500/10' : '',
               isLoading ? 'cursor-wait opacity-70' : '',
               className || '',
             )}

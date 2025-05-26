@@ -9,6 +9,7 @@ import { useAuth } from '~/lib/hooks/useAuth';
 import { useState } from 'react';
 import { AuthModal } from '../auth/AuthModal';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
+import { Menu } from '~/components/sidebar/Menu.client';
 
 export function Header() {
   const chat = useStore(chatStore);
@@ -28,18 +29,33 @@ export function Header() {
         'border-bolt-elements-borderColor': chat.started,
       })}
     >
-      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary cursor-pointer">
+      {/* Logo */}
+      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary">
         <a href="/" className="text-2xl font-semibold text-accent flex items-center">
-          <img src="/logo-light-styled.png" alt="logo" className="w-[90px] inline-block dark:hidden" />
-          <img src="/logo-dark-styled.png" alt="logo" className="w-[90px] inline-block hidden dark:block" />
+          {!chat.started ? (
+            <>
+              <img src="/logo-light-styled.png" alt="logo" className="w-[90px] inline-block dark:hidden" />
+              <img src="/logo-dark-styled.png" alt="logo" className="w-[90px] inline-block hidden dark:block" />
+            </>
+          ) : (
+            <>
+              <img src="/chat-logo-light-styled.png" alt="logo" className="w-[90px] inline-block dark:hidden" />
+              <img src="/chat-logo-dark-styled.png" alt="logo" className="w-[90px] inline-block hidden dark:block" />
+            </>
+          )}
         </a>
       </div>
       
-      {/* Centered project name */}
+      {/* Centered project name with menu */}
       {chat.started && (
-        <span className="flex-1 px-4 truncate text-center text-bolt-elements-textPrimary">
-          <ClientOnly>{() => <ChatDescription />}</ClientOnly>
-        </span>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex items-center gap-2 relative">
+            <ClientOnly>{() => <Menu isLandingPage={false} />}</ClientOnly>
+            <span className="truncate text-center text-bolt-elements-textPrimary">
+              <ClientOnly>{() => <ChatDescription />}</ClientOnly>
+            </span>
+          </div>
+        </div>
       )}
 
       {/* Right-aligned action buttons and user profile */}

@@ -29,8 +29,8 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
 
   return new Promise((resolve) => {
     try {
-      // Increment version to 4 to force upgrade
-      const request = indexedDB.open('boltHistory', 4);
+      // Increment version to 5 to force upgrade and remove urlId unique constraint
+      const request = indexedDB.open('boltHistory', 5);
 
       request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
         console.log('Database upgrade needed. Current version:', event.oldVersion);
@@ -38,13 +38,21 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
         const oldVersion = event.oldVersion;
 
         try {
+          // If upgrading from version 4, we need to recreate the chats store without the unique urlId constraint
+          if (oldVersion <= 4 && db.objectStoreNames.contains('chats')) {
+            console.log('Removing chats store to rebuild without unique urlId constraint...');
+            db.deleteObjectStore('chats');
+          }
+
           // Create stores if they don't exist
           if (!db.objectStoreNames.contains('chats')) {
             console.log('Creating chats store...');
             const store = db.createObjectStore('chats', { keyPath: 'id' });
             store.createIndex('id', 'id', { unique: true });
-            store.createIndex('urlId', 'urlId', { unique: true });
+            store.createIndex('urlId', 'urlId', { unique: false }); // Remove unique constraint
             store.createIndex('user_id', 'user_id', { unique: false });
+            // Create a compound index for urlId + user_id if we need uniqueness per user
+            store.createIndex('urlId_user_id', ['urlId', 'user_id'], { unique: false });
           }
 
           if (!db.objectStoreNames.contains('snapshots')) {
@@ -263,18 +271,22 @@ export async function getNextId(db: IDBDatabase): Promise<string> {
 
 export async function getUrlId(db: IDBDatabase, id: string): Promise<string> {
   const idList = await getUrlIds(db);
-
-  if (!idList.includes(id)) {
-    return id;
-  } else {
-    let i = 2;
-
-    while (idList.includes(`${id}-${i}`)) {
-      i++;
-    }
-
-    return `${id}-${i}`;
+  
+  // Add timestamp to make the ID unique
+  const timestamp = Date.now();
+  const baseId = `${id}-${timestamp}`;
+  
+  if (!idList.includes(baseId)) {
+    return baseId;
   }
+  
+  // In the unlikely case of collision, add an incrementing number
+  let i = 2;
+  while (idList.includes(`${baseId}-${i}`)) {
+    i++;
+  }
+  
+  return `${baseId}-${i}`;
 }
 
 async function getUrlIds(db: IDBDatabase): Promise<string[]> {

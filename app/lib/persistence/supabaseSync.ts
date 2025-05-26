@@ -137,7 +137,6 @@ export async function performInitialSync(database: IDBDatabase, userId: string):
     }
 
     logger.info('Initial sync completed successfully');
-    toast.success('Chat history synced successfully');
   } catch (error) {
     logger.error('Failed to perform initial sync:', error);
     toast.error('Failed to sync chat history');

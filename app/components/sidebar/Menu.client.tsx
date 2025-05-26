@@ -3,8 +3,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
-import { ControlPanel } from '~/components/@settings/core/ControlPanel';
-import { SettingsButton } from '~/components/ui/SettingsButton';
 import { Button } from '~/components/ui/Button';
 import { db, deleteById, getAll, chatId, type ChatHistoryItem, useChatHistory, migrateExistingChatsToUser } from '~/lib/persistence';
 import { cubicEasingFn } from '~/utils/easings';
@@ -16,15 +14,17 @@ import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
 import { authStore } from '~/lib/stores/auth';
 import { useAuth } from '~/lib/hooks/useAuth';
+import { useSettingsStore } from '~/lib/stores/settings';
 
 const menuVariants = {
   closed: {
     opacity: 0,
     visibility: 'hidden',
-    y: 20,
+    y: -20,
+    transformOrigin: 'bottom left',
     scale: 0.95,
     transition: {
-      duration: 0.3,
+      duration: 0.2,
       ease: cubicEasingFn,
     },
   },
@@ -32,9 +32,10 @@ const menuVariants = {
     opacity: 1,
     visibility: 'initial',
     y: 0,
+    transformOrigin: 'bottom left',
     scale: 1,
     transition: {
-      duration: 0.3,
+      duration: 0.2,
       ease: cubicEasingFn,
     },
   },
@@ -67,13 +68,16 @@ function CurrentDateTime() {
   );
 }
 
-const MenuComponent = () => {
+interface MenuProps {
+  isLandingPage?: boolean;
+}
+
+const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
   const { duplicateCurrentChat, exportChat } = useChatHistory();
   const menuRef = useRef<HTMLDivElement>(null);
   const [list, setList] = useState<ChatHistoryItem[]>([]);
   const [open, setOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const profile = useStore(profileStore);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
@@ -245,15 +249,6 @@ const MenuComponent = () => {
     loadEntries(); // Reload the list after duplication
   };
 
-  const handleSettingsClick = () => {
-    setIsSettingsOpen(true);
-    setOpen(false);
-  };
-
-  const handleSettingsClose = () => {
-    setIsSettingsOpen(false);
-  };
-
   const handleBulkDeleteClick = useCallback(() => {
     if (selectedItems.length === 0) {
       toast.info('Select at least one chat to delete');
@@ -285,36 +280,38 @@ const MenuComponent = () => {
 
   return (
     <>
-      {!open && (
-        <motion.button
-          onClick={() => setOpen(true)}
-          className={classNames(
-            'fixed bottom-4 left-4 z-[100]',
-            'flex items-center rounded-md p-1',
-            'text-[#666] bg-transparent',
-            'hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive/10',
-            'transition-colors'
-          )}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <div className="i-ph:list text-2xl" />
-        </motion.button>
-      )}
+      <motion.button
+        onClick={() => setOpen(!open)}
+        className={classNames(
+          'flex items-center rounded-md p-1',
+          'text-[#666] bg-transparent',
+          'hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive/10',
+          'transition-colors',
+          { 'fixed bottom-4 left-4 z-[100]': isLandingPage, 'opacity-0': isLandingPage && open }
+        )}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <div className="i-ph:list text-2xl" />
+      </motion.button>
       <motion.div
         ref={menuRef}
         initial="closed"
         animate={open ? 'open' : 'closed'}
         variants={menuVariants}
-        style={{ width: '340px' }}
+        style={isLandingPage ? 
+          { width: '380px', position: 'fixed', left: '1rem', bottom: '1rem', zIndex: 101 } :
+          { width: '380px', position: 'fixed', left: '36%', transform: 'translateX(-50%)' }
+        }
         className={classNames(
-          'flex selection-accent flex-col side-menu fixed',
+          'flex selection-accent flex-col side-menu',
           'min-h-[300px] max-h-[calc(100vh-180px)]',
           'bg-white dark:bg-gray-950',
           'shadow-2xl rounded-2xl',
           'text-sm overflow-hidden',
-          'left-4 bottom-4',
-          isSettingsOpen ? 'z-40' : 'z-sidebar',
+          { 'top-[calc(var(--header-height)_+_0.5rem)]': !isLandingPage },
+          'z-sidebar',
+          'origin-bottom-left'
         )}
       >
         <div className="h-14 flex items-center justify-between px-5 bg-gray-50/80 dark:bg-gray-900/50 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800/50 rounded-t-2xl">
@@ -348,32 +345,24 @@ const MenuComponent = () => {
         </div>
         <div className="flex-1 flex flex-col h-full w-full overflow-hidden">
           <div className="p-5 space-y-4">
-            <motion.a
-              href="/"
-              className="flex-1 flex gap-2 items-center justify-center bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-500/20 rounded-xl px-4 py-2.5 transition-colors"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <span className="inline-block i-ph:plus-circle h-5 w-5" />
-              <span className="text-sm font-medium">Start new chat</span>
-            </motion.a>
             <div className="relative w-full">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                <span className="i-ph:magnifying-glass h-4 w-4 text-gray-400 dark:text-gray-500" />
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-gray-500">
+                <div className="i-ph:magnifying-glass text-[16px]" />
               </div>
               <input
-                className="w-full bg-gray-50 dark:bg-gray-900 relative pl-10 pr-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-800 transition-all duration-200"
+                className="w-full bg-gray-50 dark:bg-gray-900 pl-9 pr-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-800 transition-all duration-200"
                 type="search"
-                placeholder="Search chats..."
+                placeholder="Search Chats ..."
                 onChange={handleSearchChange}
                 aria-label="Search chats"
               />
             </div>
-            <div className="flex items-center justify-between">
-              <Button variant="ghost" size="sm" onClick={() => setSelectionMode(!selectionMode)}>
-                {selectionMode ? 'Cancel Selection' : 'Select Chats'}
-              </Button>
-              {selectionMode && (
+
+            {selectionMode && (
+              <div className="flex items-center justify-between gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setSelectionMode(false)}>
+                  Cancel
+                </Button>
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="sm" onClick={selectAll}>
                     {selectedItems.length === filteredList.length ? 'Deselect all' : 'Select all'}
@@ -387,7 +376,28 @@ const MenuComponent = () => {
                     Delete selected
                   </Button>
                 </div>
-              )}
+              </div>
+            )}
+
+            <div className="flex gap-2 w-full">
+              <motion.a
+                href="/"
+                className="w-1/2 flex gap-2 items-center justify-center bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-500/20 rounded-xl px-4 py-2.5 transition-colors"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="inline-block i-ph:plus-circle h-5 w-5" />
+                <span className="text-sm font-medium">New Chat</span>
+              </motion.a>
+              <motion.button
+                onClick={() => setSelectionMode(!selectionMode)}
+                className="w-1/2 flex gap-2 items-center justify-center bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-xl px-4 py-2.5 transition-colors"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="inline-block i-ph:trash h-5 w-5" />
+                <span className="text-sm font-medium">Delete Chat</span>
+              </motion.button>
             </div>
           </div>
           <div className="flex-1 overflow-auto">
@@ -428,15 +438,22 @@ const MenuComponent = () => {
               ))}
             </div>
           </div>
-          <div className="flex items-center justify-end border-t border-gray-100 dark:border-gray-800 px-5 py-4 bg-gray-50/80 dark:bg-gray-900/50 backdrop-blur-sm">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <SettingsButton onClick={handleSettingsClick} />
-            </motion.div>
+          <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 px-5 py-4 bg-gray-50/80 dark:bg-gray-900/50 backdrop-blur-sm">
+            <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
+              {user?.email}
+            </div>
+            <button
+              onClick={() => {
+                const settingsStore = useSettingsStore.getState();
+                settingsStore.openSettings();
+              }}
+              className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <div className="i-ph:gear text-lg text-gray-500 dark:text-gray-400" />
+            </button>
           </div>
         </div>
       </motion.div>
-
-      <ControlPanel open={isSettingsOpen} onClose={handleSettingsClose} />
 
       <DialogRoot open={dialogContent !== null}>
         {dialogContent?.type === 'delete' && (
@@ -496,7 +513,7 @@ const MenuComponent = () => {
 };
 
 // Wrapper component that handles auth check
-export const Menu = () => {
+export const Menu = ({ isLandingPage = false }: MenuProps) => {
   const { user } = useAuth();
   const [hasMigrated, setHasMigrated] = useState(false);
   
@@ -517,5 +534,5 @@ export const Menu = () => {
     return null;
   }
 
-  return <MenuComponent />;
+  return <MenuComponent isLandingPage={isLandingPage} />;
 };

@@ -108,9 +108,7 @@ export function HistoryItem({
           className="flex w-full relative truncate block"
           onClick={selectionMode ? handleItemClick : undefined}
         >
-          <WithTooltip tooltip={currentDescription}>
-            <span className="truncate pr-24">{currentDescription}</span>
-          </WithTooltip>
+          <span className="truncate pr-28">{currentDescription.length > 25 ? `${currentDescription.slice(0, 25)}...` : currentDescription}</span>
           <div
             className={classNames(
               'absolute right-0 top-0 bottom-0 flex items-center bg-transparent px-2 transition-colors',
