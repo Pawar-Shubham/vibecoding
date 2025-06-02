@@ -62,6 +62,36 @@ export function useChatHistory() {
   const [database, setDatabase] = useState<IDBDatabase | undefined>(db);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [lastSyncAttempt, setLastSyncAttempt] = useState<number>(0);
+  const [previousMixedId, setPreviousMixedId] = useState<string | undefined>();
+
+  // Define restoreSnapshot first, before it's used
+  const restoreSnapshot = async (id: string, snapshot?: Snapshot) => {
+    const container = await webcontainer;
+    const validSnapshot = snapshot || { chatIndex: '', files: {} };
+
+    if (!validSnapshot?.files) {
+      return;
+    }
+
+    Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
+      if (key.startsWith(container.workdir)) {
+        key = key.replace(container.workdir, '');
+      }
+
+      if (value?.type === 'folder') {
+        await container.fs.mkdir(key, { recursive: true });
+      }
+    });
+    Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
+      if (value?.type === 'file') {
+        if (key.startsWith(container.workdir)) {
+          key = key.replace(container.workdir, '');
+        }
+
+        await container.fs.writeFile(key, value.content, { encoding: value.isBinary ? undefined : 'utf8' });
+      }
+    });
+  };
 
   // Ensure database connection
   useEffect(() => {
@@ -69,6 +99,85 @@ export function useChatHistory() {
       ensureDatabase().then(setDatabase);
     }
   }, []);
+
+  // Reset ready state when mixedId changes to force reload
+  useEffect(() => {
+    if (mixedId !== previousMixedId) {
+      logger.info('Chat ID changed, resetting state', { from: previousMixedId, to: mixedId });
+      setReady(false);
+      setInitialMessages([]);
+      setUrlId(undefined);
+      chatId.set(undefined);
+      description.set(undefined);
+      chatMetadata.set(undefined);
+      setPreviousMixedId(mixedId);
+
+      // Reset workbench state
+      workbenchStore.resetAllFileModifications();
+      workbenchStore.setDocuments({});
+      workbenchStore.clearAlert();
+      workbenchStore.clearSupabaseAlert();
+      workbenchStore.clearDeployAlert();
+
+      // Immediately load the new chat if we have a database connection
+      if (database && user?.id && mixedId) {
+        getMessages(database, mixedId)
+          .then(async chat => {
+            if (!chat) {
+              logger.warn('Chat not found:', mixedId);
+              setReady(true);
+              navigate('/');
+              return;
+            }
+
+            if (chat.user_id !== user.id) {
+              setReady(true);
+              toast.error('You do not have access to this chat', { 
+                toastId: 'access-error',
+                autoClose: 5000
+              });
+              navigate('/');
+              return;
+            }
+
+            chatId.set(chat.id);
+            setUrlId(chat.urlId);
+            setInitialMessages(chat.messages);
+            description.set(chat.description);
+            chatMetadata.set(chat.metadata);
+
+            try {
+              // Load and apply snapshot
+              const snapshot = await getSnapshot(database, chat.id);
+              if (snapshot) {
+                // First clear any existing files
+                workbenchStore.setDocuments({});
+                
+                // Then apply the new snapshot
+                await restoreSnapshot(chat.id, snapshot);
+                
+                // Finally update the workbench state with the snapshot files
+                workbenchStore.setDocuments(snapshot.files);
+                
+                logger.info('Snapshot restored successfully for chat:', chat.id);
+              }
+            } catch (error) {
+              logger.error('Failed to restore snapshot:', error);
+              toast.error('Failed to restore code state');
+            }
+
+            setReady(true);
+            logger.info('Chat loaded successfully:', mixedId);
+          })
+          .catch(error => {
+            logger.error('Failed to load chat:', error);
+            setReady(true);
+            toast.error('Failed to load chat');
+            navigate('/');
+          });
+      }
+    }
+  }, [mixedId, previousMixedId, database, user?.id, navigate, restoreSnapshot]);
 
   // Initial load and sync effect
   useEffect(() => {
@@ -93,20 +202,20 @@ export function useChatHistory() {
       return;
     }
 
-    // Prevent multiple sync attempts within a short time period
+    // Prevent multiple sync attempts within a short time period unless chat ID changed
     const now = Date.now();
-    if (now - lastSyncAttempt < 60000) { // Increase cooldown to 60 seconds
+    if (now - lastSyncAttempt < 60000 && mixedId === previousMixedId) { // Increase cooldown to 60 seconds
       logger.info('Skipping sync due to cooldown period');
       return;
     }
     setLastSyncAttempt(now);
 
-    let syncTimeout: NodeJS.Timeout;
+    let syncTimeout: NodeJS.Timeout | undefined;
     let mounted = true;
 
     const loadAndSync = async () => {
-      // Don't start another sync if one is already in progress
-      if (isSyncing) {
+      // Don't start another sync if one is already in progress unless chat ID changed
+      if (isSyncing && mixedId === previousMixedId) {
         logger.info('Sync already in progress, skipping');
         return;
       }
@@ -122,6 +231,24 @@ export function useChatHistory() {
         // Check for network connectivity
         if (!navigator.onLine) {
           logger.warn('No network connection, skipping cloud sync');
+          
+          // Load chat from local database even when offline
+          if (mixedId && mounted) {
+            const chat = await getMessages(database, mixedId);
+            if (chat && chat.user_id === user.id) {
+              chatId.set(chat.id);
+              setUrlId(chat.urlId);
+              setInitialMessages(chat.messages);
+              description.set(chat.description);
+              chatMetadata.set(chat.metadata);
+
+              const snapshot = await getSnapshot(database, chat.id);
+              if (snapshot && mounted) {
+                workbenchStore.setDocuments(snapshot.files);
+              }
+            }
+          }
+          
           setReady(true);
           // Set up a listener to try sync when connection is restored
           const handleOnline = () => {
@@ -139,12 +266,30 @@ export function useChatHistory() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           logger.warn('No valid session found, skipping sync');
+          
+          // Still load chat from local database
+          if (mixedId && mounted) {
+            const chat = await getMessages(database, mixedId);
+            if (chat) {
+              chatId.set(chat.id);
+              setUrlId(chat.urlId);
+              setInitialMessages(chat.messages);
+              description.set(chat.description);
+              chatMetadata.set(chat.metadata);
+
+              const snapshot = await getSnapshot(database, chat.id);
+              if (snapshot && mounted) {
+                workbenchStore.setDocuments(snapshot.files);
+              }
+            }
+          }
+          
           setReady(true);
           return;
         }
 
         // Add a small delay before syncing to prevent race conditions
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Perform initial sync between IndexedDB and Supabase
         if (mounted) {
@@ -153,9 +298,12 @@ export function useChatHistory() {
 
         // Load specific chat if ID is provided
         if (mixedId && mounted) {
+          logger.info('Loading chat:', mixedId);
           const chat = await getMessages(database, mixedId);
           if (!chat) {
+            logger.warn('Chat not found:', mixedId);
             setReady(true);
+            navigate('/');
             return;
           }
 
@@ -179,6 +327,15 @@ export function useChatHistory() {
           if (snapshot && mounted) {
             workbenchStore.setDocuments(snapshot.files);
           }
+          logger.info('Chat loaded successfully:', mixedId);
+        } else if (!mixedId && mounted) {
+          // Clear everything when navigating to home
+          chatId.set(undefined);
+          setUrlId(undefined);
+          setInitialMessages([]);
+          description.set(undefined);
+          chatMetadata.set(undefined);
+          workbenchStore.setDocuments({});
         }
 
         if (mounted) {
@@ -207,13 +364,15 @@ export function useChatHistory() {
       }
     };
 
-    // Start sync with a small delay to allow for component mounting
-    syncTimeout = setTimeout(loadAndSync, 500);
+    // Start sync immediately for better performance
+    loadAndSync();
 
     // Cleanup function
     return () => {
       mounted = false;
-      clearTimeout(syncTimeout);
+      if (syncTimeout) {
+        clearTimeout(syncTimeout);
+      }
     };
   }, [mixedId, navigate, user?.id, loading, initialized, database]);
 
@@ -231,7 +390,6 @@ export function useChatHistory() {
         summary: chatSummary,
       };
 
-      // localStorage.setItem(`snapshot:${id}`, JSON.stringify(snapshot)); // Remove localStorage usage
       try {
         await setSnapshot(database, id, snapshot);
       } catch (error) {
@@ -241,39 +399,6 @@ export function useChatHistory() {
     },
     [database],
   );
-
-  const restoreSnapshot = useCallback(async (id: string, snapshot?: Snapshot) => {
-    // const snapshotStr = localStorage.getItem(`snapshot:${id}`); // Remove localStorage usage
-    const container = await webcontainer;
-
-    const validSnapshot = snapshot || { chatIndex: '', files: {} };
-
-    if (!validSnapshot?.files) {
-      return;
-    }
-
-    Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
-      if (key.startsWith(container.workdir)) {
-        key = key.replace(container.workdir, '');
-      }
-
-      if (value?.type === 'folder') {
-        await container.fs.mkdir(key, { recursive: true });
-      }
-    });
-    Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
-      if (value?.type === 'file') {
-        if (key.startsWith(container.workdir)) {
-          key = key.replace(container.workdir, '');
-        }
-
-        await container.fs.writeFile(key, value.content, { encoding: value.isBinary ? undefined : 'utf8' });
-      } else {
-      }
-    });
-
-    // workbenchStore.files.setKey(snapshot?.files)
-  }, []);
 
   return {
     ready: !mixedId || ready,

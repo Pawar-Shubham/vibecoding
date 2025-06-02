@@ -5,7 +5,10 @@ import WithTooltip from '~/components/ui/Tooltip';
 import { useEditChatDescription } from '~/lib/hooks';
 import { forwardRef, type ForwardedRef, useCallback } from 'react';
 import { Checkbox } from '~/components/ui/Checkbox';
-import { Link } from '@remix-run/react';
+import { Link, useNavigate } from '@remix-run/react';
+import { useStore } from '@nanostores/react';
+import { streamingState } from '~/lib/stores/streaming';
+import { toast } from 'react-toastify';
 
 interface HistoryItemProps {
   item: ChatHistoryItem;
@@ -28,6 +31,8 @@ export function HistoryItem({
 }: HistoryItemProps) {
   const { id: urlId } = useParams();
   const isActiveChat = urlId === item.urlId;
+  const navigate = useNavigate();
+  const isStreaming = useStore(streamingState);
 
   const { editing, handleChange, handleBlur, handleSubmit, handleKeyDown, currentDescription, toggleEditMode } =
     useEditChatDescription({
@@ -36,16 +41,42 @@ export function HistoryItem({
       syncWithGlobalStore: isActiveChat,
     });
 
-  const handleItemClick = useCallback(
+  const handleChatNavigation = useCallback(
     (e: React.MouseEvent) => {
       if (selectionMode) {
         e.preventDefault();
         e.stopPropagation();
         console.log('Item clicked in selection mode:', item.id);
         onToggleSelection?.(item.id);
+        return;
       }
+
+      // Check if we're currently streaming/generating code
+      if (isStreaming && !isActiveChat) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Show a confirmation dialog
+        const confirmNavigation = window.confirm(
+          'Code generation is in progress. Navigating away will stop the generation. Do you want to continue?'
+        );
+        
+        if (confirmNavigation) {
+          navigate(`/chat/${item.urlId}`);
+        }
+        return;
+      }
+
+      // If it's already the active chat, prevent navigation
+      if (isActiveChat) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
+      // Let the normal navigation happen for other cases
     },
-    [selectionMode, item.id, onToggleSelection],
+    [selectionMode, item.id, item.urlId, onToggleSelection, isStreaming, isActiveChat, navigate],
   );
 
   const handleCheckboxChange = useCallback(() => {
@@ -73,7 +104,7 @@ export function HistoryItem({
         { 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800/30': isActiveChat },
         { 'cursor-pointer': selectionMode },
       )}
-      onClick={selectionMode ? handleItemClick : undefined}
+      onClick={handleChatNavigation}
     >
       {selectionMode && (
         <div className="flex items-center mr-2" onClick={(e) => e.stopPropagation()}>
@@ -89,7 +120,7 @@ export function HistoryItem({
       <Link
         to={`/chat/${item.urlId}`}
         className="flex-1 min-w-0 flex items-center gap-2"
-        onClick={handleItemClick}
+        onClick={handleChatNavigation}
       >
         <div className="flex-1 min-w-0">
           <div className="truncate text-inherit">{item.description}</div>
@@ -112,7 +143,7 @@ export function HistoryItem({
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
-            onDuplicate(item.id);
+            onDuplicate?.(item.id);
           }}
         />
         <ChatActionButton

@@ -20,6 +20,7 @@ import { signOut } from '~/lib/supabase';
 import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 import { sidebarStore } from '~/lib/stores/sidebar';
 import { chatStore } from '~/lib/stores/chat';
+import { streamingState } from '~/lib/stores/streaming';
 
 const menuVariants = {
   closed: {
@@ -403,15 +404,29 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
 
           {/* Action Buttons */}
           <div className="flex gap-2 w-full">
-            <motion.a
-              href="/"
+            <motion.button
+              onClick={() => {
+                // Check if we're currently streaming
+                if (streamingState.get()) {
+                  const confirmNavigation = window.confirm(
+                    'Code generation is in progress. Creating a new chat will stop the generation. Do you want to continue?'
+                  );
+                  
+                  if (!confirmNavigation) {
+                    return;
+                  }
+                }
+                
+                // Navigate to home to create a new chat
+                window.location.href = '/';
+              }}
               className="w-1/2 flex gap-2 items-center justify-center bg-gray-100 dark:bg-[#2a2a2a] hover:bg-gray-200 dark:hover:bg-[#333333] text-gray-900 dark:text-white rounded-lg px-3 py-2 transition-colors"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
               <span className="inline-block i-ph:plus-circle h-4 w-4" />
               <span className="text-sm">New Chat</span>
-            </motion.a>
+            </motion.button>
             <motion.button
               onClick={() => setSelectionMode(!selectionMode)}
               className="w-1/2 flex gap-2 items-center justify-center bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 rounded-lg px-3 py-2 transition-colors"
@@ -468,7 +483,7 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
           <div className="px-3 pb-3 hover:pr-2 transition-all duration-200">
             {filteredList.length === 0 && (
               <div className="px-4 text-gray-500 dark:text-gray-500 text-sm">
-                {list.length === 0 ? 'No previous conversations' : 'No matches found'}
+                {list.length === 0 ? 'No Previous Conversations' : 'No Matches Found'}
               </div>
             )}
             {binDates(filteredList).map(({ category, items }) => (

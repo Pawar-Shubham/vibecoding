@@ -1,0 +1,65 @@
+.Button {
+  --at-apply: bolt-ease-cubic-bezier;
+  transition-property: transform, background-color, opacity;
+  transition-duration: 0.2s;
+  will-change: transform;
+  transform: translateZ(0);
+
+  &[data-variant='primary'] {
+    background: linear-gradient(90deg, #ffd700, #4CAF50);
+    color: theme('colors.gray.900');
+
+    &:hover {
+      background: linear-gradient(90deg, #4CAF50, #ffd700);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  &[data-variant='secondary'] {
+    background: var(--bolt-elements-button-secondary-background);
+    color: var(--bolt-elements-button-secondary-text);
+
+    &:hover {
+      background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), rgba(76, 175, 80, 0.1));
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  &[data-variant='ghost'] {
+    background: transparent;
+    color: var(--bolt-elements-button-secondary-text);
+
+    &:hover {
+      background: linear-gradient(90deg, rgba(255, 215, 0, 0.05), rgba(76, 175, 80, 0.05));
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  &[data-variant='destructive'] {
+    background: linear-gradient(90deg, #ffd700, #4CAF50);
+    color: theme('colors.gray.900');
+
+    &:hover {
+      background: linear-gradient(90deg, #4CAF50, #ffd700);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  // ... rest of the existing code ...
+} 

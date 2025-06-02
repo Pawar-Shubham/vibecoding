@@ -210,10 +210,59 @@ export const ChatImpl = memo(
         }
 
         logger.debug('Finished streaming');
+        streamingState.set(false);
       },
       initialMessages,
       initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
     });
+
+    // Update streaming state when loading changes
+    useEffect(() => {
+      streamingState.set(isLoading);
+    }, [isLoading]);
+
+    // Reset chat state when initialMessages change (switching between chats)
+    useEffect(() => {
+      if (initialMessages.length > 0) {
+        setChatStarted(true);
+        chatStore.setKey('started', true);
+        // Reset the messages to the new chat's messages
+        setMessages(initialMessages);
+        // Clear any ongoing streaming
+        if (isLoading) {
+          stop();
+        }
+        // Clear input
+        setInput('');
+        Cookies.remove(PROMPT_COOKIE_KEY);
+        // Reset any file uploads
+        setUploadedFiles([]);
+        setImageDataList([]);
+        // Update workbench with reloaded messages
+        workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
+        // Reset any ongoing actions
+        workbenchStore.abortAllActions();
+        // Clear any alerts
+        workbenchStore.clearAlert();
+        workbenchStore.clearSupabaseAlert();
+        workbenchStore.clearDeployAlert();
+      } else {
+        // Reset to initial state when no messages
+        setChatStarted(false);
+        chatStore.setKey('started', false);
+        setMessages([]);
+        // Reset UI to show intro
+        animate('#intro', { opacity: 1, flex: 0, y: 0 }, { duration: 0.2 });
+        animate('#examples', { opacity: 1, display: 'flex', y: 0 }, { duration: 0.2 });
+        // Clear workbench state
+        workbenchStore.resetAllFileModifications();
+        workbenchStore.setDocuments({});
+        workbenchStore.clearAlert();
+        workbenchStore.clearSupabaseAlert();
+        workbenchStore.clearDeployAlert();
+      }
+    }, [initialMessages, animate, setMessages, stop, setInput]);
+
     useEffect(() => {
       const prompt = searchParams.get('prompt');
 
@@ -238,10 +287,6 @@ export const ChatImpl = memo(
     const { parsedMessages, parseMessages } = useMessageParser();
 
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
-
-    useEffect(() => {
-      chatStore.setKey('started', initialMessages.length > 0);
-    }, []);
 
     useEffect(() => {
       processSampledMessages({
@@ -293,8 +338,8 @@ export const ChatImpl = memo(
       }
 
       await Promise.all([
-        animate('#examples', { opacity: 0, display: 'none' }, { duration: 0.1 }),
-        animate('#intro', { opacity: 0, flex: 1 }, { duration: 0.2, ease: cubicEasingFn }),
+        animate('#examples', { opacity: 0, display: 'none', y: 0 }, { duration: 0.1 }),
+        animate('#intro', { opacity: 0, flex: 0, y: 0 }, { duration: 0.2, ease: cubicEasingFn }),
       ]);
 
       chatStore.setKey('started', true);
