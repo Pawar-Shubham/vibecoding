@@ -31,7 +31,7 @@ jobs:
 
       - name: Building Application
         env:
-          NODE_OPTIONS: '--max-old-space-size=4096'
+          NODE_OPTIONS: '--max-old-space-size=3072'
         run: npm run build
 
       - name: Removing Old Files
