@@ -29,7 +29,7 @@ jobs:
       - name: Building Application
         env:
           NODE_OPTIONS: '--max-old-space-size=2048'
-        run: pnpm run build
+        run: npm run build
 
       - name: Removing Old Files
         run: sudo rm -rf /var/www/vibescoded.com/*
