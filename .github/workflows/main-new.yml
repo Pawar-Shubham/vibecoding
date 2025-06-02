@@ -15,7 +15,7 @@ jobs:
         uses: actions/setup-node@v4
         id: setup-node
         with:
-          node-version: v20.10.0
+          node-version: v22.14.0
 
       - name: Clean NPM Cache
         run: npm cache clean --force
