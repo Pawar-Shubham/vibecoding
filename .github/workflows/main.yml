@@ -3,7 +3,7 @@ name: main-new-frontend-workflow
 on:
   push:
     branches:
-      - main
+      - main-new
 jobs:
   ci-cd:
     runs-on: [vibe-coding-1]
