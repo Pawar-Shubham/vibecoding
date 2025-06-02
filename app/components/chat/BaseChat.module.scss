@@ -1,4 +1,59 @@
 .BaseChat {
+  font-size: 0.9375rem; /* Base font size for chat */
+  line-height: 1.5;
+  padding-top: calc(var(--header-height) + -2.25rem); /* Increased from 0.5rem to 2rem */
+  border-radius: 0;
+  overflow: hidden; /* Ensure rounded corners are visible */
+  background-color: transparent;
+
+  /* Dark mode styles */
+  :global(html[data-theme='dark']) & {
+    border-radius: 1rem;
+    background-color: transparent;
+  }
+
+  /* Ensure scrollbar track has rounded corners */
+  ::-webkit-scrollbar-track {
+    border-radius: 1rem;
+    margin: 0.5rem;
+  }
+
+  /* Style the scrollbar to match the rounded design */
+  ::-webkit-scrollbar {
+    width: 8px;
+    background-color: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 1rem;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  /* Dark mode scrollbar */
+  :global(html[data-theme='dark']) & {
+    ::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 215, 0, 0.2);
+
+      &:hover {
+        background-color: rgba(76, 175, 80, 0.3);
+      }
+    }
+  }
+
+  /* Firefox scrollbar styles */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+
+  :global(html[data-theme='dark']) & {
+    scrollbar-color: rgba(255, 215, 0, 0.2) transparent;
+  }
+
   &[data-chat-visible='false'] {
     --workbench-inner-width: 100%;
     --workbench-left: 0;
@@ -16,32 +71,104 @@
 
 .Chat {
   opacity: 1;
+  padding: 0 1.25rem; /* Slightly reduced padding */
+  border-radius: 0;
+  background-color: #ffffff;
+  
+  :global(html[data-theme='dark']) & {
+    border-radius: 1rem;
+    background-color: transparent;
+  }
+  
+  mask-image: linear-gradient(to bottom, 
+    transparent, 
+    black 0.5rem,
+    black calc(100% - 0.5rem),
+    transparent
+  );
+  
+  /* Add styles for different text elements */
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.125rem; }
+  p, li { font-size: 0.9375rem; }
+  code { font-size: 0.875rem; }
+}
+
+.MaterialPrompt {
+  position: relative;
+  border-radius: 12px;
+  background: theme('colors.gray.900');
+  border: 3px solid var(--bolt-elements-borderColor);
+  margin: 0.875rem 0;
+  font-size: 0.9375rem;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    padding: 2px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #ffd700, #4CAF50);
+    -webkit-mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  &:focus-within {
+    border-color: transparent;
+    &::before {
+      opacity: 1;
+    }
+  }
 }
 
 .PromptEffectContainer {
-  --prompt-container-offset: 50px;
-  --prompt-line-stroke-width: 1px;
   position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
-  inset: calc(var(--prompt-container-offset) / -2);
-  width: calc(100% + var(--prompt-container-offset));
-  height: calc(100% + var(--prompt-container-offset));
+  overflow: visible;
 }
 
 .PromptEffectLine {
-  width: calc(100% - var(--prompt-container-offset) + var(--prompt-line-stroke-width));
-  height: calc(100% - var(--prompt-container-offset) + var(--prompt-line-stroke-width));
-  x: calc(var(--prompt-container-offset) / 2 - var(--prompt-line-stroke-width) / 2);
-  y: calc(var(--prompt-container-offset) / 2 - var(--prompt-line-stroke-width) / 2);
-  rx: calc(8px - var(--prompt-line-stroke-width));
-  fill: transparent;
-  stroke-width: var(--prompt-line-stroke-width);
+  width: 100%;
+  height: 100%;
+  fill: none;
   stroke: url(#line-gradient);
-  stroke-dasharray: 35px 65px;
-  stroke-dashoffset: 10;
+  stroke-width: 2;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: draw 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 .PromptShine {
   fill: url(#shine-gradient);
-  mix-blend-mode: overlay;
+  animation: shine 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes draw {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  50% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes shine {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }

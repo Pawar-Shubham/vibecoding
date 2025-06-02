@@ -513,6 +513,22 @@ export const ChatImpl = memo(
       Cookies.set('selectedProvider', newProvider.name, { expires: 30 });
     };
 
+    useEffect(() => {
+      const handleGeneratePrompt = (event: CustomEvent) => {
+        const { prompt } = event.detail;
+        if (prompt) {
+          setInput(prompt);
+          // Trigger the send message
+          sendMessage({} as React.UIEvent, prompt);
+        }
+      };
+
+      window.addEventListener('generate-prompt', handleGeneratePrompt as EventListener);
+      return () => {
+        window.removeEventListener('generate-prompt', handleGeneratePrompt as EventListener);
+      };
+    }, [sendMessage]);
+
     return (
       <>
         <BaseChat
@@ -574,6 +590,7 @@ export const ChatImpl = memo(
           deployAlert={deployAlert}
           clearDeployAlert={() => workbenchStore.clearDeployAlert()}
           data={chatData}
+          auth={isAuthenticated}
         />
         <AuthModal 
           isOpen={showAuthModal} 

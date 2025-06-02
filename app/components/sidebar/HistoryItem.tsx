@@ -5,6 +5,7 @@ import WithTooltip from '~/components/ui/Tooltip';
 import { useEditChatDescription } from '~/lib/hooks';
 import { forwardRef, type ForwardedRef, useCallback } from 'react';
 import { Checkbox } from '~/components/ui/Checkbox';
+import { Link } from '@remix-run/react';
 
 interface HistoryItemProps {
   item: ChatHistoryItem;
@@ -68,8 +69,8 @@ export function HistoryItem({
   return (
     <div
       className={classNames(
-        'group rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50/80 dark:hover:bg-gray-800/30 overflow-hidden flex justify-between items-center px-3 py-2 transition-colors',
-        { 'text-gray-900 dark:text-white bg-gray-50/80 dark:bg-gray-800/30': isActiveChat },
+        'group rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800/30 overflow-hidden flex justify-between items-center px-3 py-2 transition-colors',
+        { 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800/30': isActiveChat },
         { 'cursor-pointer': selectionMode },
       )}
       onClick={selectionMode ? handleItemClick : undefined}
@@ -85,72 +86,42 @@ export function HistoryItem({
         </div>
       )}
 
-      {editing ? (
-        <form onSubmit={handleSubmit} className="flex-1 flex items-center gap-2">
-          <input
-            type="text"
-            className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-md px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
-            autoFocus
-            value={currentDescription}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-          />
-          <button
-            type="submit"
-            className="i-ph:check h-4 w-4 text-gray-500 hover:text-purple-500 transition-colors"
-            onMouseDown={handleSubmit}
-          />
-        </form>
-      ) : (
-        <a
-          href={`/chat/${item.urlId}`}
-          className="flex w-full relative truncate block"
-          onClick={selectionMode ? handleItemClick : undefined}
-        >
-          <span className="truncate pr-28">{currentDescription.length > 25 ? `${currentDescription.slice(0, 25)}...` : currentDescription}</span>
-          <div
-            className={classNames(
-              'absolute right-0 top-0 bottom-0 flex items-center bg-transparent px-2 transition-colors',
-            )}
-          >
-            <div className="flex items-center gap-2.5 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
-              <ChatActionButton
-                toolTipContent="Export"
-                icon="i-ph:download-simple h-4 w-4"
-                onClick={(event) => {
-                  event.preventDefault();
-                  exportChat(item.id);
-                }}
-              />
-              {onDuplicate && (
-                <ChatActionButton
-                  toolTipContent="Duplicate"
-                  icon="i-ph:copy h-4 w-4"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    onDuplicate?.(item.id);
-                  }}
-                />
-              )}
-              <ChatActionButton
-                toolTipContent="Rename"
-                icon="i-ph:pencil-fill h-4 w-4"
-                onClick={(event) => {
-                  event.preventDefault();
-                  toggleEditMode();
-                }}
-              />
-              <ChatActionButton
-                toolTipContent="Delete"
-                icon="i-ph:trash h-4 w-4"
-                className="hover:text-red-500 dark:hover:text-red-400"
-                onClick={handleDeleteClick}
-              />
-            </div>
-          </div>
-        </a>
-      )}
+      <Link
+        to={`/chat/${item.urlId}`}
+        className="flex-1 min-w-0 flex items-center gap-2"
+        onClick={handleItemClick}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="truncate text-inherit">{item.description}</div>
+        </div>
+      </Link>
+
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <ChatActionButton
+          toolTipContent="Export chat"
+          icon="i-ph:export text-lg"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            exportChat(item.id);
+          }}
+        />
+        <ChatActionButton
+          toolTipContent="Duplicate chat"
+          icon="i-ph:copy text-lg"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onDuplicate(item.id);
+          }}
+        />
+        <ChatActionButton
+          toolTipContent="Delete chat"
+          icon="i-ph:trash text-lg"
+          className="hover:!text-red-500"
+          onClick={onDelete}
+        />
+      </div>
     </div>
   );
 }
@@ -176,7 +147,7 @@ const ChatActionButton = forwardRef(
         <button
           ref={ref}
           type="button"
-          className={`text-gray-400 dark:text-gray-500 hover:text-purple-500 dark:hover:text-purple-400 transition-colors ${icon} ${className ? className : ''}`}
+          className={`text-gray-500 dark:text-gray-500 hover:text-purple-500 dark:hover:text-purple-400 transition-colors ${icon} ${className ? className : ''}`}
           onClick={onClick}
         />
       </WithTooltip>

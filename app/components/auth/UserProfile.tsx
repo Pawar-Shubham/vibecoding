@@ -15,13 +15,19 @@ export function UserProfile({ user }: UserProfileProps) {
   const handleSignOut = async () => {
     try {
       setIsLoading(true);
+      
+      // Close any open dropdowns/modals first
+      setIsSettingsOpen(false);
+      
+      // Navigate first, then sign out
+      window.location.href = '/';
+      
+      // Sign out after navigation is initiated
       const { error } = await signOut();
       
       if (error) {
         console.error('Sign out error:', error);
         toast.error('Failed to sign out');
-      } else {
-        toast.success('Signed out successfully');
       }
     } catch (error) {
       console.error('Sign out error:', error);
@@ -97,7 +103,7 @@ export function UserProfile({ user }: UserProfileProps) {
             <DropdownMenu.Separator className="h-px bg-gray-200 dark:bg-bolt-elements-borderColor my-1" />
             
             <DropdownMenu.Item 
-              className="text-sm rounded-md flex items-center justify-between h-8 px-3 py-4 text-gray-800 dark:text-bolt-elements-textPrimary hover:bg-gray-100 dark:hover:bg-bolt-elements-button-secondary-backgroundHover cursor-pointer transition-colors"
+              className="text-sm rounded-md flex items-center justify-between h-8 px-3 py-4 text-gray-800 dark:text-bolt-elements-textPrimary hover:bg-[#2a2a2a] cursor-pointer transition-colors"
               onClick={handleSettingsClick}
             >
               <span>Settings</span>
@@ -105,7 +111,7 @@ export function UserProfile({ user }: UserProfileProps) {
             </DropdownMenu.Item>
 
             <DropdownMenu.Item 
-              className="text-sm rounded-md flex items-center justify-between h-8 px-3 py-4 text-gray-800 dark:text-bolt-elements-textPrimary hover:bg-gray-100 dark:hover:bg-bolt-elements-button-secondary-backgroundHover cursor-pointer transition-colors"
+              className="text-sm rounded-md flex items-center justify-between h-8 px-3 py-4 text-gray-800 dark:text-bolt-elements-textPrimary hover:bg-[#2a2a2a] cursor-pointer transition-colors"
               onClick={handleSignOut}
               disabled={isLoading}
             >

@@ -26,6 +26,10 @@ import { webcontainer } from '~/lib/webcontainer';
 import { detectProjectCommands, createCommandActionsString } from '~/utils/projectCommands';
 import type { ContextAnnotation } from '~/types/context';
 import { useAuth } from '~/lib/hooks/useAuth';
+import { supabase } from '~/lib/supabase';
+import { createScopedLogger } from '~/utils/logger';
+
+const logger = createScopedLogger('ChatHistory');
 
 export interface ChatHistoryItem {
   id: string;
@@ -57,6 +61,7 @@ export function useChatHistory() {
   const [urlId, setUrlId] = useState<string | undefined>();
   const [database, setDatabase] = useState<IDBDatabase | undefined>(db);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [lastSyncAttempt, setLastSyncAttempt] = useState<number>(0);
 
   // Ensure database connection
   useEffect(() => {
@@ -67,25 +72,45 @@ export function useChatHistory() {
 
   // Initial load and sync effect
   useEffect(() => {
+    // Don't proceed if auth is not initialized or still loading
     if (loading || !initialized) {
       return;
     }
 
+    // Don't proceed if database is not available when needed
     if (!database && user?.id && persistenceEnabled) {
       const error = new Error('Chat persistence is unavailable');
       console.error('Database initialization failed');
       logStore.logError('Chat persistence initialization failed', error);
-      toast.error('Chat persistence is unavailable');
+      toast.error('Chat persistence is unavailable', { toastId: 'db-error' });
       setReady(true);
       return;
     }
 
+    // If no user, just set ready state
     if (!user?.id) {
       setReady(true);
       return;
     }
 
+    // Prevent multiple sync attempts within a short time period
+    const now = Date.now();
+    if (now - lastSyncAttempt < 60000) { // Increase cooldown to 60 seconds
+      logger.info('Skipping sync due to cooldown period');
+      return;
+    }
+    setLastSyncAttempt(now);
+
+    let syncTimeout: NodeJS.Timeout;
+    let mounted = true;
+
     const loadAndSync = async () => {
+      // Don't start another sync if one is already in progress
+      if (isSyncing) {
+        logger.info('Sync already in progress, skipping');
+        return;
+      }
+
       setIsSyncing(true);
       try {
         if (!database) {
@@ -94,11 +119,40 @@ export function useChatHistory() {
           return;
         }
 
+        // Check for network connectivity
+        if (!navigator.onLine) {
+          logger.warn('No network connection, skipping cloud sync');
+          setReady(true);
+          // Set up a listener to try sync when connection is restored
+          const handleOnline = () => {
+            if (mounted) {
+              loadAndSync();
+            }
+          };
+          window.addEventListener('online', handleOnline);
+          return () => {
+            window.removeEventListener('online', handleOnline);
+          };
+        }
+
+        // Check if we have a valid session before syncing
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          logger.warn('No valid session found, skipping sync');
+          setReady(true);
+          return;
+        }
+
+        // Add a small delay before syncing to prevent race conditions
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
         // Perform initial sync between IndexedDB and Supabase
-        await performInitialSync(database, user.id);
+        if (mounted) {
+          await performInitialSync(database, user.id);
+        }
 
         // Load specific chat if ID is provided
-        if (mixedId) {
+        if (mixedId && mounted) {
           const chat = await getMessages(database, mixedId);
           if (!chat) {
             setReady(true);
@@ -107,7 +161,10 @@ export function useChatHistory() {
 
           if (chat.user_id !== user.id) {
             setReady(true);
-            toast.error('You do not have access to this chat');
+            toast.error('You do not have access to this chat', { 
+              toastId: 'access-error',
+              autoClose: 5000
+            });
             navigate('/');
             return;
           }
@@ -119,22 +176,45 @@ export function useChatHistory() {
           chatMetadata.set(chat.metadata);
 
           const snapshot = await getSnapshot(database, chat.id);
-          if (snapshot) {
+          if (snapshot && mounted) {
             workbenchStore.setDocuments(snapshot.files);
           }
         }
 
-        setReady(true);
+        if (mounted) {
+          setReady(true);
+        }
       } catch (error) {
         console.error('Failed to sync chats:', error);
-        toast.error('Failed to sync chats with cloud storage');
-        setReady(true);
+        // Only show error if it's not a network or auth error
+        if (mounted && !(error instanceof Error && 
+            (error.message.includes('network') || 
+             error.message.includes('JWT') ||
+             error.message.includes('auth')))) {
+          toast.error('Failed to sync chats with cloud storage', { 
+            toastId: 'initial-sync-error',
+            autoClose: 5000,
+            pauseOnHover: true
+          });
+        }
+        if (mounted) {
+          setReady(true);
+        }
       } finally {
-        setIsSyncing(false);
+        if (mounted) {
+          setIsSyncing(false);
+        }
       }
     };
 
-    loadAndSync();
+    // Start sync with a small delay to allow for component mounting
+    syncTimeout = setTimeout(loadAndSync, 500);
+
+    // Cleanup function
+    return () => {
+      mounted = false;
+      clearTimeout(syncTimeout);
+    };
   }, [mixedId, navigate, user?.id, loading, initialized, database]);
 
   const takeSnapshot = useCallback(
@@ -281,26 +361,45 @@ export function useChatHistory() {
       const timestamp = new Date().toISOString();
       const allMessages = [...archivedMessages, ...messages];
 
-      await setMessages(
-        database,
-        finalChatId,
-        allMessages,
-        user.id,
-        urlId,
-        description.get(),
-        timestamp,
-        chatMetadata.get(),
-      );
+      try {
+        // First save locally
+        await setMessages(
+          database,
+          finalChatId,
+          allMessages,
+          user.id,
+          urlId,
+          description.get(),
+          timestamp,
+          chatMetadata.get(),
+        );
 
-      await syncChatToSupabase({
-        id: finalChatId,
-        user_id: user.id,
-        urlId,
-        description: description.get(),
-        messages: allMessages,
-        timestamp,
-        metadata: chatMetadata.get(),
-      });
+        // Then try to sync to cloud if we have network
+        if (navigator.onLine) {
+          try {
+            await syncChatToSupabase({
+              id: finalChatId,
+              user_id: user.id,
+              urlId,
+              description: description.get(),
+              messages: allMessages,
+              timestamp,
+              metadata: chatMetadata.get(),
+            });
+          } catch (error) {
+            // Log but don't show error to user since local save succeeded
+            logger.error('Failed to sync to cloud but local save succeeded:', error);
+          }
+        } else {
+          logger.info('Offline - skipping cloud sync, local save only');
+        }
+      } catch (error) {
+        console.error('Failed to save messages:', error);
+        toast.error('Failed to save chat messages', {
+          toastId: 'save-error-' + finalChatId,
+          autoClose: 5000
+        });
+      }
     },
     duplicateCurrentChat: async (listItemId: string) => {
       if (!database || (!mixedId && !listItemId) || !user?.id) {

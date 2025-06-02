@@ -445,7 +445,7 @@ export default function LocalProvidersTab() {
                     className={classNames(
                       'w-12 h-12 flex items-center justify-center rounded-xl',
                       'bg-bolt-elements-background-depth-3',
-                      provider.settings.enabled ? 'text-purple-500' : 'text-bolt-elements-textSecondary',
+                      provider.settings.enabled ? 'text-yellow-500' : 'text-bolt-elements-textSecondary',
                     )}
                     whileHover={{ scale: 1.1, rotate: 5 }}
                   >
@@ -654,7 +654,7 @@ export default function LocalProvidersTab() {
                         className={classNames(
                           'w-12 h-12 flex items-center justify-center rounded-xl',
                           'bg-bolt-elements-background-depth-3',
-                          provider.settings.enabled ? 'text-purple-500' : 'text-bolt-elements-textSecondary',
+                          provider.settings.enabled ? 'text-yellow-500' : 'text-bolt-elements-textSecondary',
                         )}
                         whileHover={{ scale: 1.1, rotate: 5 }}
                       >
@@ -671,7 +671,7 @@ export default function LocalProvidersTab() {
                               Local
                             </span>
                             {URL_CONFIGURABLE_PROVIDERS.includes(provider.name) && (
-                              <span className="px-2 py-0.5 text-xs rounded-full bg-purple-500/10 text-purple-500">
+                              <span className="px-2 py-0.5 text-xs rounded-full bg-yellow-500/10 text-yellow-500">
                                 Configurable
                               </span>
                             )}

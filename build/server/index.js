@@ -10990,7 +10990,7 @@ ${content || description}
                     ),
                     children: [
                       /* @__PURE__ */ jsx("div", { className: "i-ph:chat-circle-duotone" }),
-                      "Ask Bolt"
+                      "Ask VxC"
                     ]
                   }
                 ),

@@ -1,13 +1,15 @@
 import { useStore } from '@nanostores/react';
 import { authStore } from '~/lib/stores/auth';
 import { FiLock } from 'react-icons/fi';
+import Cookies from 'js-cookie';
 
 interface AuthRequiredProps {
   children: React.ReactNode;
   message?: string;
+  promptText?: string;
 }
 
-export function AuthRequired({ children, message = 'Please log in to access this feature' }: AuthRequiredProps) {
+export function AuthRequired({ children, message = 'Please log in to access this feature', promptText }: AuthRequiredProps) {
   const auth = useStore(authStore);
 
   if (!auth.initialized) {
@@ -19,6 +21,11 @@ export function AuthRequired({ children, message = 'Please log in to access this
   }
 
   if (!auth.user) {
+    // Store the prompt text if provided
+    if (promptText) {
+      Cookies.set('pending_prompt', promptText);
+    }
+
     return (
       <div className="flex flex-col items-center justify-center h-full p-4 text-center">
         <FiLock className="w-12 h-12 text-gray-400 mb-4" />

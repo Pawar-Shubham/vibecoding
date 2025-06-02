@@ -40,7 +40,7 @@ interface FullscreenButtonProps {
 const FullscreenButton = memo(({ onClick, isFullscreen }: FullscreenButtonProps) => (
   <button
     onClick={onClick}
-    className="ml-4 p-1 rounded hover:bg-bolt-elements-background-depth-3 text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-colors"
+    className="ml-4 p-1 rounded text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-colors bg-transparent"
     title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
   >
     <div className={isFullscreen ? 'i-ph:corners-in' : 'i-ph:corners-out'} />
@@ -517,14 +517,14 @@ const FileInfo = memo(
     const showStats = additions > 0 || deletions > 0;
 
     return (
-      <div className="flex items-center bg-bolt-elements-background-depth-1 p-2 text-sm text-bolt-elements-textPrimary shrink-0">
+      <div className="flex items-center bg-transparent p-2 text-sm text-bolt-elements-textPrimary shrink-0">
         <div className="i-ph:file mr-2 h-4 w-4 shrink-0" />
         <span className="truncate">{filename}</span>
-        <span className="ml-auto shrink-0 flex items-center gap-2">
+        <span className="ml-auto shrink-0 flex items-center gap-2 bg-transparent">
           {hasChanges ? (
             <>
               {showStats && (
-                <div className="flex items-center gap-1 text-xs">
+                <div className="flex items-center gap-1 text-xs bg-transparent">
                   {additions > 0 && <span className="text-green-700 dark:text-green-500">+{additions}</span>}
                   {deletions > 0 && <span className="text-red-700 dark:text-red-500">-{deletions}</span>}
                 </div>

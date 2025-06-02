@@ -9,7 +9,7 @@ import { useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
-import { initAuth, setupAuthListener } from './lib/stores/auth';
+import { useAuth } from './lib/hooks/useAuth';
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
@@ -21,19 +21,19 @@ import 'virtual:uno.css';
 export const links: LinksFunction = () => [
   {
     rel: 'icon',
-    href: '/chat-logo-dark-styled.png',
+    href: '/logo-dark-styled.png',
     type: 'image/png',
     sizes: '32x32',
   },
   {
     rel: 'icon',
-    href: '/chat-logo-dark-styled.png',
+    href: '/logo-dark-styled.png',
     type: 'image/png',
     sizes: '96x96',
   },
   {
     rel: 'apple-touch-icon',
-    href: '/chat-logo-dark-styled.png',
+    href: '/logo-dark-styled.png',
     sizes: '180x180',
   },
   { rel: 'stylesheet', href: reactToastifyStyles },
@@ -52,7 +52,7 @@ export const links: LinksFunction = () => [
   },
   {
     rel: 'stylesheet',
-    href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+    href: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap',
   },
 ];
 
@@ -100,6 +100,7 @@ import { logStore } from './lib/stores/logs';
 
 export default function App() {
   const theme = useStore(themeStore);
+  useAuth(); // This will handle auth initialization
 
   useEffect(() => {
     logStore.logSystem('Application initialized', {
@@ -108,10 +109,6 @@ export default function App() {
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
     });
-
-    // Initialize authentication
-    initAuth();
-    setupAuthListener();
   }, []);
 
   return (

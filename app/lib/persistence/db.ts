@@ -2,6 +2,7 @@ import type { Message } from 'ai';
 import { createScopedLogger } from '~/utils/logger';
 import type { ChatHistoryItem } from './useChatHistory';
 import type { Snapshot } from './types'; // Import Snapshot type
+import { deleteChatFromSupabase } from './supabaseSync';
 
 export interface IChatMetadata {
   gitUrl: string;
@@ -211,19 +212,26 @@ export async function getMessagesById(db: IDBDatabase, id: string): Promise<Chat
 
 export async function deleteById(db: IDBDatabase, id: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['chats', 'snapshots'], 'readwrite'); // Add snapshots store to transaction
+    const transaction = db.transaction(['chats', 'snapshots'], 'readwrite');
     const chatStore = transaction.objectStore('chats');
     const snapshotStore = transaction.objectStore('snapshots');
 
     const deleteChatRequest = chatStore.delete(id);
-    const deleteSnapshotRequest = snapshotStore.delete(id); // Also delete snapshot
+    const deleteSnapshotRequest = snapshotStore.delete(id);
 
     let chatDeleted = false;
     let snapshotDeleted = false;
 
     const checkCompletion = () => {
       if (chatDeleted && snapshotDeleted) {
+        // Resolve immediately after local deletion is complete
         resolve(undefined);
+        
+        // Attempt Supabase deletion in the background
+        deleteChatFromSupabase(id).catch((error) => {
+          console.error('Failed to delete chat from Supabase:', error);
+          // Don't reject since local deletion was successful
+        });
       }
     };
 

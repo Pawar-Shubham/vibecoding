@@ -160,10 +160,10 @@ ${escapeBoltTags(file.content)}
         variant="default"
         size="lg"
         className={classNames(
-          'gap-2 bg-bolt-elements-background-depth-1',
-          'text-bolt-elements-textPrimary',
-          'hover:bg-bolt-elements-background-depth-2',
-          'border border-bolt-elements-borderColor',
+          'gap-2 bg-gray-50 dark:bg-gray-950',
+          'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+          'hover:bg-gray-100 dark:hover:bg-gray-900',
+          'border border-[#e5e7eb] dark:border-[rgba(255,255,255,0.08)]',
           'h-10 px-4 py-2 min-w-[120px] justify-center',
           'transition-all duration-200 ease-in-out',
           className,

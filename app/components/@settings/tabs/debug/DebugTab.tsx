@@ -1425,7 +1425,7 @@ export default function DebugTab() {
         {/* Network Speed Card */}
         <div className="p-4 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] hover:border-purple-500/30 transition-all duration-200 h-[180px] flex flex-col">
           <div className="flex items-center gap-2">
-            <div className="i-ph:wifi-high text-purple-500 w-4 h-4" />
+            <div className="i-ph:wifi-high text-yellow-500 w-4 h-4" />
             <div className="text-sm text-bolt-elements-textSecondary">Network Speed</div>
           </div>
           <div className="flex items-center gap-2 mt-2">
@@ -1443,7 +1443,7 @@ export default function DebugTab() {
             </span>
           </div>
           <div className="text-xs text-bolt-elements-textSecondary mt-2 flex items-center gap-1.5">
-            <div className="i-ph:activity w-3.5 h-3.5 text-purple-500" />
+            <div className="i-ph:activity w-3.5 h-3.5 text-yellow-500" />
             RTT: {systemInfo?.network.rtt ?? '-'} ms
           </div>
         </div>
@@ -1515,7 +1515,7 @@ export default function DebugTab() {
                     className={classNames('w-12 h-12', {
                       'i-ph:warning-circle text-red-500/80':
                         status.status === 'Not Running' || status.status === 'Disabled',
-                      'i-ph:cube-duotone text-purple-500/80': status.status === 'Running',
+                      'i-ph:cube-duotone text-yellow-500/80': status.status === 'Running',
                     })}
                   />
                   <span className="text-sm text-bolt-elements-textSecondary">{status.message}</span>
@@ -1771,7 +1771,7 @@ export default function DebugTab() {
         <CollapsibleTrigger className="w-full">
           <div className="flex items-center justify-between p-6 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A]">
             <div className="flex items-center gap-3">
-              <div className="i-ph:chart-line text-purple-500 w-5 h-5" />
+              <div className="i-ph:chart-line text-yellow-500 w-5 h-5" />
               <h3 className="text-base font-medium text-bolt-elements-textPrimary">Performance Metrics</h3>
             </div>
             <div

@@ -113,17 +113,25 @@
 }
 
 html[data-theme='light'] {
+  --cm-backgroundColor: #ffffff;
   --bolt-elements-editor-gutter-textColor: #237893;
   --bolt-elements-editor-gutter-activeLineTextColor: var(--bolt-elements-textPrimary);
   --bolt-elements-editor-foldGutter-textColorHover: var(--bolt-elements-textPrimary);
   --bolt-elements-editor-activeLineBackgroundColor: rgb(50 53 63 / 5%);
   --bolt-elements-editor-tooltip-backgroundColorSelected: theme('colors.alpha.accent.20');
-  --bolt-elements-editor-search-button-backgroundColor: theme('colors.gray.100');
-  --bolt-elements-editor-search-button-backgroundColorHover: theme('colors.alpha.gray.10');
+  --bolt-elements-editor-search-button-backgroundColor: #ffffff;
+  --bolt-elements-editor-search-button-backgroundColorHover: theme('colors.gray.100');
+  --bolt-elements-editor-search-input-backgroundColor: rgba(0, 0, 0, 0.05);
+  --bolt-elements-editor-search-input-borderColor: var(--bolt-elements-borderColor);
+  --bolt-elements-editor-search-input-borderColorFocused: var(--bolt-elements-borderColorActive);
+  --bolt-elements-editor-tooltip-backgroundColor: #ffffff;
+  --bolt-elements-editor-tooltip-textColor: var(--bolt-elements-textPrimary);
+  --bolt-elements-editor-tooltip-borderColor: var(--bolt-elements-borderColor);
+  --bolt-elements-editor-searchMatch-backgroundColor: rgba(76, 175, 80, 0.2);
 }
 
 html[data-theme='dark'] {
-  --cm-backgroundColor: var(--bolt-elements-bg-depth-2);
+  --cm-backgroundColor: #1a1a1a;
   --bolt-elements-editor-gutter-textColor: var(--bolt-elements-textTertiary);
   --bolt-elements-editor-gutter-activeLineTextColor: var(--bolt-elements-textSecondary);
   --bolt-elements-editor-selection-inactiveBackgroundOpacity: 0.3;

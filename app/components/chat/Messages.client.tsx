@@ -70,8 +70,8 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                 <div
                   key={index}
                   className={classNames('flex gap-4 p-6 py-5 w-full rounded-[calc(0.75rem-1px)]', {
-                    'bg-bolt-elements-messages-background': isUserMessage || !isStreaming || (isStreaming && !isLast),
-                    'bg-gradient-to-b from-bolt-elements-messages-background from-30% to-transparent':
+                    'bg-white dark:bg-gray-900': isUserMessage || !isStreaming || (isStreaming && !isLast),
+                    'bg-gradient-to-b from-white dark:from-gray-900 from-30% to-transparent':
                       isStreaming && isLast,
                     'mt-4': !isFirst,
                   })}
@@ -82,19 +82,19 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                         <img 
                           src={userAvatar} 
                           alt="User avatar" 
-                          className="w-full h-full rounded-full object-cover border border-gray-700"
+                          className="w-full h-full rounded-full object-cover"
                           onError={(e) => {
                             // If image fails to load, replace with initial
                             e.currentTarget.style.display = 'none';
                             e.currentTarget.parentElement!.innerHTML = `
-                              <div class="user-avatar">
+                              <div class="w-full h-full flex items-center justify-center rounded-full bg-accent-600 text-white font-medium">
                                 ${userInitial}
                               </div>
                             `;
                           }}
                         />
                       ) : (
-                        <div className="user-avatar">
+                        <div className="w-full h-full flex items-center justify-center rounded-full bg-accent-600 text-white font-medium">
                           {userInitial}
                         </div>
                       )}
@@ -118,7 +118,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
             })
           : null}
         {isStreaming && (
-          <div className="text-center w-full  text-bolt-elements-item-contentAccent i-svg-spinners:3-dots-fade text-4xl mt-4"></div>
+          <div className="text-center w-full text-bolt-elements-item-contentAccent i-svg-spinners:3-dots-fade text-4xl mt-4"></div>
         )}
       </div>
     );

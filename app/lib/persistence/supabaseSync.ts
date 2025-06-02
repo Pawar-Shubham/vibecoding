@@ -7,33 +7,93 @@ import { getAll, setMessages } from './db';
 const logger = createScopedLogger('SupabaseSync');
 
 export async function syncChatToSupabase(chat: ChatHistoryItem): Promise<void> {
+  // Skip sync if no network connection
+  if (!navigator.onLine) {
+    logger.warn('No network connection available, skipping sync');
+    return;
+  }
+
   try {
     logger.info('Syncing chat to Supabase:', { chatId: chat.id });
     
-    const { error } = await supabase
-      .from('chat_history')
-      .upsert({
-        id: chat.id,
-        user_id: chat.user_id,
-        url_id: chat.urlId,
-        description: chat.description,
-        messages: chat.messages,
-        timestamp: chat.timestamp,
-        metadata: chat.metadata,
-      }, {
-        onConflict: 'id'
-      });
-
-    if (error) {
-      throw error;
+    // First check if we have a valid session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      logger.warn('No valid session found, skipping sync');
+      return;
     }
+
+    // Add retry logic for network issues
+    let retryCount = 0;
+    const maxRetries = 3;
+    let lastError: Error | null = null;
     
-    logger.info('Successfully synced chat to Supabase:', { chatId: chat.id });
+    while (retryCount < maxRetries) {
+      try {
+        const { error } = await supabase
+          .from('chat_history')
+          .upsert({
+            id: chat.id,
+            user_id: chat.user_id,
+            url_id: chat.urlId,
+            description: chat.description,
+            messages: chat.messages,
+            timestamp: chat.timestamp,
+            metadata: chat.metadata,
+          }, {
+            onConflict: 'id'
+          });
+
+        if (error) {
+          if (error.message.includes('JWT') || error.message.includes('auth')) {
+            logger.error('Authentication error during sync:', error);
+            return;
+          }
+          throw error;
+        }
+        
+        logger.info('Successfully synced chat to Supabase:', { chatId: chat.id });
+        return; // Success - exit the retry loop
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        retryCount++;
+        
+        if (retryCount < maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 8000); // Exponential backoff with max 8s
+          logger.warn(`Sync attempt ${retryCount} failed, retrying in ${delay/1000}s...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+      }
+    }
+
+    // If we got here, all retries failed
+    if (lastError) {
+      throw lastError;
+    }
   } catch (error) {
     logger.error('Failed to sync chat to Supabase:', error);
-    // Don't show toast for network errors to avoid spamming the user
-    if (!(error instanceof Error && error.message.includes('network'))) {
-      toast.error('Failed to sync chat to cloud storage');
+    
+    // Only show toast for critical errors that aren't network/auth related
+    // and when we've exhausted all retries
+    if (error instanceof Error) {
+      const isNetworkError = error.message.includes('network') || 
+                            error.message.includes('timeout') ||
+                            error.message.includes('failed to fetch');
+      const isAuthError = error.message.includes('JWT') || 
+                         error.message.includes('auth') ||
+                         error.message.includes('unauthorized');
+      
+      if (!isNetworkError && !isAuthError) {
+        // Show error only for critical failures
+        toast.error('Failed to sync chat to cloud storage', {
+          toastId: 'sync-error-' + chat.id, // Make toast ID unique per chat
+          autoClose: 5000,
+          position: 'bottom-right',
+          pauseOnHover: true,
+          hideProgressBar: false
+        });
+      }
     }
   }
 }
@@ -80,17 +140,23 @@ export async function deleteChatFromSupabase(chatId: string): Promise<void> {
       .eq('id', chatId);
 
     if (error) {
+      logger.error('Failed to delete chat from Supabase:', error);
       throw error;
     }
     
     logger.info('Successfully deleted chat from Supabase:', { chatId });
   } catch (error) {
     logger.error('Failed to delete chat from Supabase:', error);
-    toast.error('Failed to delete chat from cloud storage');
+    throw error; // Re-throw the error but don't show a toast
   }
 }
 
 export async function performInitialSync(database: IDBDatabase, userId: string): Promise<void> {
+  if (!navigator.onLine) {
+    logger.warn('No network connection, skipping initial sync');
+    return;
+  }
+
   try {
     logger.info('Starting initial sync for user:', { userId });
 
@@ -126,19 +192,35 @@ export async function performInitialSync(database: IDBDatabase, userId: string):
     }
 
     // Sync local chats to cloud
-    for (const localChat of localChats) {
+    const syncPromises = localChats.map(async (localChat) => {
       const cloudChat = cloudChats.find(chat => chat.id === localChat.id);
       
       // If local chat is newer or doesn't exist in cloud, sync to Supabase
       if (!cloudChat || new Date(localChat.timestamp) > new Date(cloudChat.timestamp)) {
         logger.info('Syncing local chat to cloud:', { chatId: localChat.id });
-        await syncChatToSupabase(localChat);
+        try {
+          await syncChatToSupabase(localChat);
+        } catch (error) {
+          // Log but don't fail the entire sync
+          logger.error('Failed to sync individual chat:', { chatId: localChat.id, error });
+        }
       }
-    }
+    });
 
-    logger.info('Initial sync completed successfully');
+    // Wait for all syncs to complete but don't fail if some fail
+    await Promise.allSettled(syncPromises);
+
+    logger.info('Initial sync completed');
   } catch (error) {
     logger.error('Failed to perform initial sync:', error);
-    toast.error('Failed to sync chat history');
+    // Only show error for critical failures
+    if (error instanceof Error && 
+        !error.message.includes('network') && 
+        !error.message.includes('auth')) {
+      toast.error('Failed to sync chat history', {
+        toastId: 'initial-sync-error',
+        autoClose: 5000
+      });
+    }
   }
 } 

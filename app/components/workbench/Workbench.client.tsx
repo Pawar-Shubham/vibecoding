@@ -380,14 +380,14 @@ export const Workbench = memo(
             )}
           >
             <div className="absolute inset-0 px-2 lg:px-6">
-              <div className="h-full flex flex-col bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor shadow-sm rounded-lg overflow-hidden">
-                <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1">
+              <div className="h-full flex flex-col bg-white dark:bg-[#1a1a1a] border border-gray-200/30 dark:border-gray-800/30 shadow-sm rounded-lg overflow-hidden">
+                <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor bg-white dark:bg-[#1a1a1a] gap-1">
                   <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
                   <div className="ml-auto" />
                   {selectedView === 'code' && (
                     <div className="flex overflow-y-auto">
                       <PanelHeaderButton
-                        className="mr-1 text-sm"
+                        className="mr-1 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive"
                         onClick={() => {
                           workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
                         }}
@@ -396,7 +396,7 @@ export const Workbench = memo(
                         Toggle Terminal
                       </PanelHeaderButton>
                       <DropdownMenu.Root>
-                        <DropdownMenu.Trigger className="text-sm flex items-center gap-1 text-bolt-elements-item-contentDefault bg-transparent enabled:hover:text-bolt-elements-item-contentActive rounded-md p-1 enabled:hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed">
+                        <DropdownMenu.Trigger className="text-sm flex items-center gap-1 text-bolt-elements-textSecondary bg-transparent enabled:hover:text-bolt-elements-textPrimary rounded-md p-1 enabled:hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed">
                           <div className="i-ph:box-arrow-up" />
                           Sync & Export
                         </DropdownMenu.Trigger>
@@ -458,7 +458,7 @@ export const Workbench = memo(
                   )}
                   <IconButton
                     icon="i-ph:x-circle"
-                    className="-mr-1"
+                    className="-mr-1 text-gray-400 hover:text-yellow-500 hover:bg-gray-700"
                     size="xl"
                     onClick={() => {
                       workbenchStore.showWorkbench.set(false);

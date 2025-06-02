@@ -3,11 +3,12 @@ import * as Dialog from '@radix-ui/react-dialog';
 import * as Tabs from '@radix-ui/react-tabs';
 import { signInWithGoogle, signInWithGitHub, signInWithEmail, signUpWithEmail, resetPassword } from '~/lib/supabase';
 import { toast } from 'react-toastify';
+import Cookies from 'js-cookie';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (pendingPrompt?: string) => void;
   initialTab?: 'signin' | 'signup';
 }
 
@@ -28,6 +29,19 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
     }
   }, [isOpen, initialTab]);
 
+  const handleSuccessfulLogin = () => {
+    const pendingPrompt = Cookies.get('pending_prompt');
+    if (pendingPrompt) {
+      // Remove the cookie
+      Cookies.remove('pending_prompt');
+      // Trigger the prompt generation
+      if (onSuccess) onSuccess(pendingPrompt);
+    } else {
+      if (onSuccess) onSuccess();
+    }
+    onClose(); // Close the modal after successful login
+  };
+
   const handleGoogleSignIn = async () => {
     setErrorMessage(null);
     try {
@@ -39,8 +53,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
         setErrorMessage(error.message || 'Failed to sign in with Google');
         toast.error('Failed to sign in with Google');
       } else {
-        if (onSuccess) onSuccess();
-        onClose(); // Close the modal after successful login
+        handleSuccessfulLogin();
       }
     } catch (error: any) {
       console.error('Google sign in error:', error);
@@ -62,8 +75,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
         setErrorMessage(error.message || 'Failed to sign in with GitHub');
         toast.error('Failed to sign in with GitHub');
       } else {
-        if (onSuccess) onSuccess();
-        onClose(); // Close the modal after successful login
+        handleSuccessfulLogin();
       }
     } catch (error: any) {
       console.error('GitHub sign in error:', error);
@@ -93,8 +105,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
       } else {
         setSuccessMessage('Signed in successfully');
         toast.success('Signed in successfully');
-        if (onSuccess) onSuccess();
-        onClose(); // Close the modal after successful login
+        handleSuccessfulLogin();
       }
     } catch (error: any) {
       console.error('Email sign in error:', error);
@@ -181,7 +192,15 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
         <Dialog.Content className="auth-modal-content fixed z-50 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 p-8 w-full max-w-md">
           <div className="mb-7 text-center">
             <Dialog.Title className="text-2xl font-bold text-white dark:text-white light-mode-title mb-2">
-              {forgotPassword ? 'Reset Password' : 'Welcome to VibesXCoded'}
+              {forgotPassword ? 'Reset Password' : (
+                <div className="flex items-center justify-center gap-2">
+                  Welcome to{' '}
+                  <span className="flex items-center">
+                    <img src="/logo-dark-styled.png" alt="logo" className="h-[30px] w-auto hidden dark:inline-block" />
+                    <img src="/chat-logo-light-styled.png" alt="logo" className="h-[30px] w-auto dark:hidden inline-block" />
+                  </span>
+                </div>
+              )}
             </Dialog.Title>
             <Dialog.Description className="text-gray-800 dark:text-gray-300 text-sm">
               {forgotPassword 
@@ -237,7 +256,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
                         onChange={(e) => setEmail(e.target.value)}
                         className="auth-input w-full px-4 py-3 rounded-lg"
                         disabled={isLoading}
-                        placeholder="your@email.com"
+                        placeholder="bro@email.com"
                         required
                       />
                     </div>
@@ -289,7 +308,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
                         onChange={(e) => setEmail(e.target.value)}
                         className="auth-input w-full px-4 py-3 rounded-lg"
                         disabled={isLoading}
-                        placeholder="your@email.com"
+                        placeholder="bro@email.com"
                         required
                       />
                     </div>
@@ -346,7 +365,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
                     onChange={(e) => setEmail(e.target.value)}
                     className="auth-input w-full px-4 py-3 rounded-lg"
                     disabled={isLoading}
-                    placeholder="your@email.com"
+                    placeholder="bro@email.com"
                     required
                   />
                 </div>

@@ -14,8 +14,8 @@ export default function ChatAlert({ alert, clearAlert, postMessage }: Props) {
   const isPreview = source === 'preview';
   const title = isPreview ? 'Preview Error' : 'Terminal Error';
   const message = isPreview
-    ? 'We encountered an error while running the preview. Would you like Bolt to analyze and help resolve this issue?'
-    : 'We encountered an error while running terminal commands. Would you like Bolt to analyze and help resolve this issue?';
+    ? 'We encountered an error while running the preview. Would you like VxC to analyze and help resolve this issue?'
+    : 'We encountered an error while running terminal commands. Would you like VxC to analyze and help resolve this issue?';
 
   return (
     <AnimatePresence>
@@ -24,7 +24,7 @@ export default function ChatAlert({ alert, clearAlert, postMessage }: Props) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.3 }}
-        className={`rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 mb-2`}
+        className={`rounded-lg border border-gray-600 bg-gray-800 p-4 mb-2`}
       >
         <div className="flex items-start">
           {/* Icon */}
@@ -34,7 +34,7 @@ export default function ChatAlert({ alert, clearAlert, postMessage }: Props) {
             animate={{ scale: 1 }}
             transition={{ delay: 0.2 }}
           >
-            <div className={`i-ph:warning-duotone text-xl text-bolt-elements-button-danger-text`}></div>
+            <div className={`i-ph:warning-duotone text-xl text-yellow-400`}></div>
           </motion.div>
           {/* Content */}
           <div className="ml-3 flex-1">
@@ -42,7 +42,7 @@ export default function ChatAlert({ alert, clearAlert, postMessage }: Props) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className={`text-sm font-medium text-bolt-elements-textPrimary`}
+              className={`text-sm font-medium text-white`}
             >
               {title}
             </motion.h3>
@@ -50,11 +50,11 @@ export default function ChatAlert({ alert, clearAlert, postMessage }: Props) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className={`mt-2 text-sm text-bolt-elements-textSecondary`}
+              className={`mt-2 text-sm text-gray-300`}
             >
               <p>{message}</p>
               {description && (
-                <div className="text-xs text-bolt-elements-textSecondary p-2 bg-bolt-elements-background-depth-3 rounded mt-4 mb-4">
+                <div className="text-xs text-gray-400 p-2 bg-gray-700 rounded mt-4 mb-4">
                   Error: {description}
                 </div>
               )}
@@ -76,10 +76,9 @@ export default function ChatAlert({ alert, clearAlert, postMessage }: Props) {
                   }
                   className={classNames(
                     `px-2 py-1.5 rounded-md text-sm font-medium`,
-                    'bg-bolt-elements-button-primary-background',
-                    'hover:bg-bolt-elements-button-primary-backgroundHover',
-                    'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bolt-elements-button-danger-background',
-                    'text-bolt-elements-button-primary-text',
+                    'bg-yellow-500 hover:bg-yellow-600',
+                    'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500',
+                    'text-black',
                     'flex items-center gap-1.5',
                   )}
                 >
@@ -90,10 +89,9 @@ export default function ChatAlert({ alert, clearAlert, postMessage }: Props) {
                   onClick={clearAlert}
                   className={classNames(
                     `px-2 py-1.5 rounded-md text-sm font-medium`,
-                    'bg-bolt-elements-button-secondary-background',
-                    'hover:bg-bolt-elements-button-secondary-backgroundHover',
-                    'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bolt-elements-button-secondary-background',
-                    'text-bolt-elements-button-secondary-text',
+                    'bg-gray-600 hover:bg-gray-500',
+                    'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500',
+                    'text-white',
                   )}
                 >
                   Dismiss

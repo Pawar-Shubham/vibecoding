@@ -253,7 +253,7 @@ export const ModelSelector = ({
 
         {isProviderDropdownOpen && (
           <div
-            className="absolute z-20 w-full mt-1 py-1 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-lg"
+            className="absolute z-20 w-full mt-1 py-1 rounded-lg border border-bolt-elements-borderColor bg-white dark:bg-gray-800 shadow-lg"
             role="listbox"
             id="provider-listbox"
           >
@@ -267,7 +267,7 @@ export const ModelSelector = ({
                   placeholder="Search providers..."
                   className={classNames(
                     'w-full pl-2 py-1.5 rounded-md text-sm',
-                    'bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor',
+                    'bg-white dark:bg-gray-800 border border-bolt-elements-borderColor',
                     'text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary',
                     'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus',
                     'transition-all',
@@ -380,7 +380,7 @@ export const ModelSelector = ({
 
         {isModelDropdownOpen && (
           <div
-            className="absolute z-10 w-full mt-1 py-1 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-lg"
+            className="absolute z-10 w-full mt-1 py-1 rounded-lg border border-bolt-elements-borderColor bg-white dark:bg-gray-800 shadow-lg"
             role="listbox"
             id="model-listbox"
           >
@@ -394,7 +394,7 @@ export const ModelSelector = ({
                   placeholder="Search models..."
                   className={classNames(
                     'w-full pl-2 py-1.5 rounded-md text-sm',
-                    'bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor',
+                    'bg-white dark:bg-gray-800 border border-bolt-elements-borderColor',
                     'text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary',
                     'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus',
                     'transition-all',

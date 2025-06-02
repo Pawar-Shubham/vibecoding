@@ -3,8 +3,14 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = `https://hwxqmtguaaarjneyfyad.supabase.co`;
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3eHFtdGd1YWFhcmpuZXlmeWFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc5MDEwNDMsImV4cCI6MjA2MzQ3NzA0M30.Pvt-oOEqunDzCz3gm6VdN6N1JCCpSfjs540ic3WtxjE';
 
-// Create a singleton Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create a singleton Supabase client with session persistence
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
 
 // Helper functions for authentication
 export const signInWithGoogle = async () => {

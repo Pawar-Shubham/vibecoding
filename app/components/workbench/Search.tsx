@@ -182,12 +182,15 @@ export function Search() {
       {/* Search Bar */}
       <div className="flex items-center py-3 px-3">
         <div className="relative flex-1">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-bolt-elements-textTertiary">
+            <div className="i-ph:magnifying-glass w-4 h-4" />
+          </div>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search"
-            className="w-full px-2 py-1 rounded-md bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none transition-all"
+            className="w-full pl-9 pr-3 py-2 rounded-md bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary border border-bolt-elements-borderColor focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
           />
         </div>
       </div>

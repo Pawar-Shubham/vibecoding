@@ -1,12 +1,11 @@
 import React from 'react';
 
 const EXAMPLE_PROMPTS = [
-  { text: 'Create a Mobile App about VxC' },
-  { text: 'Build a To-Do App in React using Tailwind' },
-  { text: 'Build a Simple Blog using Astro' },
   { text: 'Create a Cookie Consent form using Material UI' },
   { text: 'Make a Space Invaders Game' },
   { text: 'Make a Tic Tac Toe game in HTML, CSS and JS' },
+  { text: 'Build a To-Do App in React using Tailwind' },
+  { text: 'Build a Simple Blog using Astro' },
 ];
 
 export function ExamplePrompts(sendMessage?: { (event: React.UIEvent, messageInput?: string): void | undefined }) {
@@ -25,7 +24,7 @@ export function ExamplePrompts(sendMessage?: { (event: React.UIEvent, messageInp
               onClick={(event) => {
                 sendMessage?.(event, examplePrompt.text);
               }}
-              className="border border-bolt-elements-borderColor rounded-full bg-gray-50 hover:bg-gray-100 dark:bg-gray-950 dark:hover:bg-gray-900 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary px-3 py-1 text-xs transition-theme"
+              className="rounded-full bg-gray-50 hover:bg-gray-100 dark:bg-gray-950 dark:hover:bg-gray-900 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary px-4 py-1.5 text-xs transition-theme border border-[#e5e7eb] dark:border-transparent"
             >
               {examplePrompt.text}
             </button>

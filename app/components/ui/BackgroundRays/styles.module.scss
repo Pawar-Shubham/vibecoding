@@ -14,8 +14,8 @@
   overflow: hidden;
   animation: fadeIn 1.5s ease-out;
   pointer-events: none;
-  z-index: 0;
-  //   background-color: transparent;
+  z-index: -1;
+  background: transparent;
 
   :global(html[data-theme='dark']) & {
     mix-blend-mode: screen;

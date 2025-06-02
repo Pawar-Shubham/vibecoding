@@ -82,7 +82,7 @@ export function SupabaseConnection() {
           active
           disabled={connecting}
           onClick={() => setIsDialogOpen(!isDialogOpen)}
-          className="hover:bg-bolt-elements-item-backgroundActive !text-white flex items-center gap-2"
+          className="hover:bg-bolt-elements-item-backgroundActive text-black dark:text-white flex items-center gap-2"
         >
           <img
             className="w-4 h-4"

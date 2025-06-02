@@ -75,9 +75,10 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             active
             disabled={isDeploying || !activePreview || isStreaming}
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="px-4 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-red-500 transition-all duration-200 flex items-center gap-2"
+            className="p-1.5 px-3 min-w-[40px] !bg-white dark:!bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-yellow-400 transition-all duration-200 flex items-center gap-2"
           >
-            {isDeploying ? `Deploying to ${deployingTo}...` : 'Deploy'}
+            <div className="i-ph:rocket-launch" />
+            Deploy
             <div
               className={classNames('i-ph:caret-down w-4 h-4 transition-transform', isDropdownOpen ? 'rotate-180' : '')}
             />
@@ -85,7 +86,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         </div>
 
         {isDropdownOpen && (
-          <div className="absolute right-2 flex flex-col gap-1 z-50 p-1 mt-1 min-w-[13.5rem] bg-white dark:bg-bolt-elements-background-depth-2 rounded-md shadow-lg border border-gray-300 dark:border-bolt-elements-borderColor">
+          <div className="absolute right-2 flex flex-col gap-1 z-50 p-1 mt-1 min-w-[13.5rem] bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-300 dark:border-bolt-elements-borderColor">
             <Button
               active
               onClick={() => {
@@ -93,7 +94,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
                 setIsDropdownOpen(false);
               }}
               disabled={isDeploying || !activePreview || !netlifyConn.user}
-              className="flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-gray-100 dark:hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative"
+              className="flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-gray-100 dark:hover:bg-gray-700 gap-2 rounded-md group relative"
             >
               <img
                 className="w-5 h-5"
@@ -114,7 +115,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
                 setIsDropdownOpen(false);
               }}
               disabled={isDeploying || !activePreview || !vercelConn.user}
-              className="flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-gray-100 dark:hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative"
+              className="flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-gray-100 dark:hover:bg-gray-700 gap-2 rounded-md group relative"
             >
               <img
                 className="w-5 h-5 bg-black p-1 rounded"
@@ -139,7 +140,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
               chatStore.setKey('showChat', !showChat);
             }
           }}
-          className="p-1.5 px-3 min-w-[40px] bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-red-500 transition-all duration-200 flex items-center justify-center"
+          className="p-1.5 px-3 min-w-[40px] !bg-white dark:!bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-yellow-400 transition-all duration-200 flex items-center justify-center"
         >
           <div className="i-bolt:chat text-sm" />
         </Button>
@@ -152,7 +153,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             }
             workbenchStore.showWorkbench.set(!showWorkbench);
           }}
-          className="p-1.5 px-3 min-w-[40px] bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-red-500 transition-all duration-200 flex items-center justify-center"
+          className="p-1.5 px-3 min-w-[40px] !bg-white dark:!bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-yellow-400 transition-all duration-200 flex items-center justify-center"
         >
           <div className="i-ph:code-bold" />
         </Button>

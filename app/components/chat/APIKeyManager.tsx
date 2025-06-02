@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { IconButton } from '~/components/ui/IconButton';
 import type { ProviderInfo } from '~/types/model';
 import Cookies from 'js-cookie';
@@ -36,6 +36,13 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
   const [isEditing, setIsEditing] = useState(false);
   const [tempKey, setTempKey] = useState(apiKey);
   const [isEnvKeySet, setIsEnvKeySet] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isEditing]);
 
   // Reset states and load saved key when provider changes
   useEffect(() => {
@@ -73,17 +80,19 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
     checkEnvApiKey();
   }, [checkEnvApiKey]);
 
-  const handleSave = () => {
-    // Save to parent state
+  const handleSave = useCallback(() => {
     setApiKey(tempKey);
-
-    // Save to cookies
-    const currentKeys = getApiKeysFromCookies();
-    const newKeys = { ...currentKeys, [provider.name]: tempKey };
-    Cookies.set('apiKeys', JSON.stringify(newKeys));
-
     setIsEditing(false);
-  };
+  }, [tempKey, setApiKey]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      setIsEditing(false);
+      setTempKey(apiKey);
+    }
+  }, [handleSave, apiKey]);
 
   return (
     <div className="flex items-center justify-between py-3 px-1">
@@ -117,13 +126,21 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
         {isEditing ? (
           <div className="flex items-center gap-2">
             <input
+              ref={inputRef}
               type="password"
               value={tempKey}
               placeholder="Enter API Key"
               onChange={(e) => setTempKey(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="w-[300px] px-3 py-1.5 text-sm rounded border border-bolt-elements-borderColor 
                         bg-bolt-elements-prompt-background text-bolt-elements-textPrimary 
-                        focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
+                        focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus
+                        hover:border-bolt-elements-borderColorHover
+                        transition-colors duration-200
+                        cursor-text"
+              autoFocus
+              spellCheck={false}
+              autoComplete="off"
             />
             <IconButton
               onClick={handleSave}
@@ -133,7 +150,10 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
               <div className="i-ph:check w-4 h-4" />
             </IconButton>
             <IconButton
-              onClick={() => setIsEditing(false)}
+              onClick={() => {
+                setIsEditing(false);
+                setTempKey(apiKey);
+              }}
               title="Cancel"
               className="bg-red-500/10 hover:bg-red-500/20 text-red-500"
             >

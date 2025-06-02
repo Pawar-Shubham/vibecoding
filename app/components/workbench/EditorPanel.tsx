@@ -84,58 +84,76 @@ export const EditorPanel = memo(
       <PanelGroup direction="vertical">
         <Panel defaultSize={showTerminal ? DEFAULT_EDITOR_SIZE : 100} minSize={20}>
           <PanelGroup direction="horizontal">
-            <Panel defaultSize={20} minSize={15} collapsible className="border-r border-bolt-elements-borderColor">
-              <div className="h-full">
+            <Panel defaultSize={20} minSize={15} collapsible className="border-r border-bolt-elements-borderColor bg-white dark:bg-[#1a1a1a]">
+              <div className="h-full bg-white dark:bg-[#1a1a1a]">
                 <Tabs.Root defaultValue="files" className="flex flex-col h-full">
-                  <PanelHeader className="w-full text-sm font-medium text-bolt-elements-textSecondary px-1">
+                  <PanelHeader className="w-full text-sm font-medium text-bolt-elements-textSecondary px-1 bg-white dark:bg-[#1a1a1a]">
                     <div className="h-full flex-shrink-0 flex items-center justify-between w-full">
                       <Tabs.List className="h-full flex-shrink-0 flex items-center">
                         <Tabs.Trigger
                           value="files"
                           className={classNames(
-                            'h-full bg-transparent hover:bg-bolt-elements-background-depth-3 py-0.5 px-2 rounded-lg text-sm font-medium text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary data-[state=active]:text-bolt-elements-textPrimary',
+                            'h-full bg-transparent hover:bg-bolt-elements-item-backgroundActive',
+                            'py-0.5 px-2 rounded-lg text-sm font-medium flex items-center gap-1',
+                            'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+                            'data-[state=active]:text-bolt-elements-item-contentAccent',
+                            'transition-colors duration-200'
                           )}
                         >
+                          <div className="i-ph:folder" />
                           Files
                         </Tabs.Trigger>
                         <Tabs.Trigger
                           value="search"
                           className={classNames(
-                            'h-full bg-transparent hover:bg-bolt-elements-background-depth-3 py-0.5 px-2 rounded-lg text-sm font-medium text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary data-[state=active]:text-bolt-elements-textPrimary',
+                            'h-full bg-transparent hover:bg-bolt-elements-item-backgroundActive',
+                            'py-0.5 px-2 rounded-lg text-sm font-medium flex items-center gap-1',
+                            'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+                            'data-[state=active]:text-bolt-elements-item-contentAccent',
+                            'transition-colors duration-200'
                           )}
                         >
+                          <div className="i-ph:magnifying-glass" />
                           Search
                         </Tabs.Trigger>
                         <Tabs.Trigger
                           value="locks"
                           className={classNames(
-                            'h-full bg-transparent hover:bg-bolt-elements-background-depth-3 py-0.5 px-2 rounded-lg text-sm font-medium text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary data-[state=active]:text-bolt-elements-textPrimary',
+                            'h-full bg-transparent hover:bg-gray-700',
+                            'py-0.5 px-2 rounded-lg text-sm font-medium flex items-center gap-1',
+                            'text-gray-400 hover:text-yellow-500',
+                            'data-[state=active]:text-green-500',
+                            'transition-colors duration-200'
                           )}
                         >
+                          <div className="i-ph:lock" />
                           Locks
                         </Tabs.Trigger>
                       </Tabs.List>
                     </div>
                   </PanelHeader>
 
-                  <Tabs.Content value="files" className="flex-grow overflow-auto focus-visible:outline-none">
-                    <FileTree
-                      className="h-full"
-                      files={files}
-                      hideRoot
-                      unsavedFiles={unsavedFiles}
-                      fileHistory={fileHistory}
-                      rootFolder={WORK_DIR}
-                      selectedFile={selectedFile}
-                      onFileSelect={onFileSelect}
-                    />
+                  <Tabs.Content value="files" className="flex-1 overflow-hidden">
+                    <div className="h-full bg-white dark:bg-[#1a1a1a]">
+                      <FileTree
+                        files={files}
+                        hideRoot
+                        unsavedFiles={unsavedFiles}
+                        fileHistory={fileHistory}
+                        rootFolder={WORK_DIR}
+                        selectedFile={selectedFile}
+                        onFileSelect={onFileSelect}
+                      />
+                    </div>
                   </Tabs.Content>
 
-                  <Tabs.Content value="search" className="flex-grow overflow-auto focus-visible:outline-none">
-                    <Search />
+                  <Tabs.Content value="search" className="flex-1 overflow-hidden">
+                    <div className="h-full bg-white dark:bg-[#1a1a1a]">
+                      <Search onFileSelect={onFileSelect} />
+                    </div>
                   </Tabs.Content>
 
-                  <Tabs.Content value="locks" className="flex-grow overflow-auto focus-visible:outline-none">
+                  <Tabs.Content value="locks" className="flex-grow overflow-auto focus-visible:outline-none bg-white dark:bg-[#1a1a1a]">
                     <LockManager />
                   </Tabs.Content>
                 </Tabs.Root>

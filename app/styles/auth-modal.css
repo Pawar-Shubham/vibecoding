@@ -3,36 +3,44 @@
 /* Variables for both light and dark themes */
 :root,
 :root[data-theme='dark'] {
-  --auth-modal-bg: var(--bolt-elements-bg-depth-1);
+  --auth-modal-bg: #141414; /* Dark grey background to match sidebar */
   --auth-border-color: var(--bolt-elements-borderColor);
   --auth-text-primary: var(--bolt-elements-textPrimary);
   --auth-text-secondary: var(--bolt-elements-textSecondary);
-  --auth-primary-color: var(--bolt-elements-button-primary-text);
-  --auth-primary-hover: var(--bolt-elements-item-contentAccent);
-  --auth-input-bg: var(--bolt-elements-bg-depth-2);
+  --auth-primary-color: #ffd700; /* Yellow from logo */
+  --auth-primary-hover: #4CAF50; /* Green from logo */
+  --auth-input-bg: rgba(255, 255, 255, 0.1); /* Slightly lighter input background */
   --auth-input-border: var(--bolt-elements-borderColor);
   --auth-btn-secondary-bg: var(--bolt-elements-button-secondary-background);
   --auth-btn-secondary-hover: var(--bolt-elements-button-secondary-backgroundHover);
   --auth-btn-secondary-text: var(--bolt-elements-button-secondary-text);
   --auth-overlay-bg: rgba(0, 0, 0, 0.7);
-  --auth-hover-bg: var(--bolt-elements-item-backgroundActive);
+  --auth-hover-bg: rgba(255, 255, 255, 0.1);
+  --dropdown-hover-bg: #2a2a2a; /* New variable for dropdown hover */
 }
 
 /* Specific overrides for light mode */
 :root[data-theme='light'] {
-  --auth-primary-color: #ef4444; /* Vibrant red */
-  --auth-primary-hover: #dc2626; /* Darker red on hover */
-  --auth-border-color: #d1d5db; /* Visible border */
-  --auth-btn-secondary-bg: #f3f4f6; /* Light gray background */
-  --auth-btn-secondary-hover: #e5e7eb; /* Slightly darker on hover */
-  --auth-btn-secondary-text: #111827; /* Dark text for contrast */
-  --auth-hover-bg: #f9fafb; /* Very light gray for hover states */
+  --auth-modal-bg: #ffffff; /* White background */
+  --auth-primary-color: #4CAF50; /* Green from logo */
+  --auth-primary-hover: #ffd700; /* Yellow from logo */
+  --auth-border-color: var(--bolt-elements-borderColor);
+  --auth-btn-secondary-bg: #ffffff;
+  --auth-btn-secondary-hover: theme('colors.gray.100');
+  --auth-btn-secondary-text: var(--bolt-elements-textPrimary);
+  --auth-hover-bg: theme('colors.gray.100');
+  --auth-text-primary: var(--bolt-elements-textPrimary);
+  --auth-text-secondary: var(--bolt-elements-textSecondary);
+  --auth-input-bg: #ffffff;
+  --auth-input-border: var(--bolt-elements-borderColor);
+  --auth-overlay-bg: rgba(0, 0, 0, 0.3);
+  --dropdown-hover-bg: #f3f4f6; /* Light mode dropdown hover */
 }
 
-/* Light mode specific text color */
+/* Light mode specific text color - override for dark modal */
 :root[data-theme='light'] .auth-modal-content .light-mode-title,
 :root[data-theme='light'] .auth-modal-content [role="dialog"] h2 {
-  color: #111827 !important; /* Black text in light mode */
+  color: var(--auth-text-primary) !important;
 }
 
 /* Modal styling */
@@ -83,17 +91,32 @@
 }
 
 .auth-btn-primary {
-  background-color: var(--auth-primary-color);
-  color: white;
+  background: linear-gradient(90deg, #ffd700, #4CAF50);
+  color: black;
   border: none;
   border-radius: 8px;
   padding: 12px;
   font-weight: 500;
-  transition: background-color 0.2s;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
 }
 
-.auth-btn-primary:hover {
-  background-color: var(--auth-primary-hover);
+.auth-btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #4CAF50, #ffd700);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: -1;
+}
+
+.auth-btn-primary:hover::before {
+  opacity: 1;
 }
 
 .auth-btn-primary:focus {
@@ -274,6 +297,7 @@ button.forgot-password:hover {
               0 4px 6px -2px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   animation: fadeIn 0.2s ease forwards;
+  padding: 4px;
 }
 
 [data-radix-popper-content-wrapper] [role="separator"] {
@@ -285,18 +309,22 @@ button.forgot-password:hover {
 [data-radix-popper-content-wrapper] [role="menuitem"] {
   padding: 8px 12px;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  border-radius: 6px;
+  transition: all 0.2s ease;
   color: var(--auth-text-primary);
+  margin: 2px 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
 }
 
 [data-radix-popper-content-wrapper] [role="menuitem"]:hover {
-  background-color: var(--auth-hover-bg);
+  background-color: var(--dropdown-hover-bg);
 }
 
 [data-radix-popper-content-wrapper] [role="menuitem"]:focus {
   outline: none;
-  background-color: var(--auth-hover-bg);
+  background-color: var(--dropdown-hover-bg);
 }
 
 /* User profile dropdown */
@@ -310,4 +338,16 @@ button.forgot-password:hover {
   background-color: var(--bolt-elements-button-primary-background);
   color: var(--bolt-elements-button-primary-text);
   font-weight: 500;
+}
+
+/* Logo visibility transitions */
+.header-logo {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+body.sidebar-open .header-logo {
+  opacity: 0;
+  visibility: hidden;
 } 

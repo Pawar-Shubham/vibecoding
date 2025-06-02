@@ -16,8 +16,16 @@ export const authStore = atom<AuthState>({
   initialized: false,
 });
 
+let isInitializing = false;
+
 // Initialize auth from existing session
 export const initAuth = async () => {
+  // Prevent multiple simultaneous initializations
+  if (isInitializing) {
+    return;
+  }
+
+  isInitializing = true;
   authStore.set({ ...authStore.get(), loading: true });
   
   try {
@@ -32,6 +40,8 @@ export const initAuth = async () => {
   } catch (error) {
     console.error('Error initializing auth:', error);
     authStore.set({ user: null, session: null, loading: false, initialized: true });
+  } finally {
+    isInitializing = false;
   }
 };
 
