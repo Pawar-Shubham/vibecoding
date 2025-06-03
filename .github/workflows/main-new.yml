@@ -1,0 +1,41 @@
+name: main-new-frontend-workflow
+
+on:
+  push:
+    branches:
+      - main-new
+jobs:
+  ci-cd:
+    runs-on: [vibe-coding-1]
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - name: Getting Latest Code
+        uses: actions/checkout@v4
+
+      - name: Setting NodeJS Version
+        uses: actions/setup-node@v4
+        id: setup-node
+        with:
+          node-version: 22.14.0
+
+      - name: Clean NPM Cache
+        run: npm cache clean --force
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Installing Dependencies with pnpm
+        run: pnpm install
+
+      - name: Building Application
+        env:
+          NODE_OPTIONS: '--max-old-space-size=3072'
+        run: npm run build
+
+      - name: Removing Old Files
+        run: sudo rm -rf /var/www/vibescoded.com/*
+
+      - name: Syncing with Nginx Server
+        run: sudo cp -rf ~/actions-runner/_work/vibecoding/vibecoding/build/* /var/www/vibescoded.com/
