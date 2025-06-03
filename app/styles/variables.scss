@@ -1,13 +1,13 @@
 /* Color Tokens Light Theme */
 :root,
 :root[data-theme='light'] {
-  --bolt-elements-borderColor: theme('colors.gray.300');
+  --bolt-elements-borderColor: theme('colors.gray.200');
   --bolt-elements-borderColorActive: #4CAF50; /* Green accent */
 
-  --bolt-elements-bg-depth-1: #ffffff;
-  --bolt-elements-bg-depth-2: #ffffff;
-  --bolt-elements-bg-depth-3: #ffffff;
-  --bolt-elements-bg-depth-4: #ffffff;
+  --bolt-elements-bg-depth-1: transparent;
+  --bolt-elements-bg-depth-2: transparent;
+  --bolt-elements-bg-depth-3: transparent;
+  --bolt-elements-bg-depth-4: transparent;
 
   --bolt-elements-textPrimary: theme('colors.gray.950');
   --bolt-elements-textSecondary: theme('colors.gray.700');
@@ -32,7 +32,7 @@
   --bolt-elements-item-contentActive: theme('colors.gray.950');
   --bolt-elements-item-contentAccent: #4CAF50;
   --bolt-elements-item-contentDanger: #ffd700;
-  --bolt-elements-item-backgroundDefault: rgba(0, 0, 0, 0);
+  --bolt-elements-item-backgroundDefault: transparent;
   --bolt-elements-item-backgroundActive: rgba(255, 215, 0, 0.1);
   --bolt-elements-item-backgroundAccent: rgba(76, 175, 80, 0.1);
   --bolt-elements-item-backgroundDanger: rgba(255, 215, 0, 0.1);
@@ -61,7 +61,7 @@
   --bolt-elements-icon-secondary: theme('colors.gray.700');
   --bolt-elements-icon-tertiary: theme('colors.gray.600');
 
-  --bolt-elements-dividerColor: theme('colors.gray.300');
+  --bolt-elements-dividerColor: theme('colors.gray.200');
 
   --bolt-elements-prompt-background: #ffffff;
 
@@ -79,7 +79,7 @@
   --bolt-elements-terminals-background: #ffffff;
   --bolt-elements-terminals-buttonBackground: #ffffff;
 
-  --bolt-elements-cta-background: #ffffff;
+  --bolt-elements-cta-background: transparent;
   --bolt-elements-cta-text: theme('colors.gray.950');
 
   /* Terminal Colors */
@@ -109,19 +109,19 @@
 /* Color Tokens Dark Theme */
 :root,
 :root[data-theme='dark'] {
-  --bolt-elements-borderColor: theme('colors.alpha.white.10');
+  --bolt-elements-borderColor: theme('colors.gray.800');
   --bolt-elements-borderColorActive: #ffd700; /* Yellow accent */
 
-  --bolt-elements-bg-depth-1: #1a1a1a;
-  --bolt-elements-bg-depth-2: #1a1a1a;
-  --bolt-elements-bg-depth-3: #1a1a1a;
-  --bolt-elements-bg-depth-4: #1a1a1a;
+  --bolt-elements-bg-depth-1: transparent;
+  --bolt-elements-bg-depth-2: transparent;
+  --bolt-elements-bg-depth-3: transparent;
+  --bolt-elements-bg-depth-4: transparent;
 
   --bolt-elements-textPrimary: theme('colors.white');
   --bolt-elements-textSecondary: theme('colors.gray.400');
   --bolt-elements-textTertiary: theme('colors.gray.500');
 
-  --bolt-elements-code-background: theme('colors.gray.800');
+  --bolt-elements-code-background: theme('colors.gray.900');
   --bolt-elements-code-text: theme('colors.white');
 
   --bolt-elements-button-primary-background: linear-gradient(90deg, #ffd700, #4CAF50);
@@ -140,27 +140,27 @@
   --bolt-elements-item-contentActive: theme('colors.white');
   --bolt-elements-item-contentAccent: #ffd700;
   --bolt-elements-item-contentDanger: #ffd700;
-  --bolt-elements-item-backgroundDefault: rgba(255, 255, 255, 0);
+  --bolt-elements-item-backgroundDefault: transparent;
   --bolt-elements-item-backgroundActive: rgba(255, 215, 0, 0.1);
   --bolt-elements-item-backgroundAccent: rgba(76, 175, 80, 0.1);
   --bolt-elements-item-backgroundDanger: rgba(255, 215, 0, 0.1);
 
-  --bolt-elements-loader-background: theme('colors.alpha.gray.10');
+  --bolt-elements-loader-background: theme('colors.gray.800');
   --bolt-elements-loader-progress: #ffd700; /* Yellow accent */
 
-  --bolt-elements-artifacts-background: #1a1a1a;
-  --bolt-elements-artifacts-backgroundHover: #1a1a1a;
+  --bolt-elements-artifacts-background: theme('colors.gray.900');
+  --bolt-elements-artifacts-backgroundHover: theme('colors.gray.900');
   --bolt-elements-artifacts-borderColor: var(--bolt-elements-borderColor);
-  --bolt-elements-artifacts-inlineCode-background: #1a1a1a;
+  --bolt-elements-artifacts-inlineCode-background: theme('colors.gray.900');
   --bolt-elements-artifacts-inlineCode-text: theme('colors.white');
 
-  --bolt-elements-actions-background: #1a1a1a;
-  --bolt-elements-actions-code-background: #1a1a1a;
+  --bolt-elements-actions-background: theme('colors.gray.900');
+  --bolt-elements-actions-code-background: theme('colors.gray.900');
 
-  --bolt-elements-messages-background: #1a1a1a;
+  --bolt-elements-messages-background: theme('colors.gray.900');
   --bolt-elements-messages-linkColor: #ffd700; /* Yellow accent */
-  --bolt-elements-messages-code-background: #1a1a1a;
-  --bolt-elements-messages-inlineCode-background: #1a1a1a;
+  --bolt-elements-messages-code-background: theme('colors.gray.900');
+  --bolt-elements-messages-inlineCode-background: theme('colors.gray.900');
   --bolt-elements-messages-inlineCode-text: var(--bolt-elements-textPrimary);
 
   --bolt-elements-icon-success: #ffd700; /* Yellow accent */
@@ -169,26 +169,25 @@
   --bolt-elements-icon-secondary: theme('colors.gray.600');
   --bolt-elements-icon-tertiary: theme('colors.gray.500');
 
-  --bolt-elements-dividerColor: theme('colors.gray.100');
+  --bolt-elements-dividerColor: theme('colors.gray.800');
 
-  --bolt-elements-prompt-background: #1a1a1a;
+  --bolt-elements-prompt-background: theme('colors.gray.900');
 
-  --bolt-elements-sidebar-dropdownShadow: theme('colors.alpha.gray.30');
+  --bolt-elements-sidebar-dropdownShadow: theme('colors.gray.800');
   --bolt-elements-sidebar-buttonBackgroundDefault: rgba(255, 215, 0, 0.1); /* Yellow with opacity */
   --bolt-elements-sidebar-buttonBackgroundHover: rgba(76, 175, 80, 0.1); /* Green with opacity */
   --bolt-elements-sidebar-buttonText: #ffd700; /* Yellow accent */
 
-  --bolt-elements-preview-addressBar-background: #1a1a1a;
-  --bolt-elements-preview-addressBar-backgroundHover: #1a1a1a;
-  --bolt-elements-preview-addressBar-backgroundActive: #1a1a1a;
+  --bolt-elements-preview-addressBar-background: theme('colors.gray.900');
+  --bolt-elements-preview-addressBar-backgroundHover: theme('colors.gray.900');
+  --bolt-elements-preview-addressBar-backgroundActive: theme('colors.gray.900');
   --bolt-elements-preview-addressBar-text: var(--bolt-elements-textSecondary);
   --bolt-elements-preview-addressBar-textActive: var(--bolt-elements-textPrimary);
 
-  --bolt-elements-terminals-background: #000000;
-  --bolt-elements-terminals-buttonBackground: #000000;
-  --bolt-elements-terminals-buttonBackgroundHover: #000000;
+  --bolt-elements-terminals-background: theme('colors.gray.900');
+  --bolt-elements-terminals-buttonBackground: theme('colors.gray.900');
 
-  --bolt-elements-cta-background: #1a1a1a;
+  --bolt-elements-cta-background: transparent;
   --bolt-elements-cta-text: theme('colors.white');
 
   /* Terminal Colors */

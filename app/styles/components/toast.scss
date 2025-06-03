@@ -1,9 +1,10 @@
 .Toastify__toast {
   --at-apply: shadow-md;
 
-  background-color: var(--bolt-elements-bg-depth-2);
+  background-color: theme('colors.gray.900') !important;
   color: var(--bolt-elements-textPrimary);
   border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 8px;
 }
 
 .Toastify__close-button {
@@ -14,4 +15,10 @@
   &:hover {
     color: var(--bolt-elements-item-contentActive);
   }
+}
+
+/* Light theme overrides */
+:root[data-theme='light'] .Toastify__toast {
+  background-color: theme('colors.gray.900') !important;
+  color: theme('colors.white');
 }

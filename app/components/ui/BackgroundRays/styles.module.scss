@@ -1,8 +1,8 @@
 .rayContainer {
   // Theme-specific colors
-  --ray-color-primary: color-mix(in srgb, var(--primary-color), transparent 30%);
-  --ray-color-secondary: color-mix(in srgb, var(--secondary-color), transparent 30%);
-  --ray-color-accent: color-mix(in srgb, var(--accent-color), transparent 30%);
+  --ray-color-primary: color-mix(in srgb, var(--primary-color), transparent 20%);
+  --ray-color-secondary: color-mix(in srgb, var(--secondary-color), transparent 20%);
+  --ray-color-accent: color-mix(in srgb, var(--accent-color), transparent 20%);
 
   // Theme-specific gradients
   --ray-gradient-primary: linear-gradient(45deg, var(--ray-color-primary) 0%, transparent 70%);
@@ -14,15 +14,18 @@
   overflow: hidden;
   animation: fadeIn 1.5s ease-out;
   pointer-events: none;
-  z-index: -1;
+  z-index: 0;
   background: transparent;
+  isolation: isolate;
 
   :global(html[data-theme='dark']) & {
-    mix-blend-mode: screen;
+    mix-blend-mode: plus-lighter;
+    opacity: 1;
   }
 
   :global(html[data-theme='light']) & {
     mix-blend-mode: multiply;
+    opacity: 0.4;
   }
 }
 
@@ -31,7 +34,8 @@
   transform-origin: center;
 
   :global(html[data-theme='dark']) & {
-    mix-blend-mode: screen;
+    mix-blend-mode: plus-lighter;
+    opacity: 1;
   }
 
   :global(html[data-theme='light']) & {
@@ -46,7 +50,7 @@
   background: var(--ray-gradient-primary);
   top: -20%;
   left: -25%;
-  filter: blur(60px);
+  filter: none;
   opacity: 0.5;
   animation: float1 20s infinite ease-in-out;
 }
@@ -57,7 +61,7 @@
   background: var(--ray-gradient-secondary);
   top: 20%;
   right: -25%;
-  filter: blur(60px);
+  filter: none;
   opacity: 0.5;
   animation: float2 25s infinite ease-in-out;
 }
@@ -68,7 +72,7 @@
   background: var(--ray-gradient-accent);
   bottom: -20%;
   left: -25%;
-  filter: blur(60px);
+  filter: none;
   opacity: 0.5;
   animation: float3 22s infinite ease-in-out;
 }
@@ -79,7 +83,7 @@
   background: var(--ray-gradient-primary);
   top: 0;
   right: -25%;
-  filter: blur(60px);
+  filter: none;
   opacity: 0.4;
   animation: float4 28s infinite ease-in-out;
 }
@@ -91,7 +95,7 @@
   transform: rotate(-45deg);
   top: -250px;
   left: 1000px;
-  filter: blur(45px);
+  filter: none;
   opacity: 0.6;
   animation: float5 16s infinite ease-in-out;
 }
@@ -103,7 +107,7 @@
   transform: rotate(75deg);
   top: -400px;
   left: 600px;
-  filter: blur(75px);
+  filter: none;
   opacity: 0.45;
   animation: float6 19s infinite ease-in-out;
 }
@@ -115,7 +119,7 @@
   transform: rotate(45deg);
   top: -450px;
   left: 350px;
-  filter: blur(65px);
+  filter: none;
   opacity: 0.55;
   animation: float7 21s infinite ease-in-out;
 }
@@ -127,7 +131,7 @@
   transform: rotate(-60deg);
   top: -380px;
   left: 750px;
-  filter: blur(58px);
+  filter: none;
   opacity: 0.6;
   animation: float8 14s infinite ease-in-out;
 }

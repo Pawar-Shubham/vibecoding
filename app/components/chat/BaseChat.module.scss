@@ -5,10 +5,12 @@
   border-radius: 0;
   overflow: hidden; /* Ensure rounded corners are visible */
   background-color: transparent;
+  position: relative;
+  z-index: 2; /* Ensure it's above the background */
 
   /* Dark mode styles */
   :global(html[data-theme='dark']) & {
-    border-radius: 1rem;
+    border-radius: 0;
     background-color: transparent;
   }
 
@@ -16,6 +18,7 @@
   ::-webkit-scrollbar-track {
     border-radius: 1rem;
     margin: 0.5rem;
+    background-color: transparent;
   }
 
   /* Style the scrollbar to match the rounded design */
@@ -27,7 +30,7 @@
   ::-webkit-scrollbar-thumb {
     background-color: rgba(0, 0, 0, 0.1);
     border-radius: 1rem;
-    border: 2px solid transparent;
+    border: none;
     background-clip: padding-box;
 
     &:hover {
@@ -73,10 +76,13 @@
   opacity: 1;
   padding: 0 1.25rem; /* Slightly reduced padding */
   border-radius: 0;
-  background-color: #ffffff;
+  background-color: transparent;
+  position: relative;
+  z-index: 2;
+  isolation: isolate; /* Create new stacking context */
   
   :global(html[data-theme='dark']) & {
-    border-radius: 1rem;
+    border-radius: 0;
     background-color: transparent;
   }
   
@@ -98,8 +104,8 @@
 .MaterialPrompt {
   position: relative;
   border-radius: 12px;
-  background: theme('colors.gray.900');
-  border: 3px solid var(--bolt-elements-borderColor);
+  background: transparent;
+  border: 4px solid rgba(76, 74, 74, 0.552);
   margin: 0.875rem 0;
   font-size: 0.9375rem;
 

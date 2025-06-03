@@ -47,10 +47,8 @@ export function Header() {
   return (
     <header
       className={classNames(
-        'flex items-center border-b h-[var(--header-height)] bg-transparent', 
+        'flex items-center h-[var(--header-height)] bg-transparent', 
         {
-          'border-transparent': !chat.started,
-          'border-bolt-elements-borderColor': chat.started,
           'p-5': isAuthenticated,
           'pl-0 pr-5 py-5': !isAuthenticated, // Remove left padding when logged out
         }

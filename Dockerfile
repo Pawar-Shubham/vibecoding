@@ -1,15 +1,18 @@
 ARG BASE=node:20.18.0
 FROM ${BASE} AS base
 
+# Set Node options for better memory management
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 WORKDIR /app
 
-# Install dependencies (this step is cached as long as the dependencies don't change)
+# Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-#RUN npm install -g corepack@latest
-
-#RUN corepack enable pnpm && pnpm install
-RUN npm install -g pnpm && pnpm install
+# Install dependencies with specific platform settings to avoid Windows permission issues
+RUN npm install -g pnpm && \
+    pnpm config set node-linker hoisted && \
+    CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
 
 # Copy the rest of your app's source code
 COPY . .
@@ -55,7 +58,8 @@ ENV WRANGLER_SEND_METRICS=false \
 RUN mkdir -p /root/.config/.wrangler && \
     echo '{"enabled":false}' > /root/.config/.wrangler/metrics.json
 
-RUN pnpm run build
+# Run build with increased memory limit and production optimization
+RUN NODE_ENV=production pnpm run build
 
 CMD [ "pnpm", "run", "dockerstart"]
 

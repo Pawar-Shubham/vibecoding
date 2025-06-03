@@ -73,6 +73,10 @@ const gitInfo = getGitInfo();
 
 export default defineConfig((config) => {
   return {
+    server: {
+      host: true,
+      allowedHosts: ['vibescoded.com', 'localhost'],
+    },
     define: {
       __COMMIT_HASH: JSON.stringify(gitInfo.commitHash),
       __GIT_BRANCH: JSON.stringify(gitInfo.branch),
@@ -92,7 +96,48 @@ export default defineConfig((config) => {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },
     build: {
-      target: 'esnext',
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            // Only chunk our app code, not external dependencies
+            if (id.includes('node_modules')) {
+              return;
+            }
+            
+            // Split app code into logical chunks
+            if (id.includes('/components/')) {
+              return 'components';
+            }
+            if (id.includes('/lib/')) {
+              return 'lib';
+            }
+            if (id.includes('/utils/')) {
+              return 'utils';
+            }
+          }
+        }
+      },
+      sourcemap: false,
+      modulePreload: {
+        polyfill: false
+      },
+      minify: 'esbuild',
+      emptyOutDir: true,
+      cssCodeSplit: true,
+      reportCompressedSize: false,
+      chunkSizeWarningLimit: 1000,
+      target: 'esnext'
+    },
+    esbuild: {
+      treeShaking: true,
+      minifyIdentifiers: true,
+      minifySyntax: true,
+      minifyWhitespace: true,
+      keepNames: config.mode === 'development'
+    },
+    optimizeDeps: {
+      include: ['react', 'react-dom', '@remix-run/react'],
+      exclude: ['node_modules/*.mjs']
     },
     plugins: [
       nodePolyfills({
