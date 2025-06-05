@@ -75,7 +75,7 @@ export default defineConfig((config) => {
   return {
     server: {
       host: true,
-      allowedHosts: ['vibescoded.com', 'localhost'],
+      allowedHosts: ['vibescoded.com', 'localhost' , 'www.vibescoded.com'],
     },
     define: {
       __COMMIT_HASH: JSON.stringify(gitInfo.commitHash),
