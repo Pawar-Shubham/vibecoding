@@ -18,7 +18,7 @@ type ProviderConfig = {
 
 type ServiceStatus = {
   status: 'operational' | 'degraded' | 'down';
-  message: string;
+    message: string;
   incidents: string[];
 };
 
@@ -59,35 +59,35 @@ const ServiceStatusTab = () => {
 
   return (
     <div className="space-y-6">
-      <div>
+            <div>
         <h3 className="text-lg font-medium text-bolt-elements-textPrimary">Service Status</h3>
-        <p className="text-sm text-bolt-elements-textSecondary">
+              <p className="text-sm text-bolt-elements-textSecondary">
           Check the operational status of your enabled AI providers
         </p>
-      </div>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {Object.entries(providerStatuses).map(([provider, status], index) => (
-          <motion.div
+              <motion.div
             key={provider}
-            className={classNames(
+                className={classNames(
               'rounded-lg border bg-bolt-elements-background text-bolt-elements-textPrimary shadow-sm',
-              'bg-bolt-elements-background-depth-2',
-              'hover:bg-bolt-elements-background-depth-3',
-              'transition-all duration-200',
+                  'bg-bolt-elements-background-depth-2',
+                  'hover:bg-bolt-elements-background-depth-3',
+                  'transition-all duration-200',
               'relative overflow-hidden group',
               'p-4',
-            )}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            whileHover={{ scale: 1.02 }}
-          >
+                )}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ scale: 1.02 }}
+              >
             <div className="flex items-center gap-4">
               <motion.div
-                className={classNames(
+                          className={classNames(
                   'w-12 h-12 flex items-center justify-center rounded-xl',
-                  'bg-bolt-elements-background-depth-3',
+                            'bg-bolt-elements-background-depth-3',
                   status.status === 'operational'
                     ? 'text-green-500'
                     : status.status === 'degraded'
@@ -101,7 +101,7 @@ const ServiceStatusTab = () => {
                   'aria-label': `${provider} icon`,
                 })}
               </motion.div>
-              <div>
+                      <div>
                 <h4 className="text-sm font-medium text-bolt-elements-textPrimary">{provider}</h4>
                 <p className="text-xs text-bolt-elements-textSecondary mt-0.5">{status.message}</p>
                 {status.incidents.length > 0 && (
@@ -112,12 +112,12 @@ const ServiceStatusTab = () => {
                       </li>
                     ))}
                   </ul>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+                          )}
+                        </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
     </div>
   );
 };

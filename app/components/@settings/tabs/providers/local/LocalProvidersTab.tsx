@@ -74,12 +74,12 @@ const isOllamaPullResponse = (data: unknown): data is OllamaPullResponse => {
 const LocalProvidersTab = () => {
   return (
     <div className="space-y-6">
-      <div>
+            <div>
         <h3 className="text-lg font-medium text-bolt-elements-textPrimary">Local Providers</h3>
         <p className="text-sm text-bolt-elements-textSecondary">
           No local providers are available in this version
-        </p>
-      </div>
+                        </p>
+                      </div>
     </div>
   );
 };
