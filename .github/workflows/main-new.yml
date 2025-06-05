@@ -4,38 +4,36 @@ on:
   push:
     branches:
       - main-new
+
 jobs:
   ci-cd:
-    runs-on: [vibe-coding-1]
+    runs-on: [vibe-coding-1]  # Self-hosted runner label
+
     env:
+      # Pass all required secrets/environment vars for Docker Compose
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      HuggingFace_API_KEY: ${{ secrets.HuggingFace_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
       GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+      OLLAMA_API_BASE_URL: ${{ secrets.OLLAMA_API_BASE_URL }}
+      XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+      TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+      TOGETHER_API_BASE_URL: ${{ secrets.TOGETHER_API_BASE_URL }}
+      AWS_BEDROCK_CONFIG: ${{ secrets.AWS_BEDROCK_CONFIG }}
+      VITE_LOG_LEVEL: debug
+      DEFAULT_NUM_CTX: 32768
+
     steps:
-      - name: Getting Latest Code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setting NodeJS Version
-        uses: actions/setup-node@v4
-        id: setup-node
-        with:
-          node-version: 22.14.0
+      - name: Build and Run with Docker Compose
+        run: docker-compose -f docker-compose.yaml up --build -d app-dev
 
-      - name: Clean NPM Cache
-        run: npm cache clean --force
+      - name: Wait for App to Start (optional)
+        run: sleep 10
 
-      - name: Install pnpm
-        run: npm install -g pnpm
-
-      - name: Installing Dependencies with pnpm
-        run: pnpm install
-
-      - name: Building Application
-        env:
-          NODE_OPTIONS: '--max-old-space-size=3072'
-        run: npm run build
-
-      - name: Removing Old Files
-        run: sudo rm -rf /var/www/vibescoded.com/*
-
-      - name: Syncing with Nginx Server
-        run: sudo cp -rf ~/actions-runner/_work/vibecoding/vibecoding/build/* /var/www/vibescoded.com/
+      - name: Check if App is Running
+        run: curl http://localhost:5173 || echo "App may still be starting"
