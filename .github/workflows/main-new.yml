@@ -10,7 +10,6 @@ jobs:
     runs-on: [vibe-coding-1]  # Self-hosted runner label
 
     env:
-      # Pass all required secrets/environment vars for Docker Compose
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       HuggingFace_API_KEY: ${{ secrets.HuggingFace_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -26,11 +25,11 @@ jobs:
       DEFAULT_NUM_CTX: 32768
 
     steps:
+      - name: Fix Permissions Early
+        run: sudo chown -R ubuntu:ubuntu /home/ubuntu/actions-runner/_work
+
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Fix Permissions
-        run: sudo chown -R $USER:$USER /home/ubuntu/actions-runner/_work
 
       - name: Build and Run with Docker Compose
         run: docker compose -f docker-compose.yaml up --build -d app-dev
@@ -40,3 +39,6 @@ jobs:
 
       - name: Check if App is Running
         run: curl http://localhost:5173 || echo "App may still be starting"
+
+      - name: Reset Permissions After Run
+        run: sudo chown -R ubuntu:ubuntu /home/ubuntu/actions-runner/_work
