@@ -1,18 +1,6 @@
 import type { IconType } from 'react-icons';
 
-export type ProviderName =
-  | 'AmazonBedrock'
-  | 'Cohere'
-  | 'Deepseek'
-  | 'Google'
-  | 'Groq'
-  | 'HuggingFace'
-  | 'Hyperbolic'
-  | 'Mistral'
-  | 'OpenRouter'
-  | 'Perplexity'
-  | 'Together'
-  | 'XAI';
+export type ProviderName = 'Google' | 'Anthropic';
 
 export type ServiceStatus = {
   provider: ProviderName;
@@ -32,24 +20,13 @@ export interface ProviderConfig {
   testModel: string;
 }
 
-export type ApiResponse = {
-  error?: {
-    message: string;
-  };
-  message?: string;
-  model?: string;
-  models?: Array<{
-    id?: string;
-    name?: string;
-  }>;
-  data?: Array<{
-    id?: string;
-    name?: string;
-  }>;
-};
-
-export type StatusCheckResult = {
+export interface StatusCheckResult {
   status: 'operational' | 'degraded' | 'down';
   message: string;
   incidents: string[];
-};
+}
+
+export interface ApiResponse {
+  status: number;
+  data: any;
+}
