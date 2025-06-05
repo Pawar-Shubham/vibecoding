@@ -26,8 +26,19 @@ jobs:
       DEFAULT_NUM_CTX: 32768
 
     steps:
+      - name: Clean workspace
+        run: |
+          sudo chown -R $USER:$USER .
+          sudo rm -rf ./* || true
+          sudo rm -rf ./.* || true
+
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Set permissions
+        run: |
+          sudo chown -R $USER:$USER .
+          sudo chmod -R 755 .
 
       - name: Build and Run with Docker Compose
         run: docker compose -f docker-compose.yaml up --build -d app-dev
