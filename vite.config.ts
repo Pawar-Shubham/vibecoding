@@ -11,32 +11,12 @@ import { join } from 'path';
 
 dotenv.config();
 
-// Get detailed git info with fallbacks
-const getGitInfo = () => {
+// Get git hash with fallback
+const getGitHash = () => {
   try {
-    return {
-      commitHash: execSync('git rev-parse --short HEAD').toString().trim(),
-      branch: execSync('git rev-parse --abbrev-ref HEAD').toString().trim(),
-      commitTime: execSync('git log -1 --format=%cd').toString().trim(),
-      author: execSync('git log -1 --format=%an').toString().trim(),
-      email: execSync('git log -1 --format=%ae').toString().trim(),
-      remoteUrl: execSync('git config --get remote.origin.url').toString().trim(),
-      repoName: execSync('git config --get remote.origin.url')
-        .toString()
-        .trim()
-        .replace(/^.*github.com[:/]/, '')
-        .replace(/\.git$/, ''),
-    };
+    return execSync('git rev-parse --short HEAD').toString().trim();
   } catch {
-    return {
-      commitHash: 'no-git-info',
-      branch: 'unknown',
-      commitTime: 'unknown',
-      author: 'unknown',
-      email: 'unknown',
-      remoteUrl: 'unknown',
-      repoName: 'unknown',
-    };
+    return 'no-git-info';
   }
 };
 
@@ -69,22 +49,21 @@ const getPackageJson = () => {
 };
 
 const pkg = getPackageJson();
-const gitInfo = getGitInfo();
 
 export default defineConfig((config) => {
   return {
     server: {
       host: true,
       allowedHosts: ['vibescoded.com', 'localhost' , 'www.vibescoded.com'],
+      hmr: {
+        overlay: false
+      },
+      fs: {
+        strict: false
+      }
     },
     define: {
-      __COMMIT_HASH: JSON.stringify(gitInfo.commitHash),
-      __GIT_BRANCH: JSON.stringify(gitInfo.branch),
-      __GIT_COMMIT_TIME: JSON.stringify(gitInfo.commitTime),
-      __GIT_AUTHOR: JSON.stringify(gitInfo.author),
-      __GIT_EMAIL: JSON.stringify(gitInfo.email),
-      __GIT_REMOTE_URL: JSON.stringify(gitInfo.remoteUrl),
-      __GIT_REPO_NAME: JSON.stringify(gitInfo.repoName),
+      __COMMIT_HASH: JSON.stringify(getGitHash()),
       __APP_VERSION: JSON.stringify(process.env.npm_package_version),
       __PKG_NAME: JSON.stringify(pkg.name),
       __PKG_DESCRIPTION: JSON.stringify(pkg.description),
@@ -99,9 +78,20 @@ export default defineConfig((config) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
-            // Only chunk our app code, not external dependencies
+            // Split vendor chunks
             if (id.includes('node_modules')) {
-              return;
+              // Group major frameworks together
+              if (id.includes('react') || id.includes('@remix-run')) {
+                return 'vendor-react';
+              }
+              if (id.includes('@radix-ui')) {
+                return 'vendor-radix';
+              }
+              if (id.includes('@codemirror')) {
+                return 'vendor-codemirror';
+              }
+              // Other node_modules go to vendors chunk
+              return 'vendors';
             }
             
             // Split app code into logical chunks
@@ -117,7 +107,7 @@ export default defineConfig((config) => {
           }
         }
       },
-      sourcemap: false,
+      sourcemap: config.mode === 'development',
       modulePreload: {
         polyfill: false
       },
@@ -133,10 +123,21 @@ export default defineConfig((config) => {
       minifyIdentifiers: true,
       minifySyntax: true,
       minifyWhitespace: true,
-      keepNames: config.mode === 'development'
+      keepNames: config.mode === 'development',
+      legalComments: 'none',
+      drop: config.mode === 'production' ? ['console', 'debugger'] : []
     },
     optimizeDeps: {
-      include: ['react', 'react-dom', '@remix-run/react'],
+      include: [
+        'react', 
+        'react-dom', 
+        '@remix-run/react',
+        '@radix-ui/react-dialog',
+        '@radix-ui/react-dropdown-menu',
+        '@codemirror/state',
+        '@codemirror/view',
+        '@codemirror/commands'
+      ],
       exclude: ['node_modules/*.mjs']
     },
     plugins: [
@@ -159,7 +160,6 @@ export default defineConfig((config) => {
               map: null,
             };
           }
-
           return null;
         },
       },
@@ -190,6 +190,11 @@ export default defineConfig((config) => {
           api: 'modern-compiler',
         },
       },
+      modules: {
+        generateScopedName: config.mode === 'production' 
+          ? '[hash:base64:8]' 
+          : '[local]_[hash:base64:5]'
+      }
     },
   };
 });

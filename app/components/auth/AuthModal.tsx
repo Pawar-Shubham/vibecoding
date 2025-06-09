@@ -4,6 +4,8 @@ import * as Tabs from '@radix-ui/react-tabs';
 import { signInWithGoogle, signInWithGitHub, signInWithEmail, signUpWithEmail, resetPassword } from '~/lib/supabase';
 import { toast } from 'react-toastify';
 import Cookies from 'js-cookie';
+import { getSession, getCurrentUser } from '~/lib/supabase';
+import { authStore } from '~/lib/stores/auth';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -29,36 +31,63 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
     }
   }, [isOpen, initialTab]);
 
-  const handleSuccessfulLogin = () => {
-    const pendingPrompt = Cookies.get('pending_prompt');
-    if (pendingPrompt) {
-      // Remove the cookie
-      Cookies.remove('pending_prompt');
-      // Trigger the prompt generation
-      if (onSuccess) onSuccess(pendingPrompt);
-    } else {
-      if (onSuccess) onSuccess();
+  const handleSuccessfulLogin = async () => {
+    try {
+      // Get the latest session and user data
+      const session = await getSession();
+      const user = await getCurrentUser();
+      
+      if (user && session) {
+        // Update auth store directly
+        authStore.set({
+          user,
+          session,
+          loading: false,
+          initialized: true,
+          error: null
+        });
+
+        // Handle any pending prompts
+        const pendingPrompt = Cookies.get('pending_prompt');
+        if (pendingPrompt) {
+          Cookies.remove('pending_prompt');
+          if (onSuccess) onSuccess(pendingPrompt);
+        } else {
+          if (onSuccess) onSuccess();
+        }
+
+        // Show success message
+        toast.success('Signed in successfully');
+        
+        // Close the modal
+        onClose();
+      } else {
+        throw new Error('Failed to get user data after login');
+      }
+    } catch (error) {
+      console.error('Error handling successful login:', error);
+      toast.error('There was a problem completing your sign in');
+      setErrorMessage('Failed to complete sign in process');
     }
-    onClose(); // Close the modal after successful login
   };
 
   const handleGoogleSignIn = async () => {
     setErrorMessage(null);
+    setIsLoading(true);
+
     try {
-      setIsLoading(true);
-      const { error } = await signInWithGoogle();
+      const { data, error } = await signInWithGoogle();
       
       if (error) {
-        console.error('Google sign in error:', error);
-        setErrorMessage(error.message || 'Failed to sign in with Google');
-        toast.error('Failed to sign in with Google');
-      } else {
-        handleSuccessfulLogin();
+        throw error;
       }
+
+      // For OAuth providers, we'll get a redirect so we don't need to handle success here
+      // The auth state will be handled by the auth callback route
     } catch (error: any) {
       console.error('Google sign in error:', error);
-      setErrorMessage(error.message || 'An unexpected error occurred');
-      toast.error('An unexpected error occurred');
+      setErrorMessage(error.message || 'Failed to sign in with Google');
+      toast.error(error.message || 'Failed to sign in with Google');
     } finally {
       setIsLoading(false);
     }
@@ -66,21 +95,21 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
 
   const handleGitHubSignIn = async () => {
     setErrorMessage(null);
+    setIsLoading(true);
+
     try {
-      setIsLoading(true);
-      const { error } = await signInWithGitHub();
+      const { data, error } = await signInWithGitHub();
       
       if (error) {
-        console.error('GitHub sign in error:', error);
-        setErrorMessage(error.message || 'Failed to sign in with GitHub');
-        toast.error('Failed to sign in with GitHub');
-      } else {
-        handleSuccessfulLogin();
+        throw error;
       }
+
+      // For OAuth providers, we'll get a redirect so we don't need to handle success here
+      // The auth state will be handled by the auth callback route
     } catch (error: any) {
       console.error('GitHub sign in error:', error);
-      setErrorMessage(error.message || 'An unexpected error occurred');
-      toast.error('An unexpected error occurred');
+      setErrorMessage(error.message || 'Failed to sign in with GitHub');
+      toast.error(error.message || 'Failed to sign in with GitHub');
     } finally {
       setIsLoading(false);
     }
@@ -89,27 +118,24 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
-    
-    if (!email || !password) {
-      setErrorMessage('Please enter both email and password');
-      return;
-    }
-    
+    setIsLoading(true);
+
     try {
-      setIsLoading(true);
-      const { error } = await signInWithEmail(email, password);
+      const { data, error } = await signInWithEmail(email, password);
       
       if (error) {
-        console.error('Email sign in error:', error);
-        setErrorMessage(error.message || 'Failed to sign in with email');
+        throw error;
+      }
+
+      if (data?.user) {
+        await handleSuccessfulLogin();
       } else {
-        setSuccessMessage('Signed in successfully');
-        toast.success('Signed in successfully');
-        handleSuccessfulLogin();
+        throw new Error('No user data returned from sign in');
       }
     } catch (error: any) {
-      console.error('Email sign in error:', error);
-      setErrorMessage(error.message || 'An unexpected error occurred');
+      console.error('Sign in error:', error);
+      setErrorMessage(error.message || 'Failed to sign in');
+      toast.error(error.message || 'Failed to sign in');
     } finally {
       setIsLoading(false);
     }
