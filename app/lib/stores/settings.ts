@@ -71,8 +71,9 @@ const getInitialProviderSettings = (): ProviderSetting => {
     initialSettings[provider.name] = {
       ...provider,
       settings: {
-        // Local providers should be disabled by default
-        enabled: !LOCAL_PROVIDERS.includes(provider.name),
+        // Google should be enabled by default and cannot be disabled
+        enabled: provider.name === 'Google' ? true : !LOCAL_PROVIDERS.includes(provider.name),
+        baseUrl: undefined
       },
     };
   });
@@ -86,7 +87,16 @@ const getInitialProviderSettings = (): ProviderSetting => {
         const parsed = JSON.parse(savedSettings);
         Object.entries(parsed).forEach(([key, value]) => {
           if (initialSettings[key]) {
-            initialSettings[key].settings = (value as IProviderConfig).settings;
+            // For Google provider, only allow changing baseUrl, not enabled status
+            if (key === 'Google') {
+              initialSettings[key].settings = {
+                ...initialSettings[key].settings,
+                baseUrl: (value as IProviderConfig).settings.baseUrl,
+                enabled: true // Force Google to always be enabled
+              };
+            } else {
+              initialSettings[key].settings = (value as IProviderConfig).settings;
+            }
           }
         });
       } catch (error) {
@@ -101,24 +111,33 @@ const getInitialProviderSettings = (): ProviderSetting => {
 export const providersStore = map<ProviderSetting>(getInitialProviderSettings());
 
 // Create a function to update provider settings that handles both store and persistence
-export const updateProviderSettings = (provider: string, settings: ProviderSetting) => {
+export const updateProviderSettings = (provider: string, settings: IProviderSetting) => {
   const currentSettings = providersStore.get();
-
-  // Create new provider config with updated settings
-  const updatedProvider = {
-    ...currentSettings[provider],
-    settings: {
-      ...currentSettings[provider].settings,
-      ...settings,
+  
+  // For Google provider, ensure it stays enabled
+  if (provider === 'Google') {
+    settings.enabled = true;
+  }
+  
+  providersStore.set({
+    ...currentSettings,
+    [provider]: {
+      ...currentSettings[provider],
+      settings: {
+        ...currentSettings[provider].settings,
+        ...settings,
+      },
     },
-  };
-
-  // Update the store with new settings
-  providersStore.setKey(provider, updatedProvider);
+  });
 
   // Save to localStorage
-  const allSettings = providersStore.get();
-  localStorage.setItem(PROVIDER_SETTINGS_KEY, JSON.stringify(allSettings));
+  if (isBrowser) {
+    try {
+      localStorage.setItem(PROVIDER_SETTINGS_KEY, JSON.stringify(providersStore.get()));
+    } catch (error) {
+      console.error('Error saving provider settings:', error);
+    }
+  }
 };
 
 export const isDebugMode = atom(false);

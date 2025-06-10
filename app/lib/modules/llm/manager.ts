@@ -34,15 +34,31 @@ export class LLMManager {
        * const providerModules = import.meta.glob('./providers/*.ts', { eager: true });
        */
 
-      // Look for exported classes that extend BaseProvider
+      // First register Google provider if available
       for (const exportedItem of Object.values(providers)) {
         if (typeof exportedItem === 'function' && exportedItem.prototype instanceof BaseProvider) {
           const provider = new exportedItem();
+          if (provider.name === 'Google') {
+            try {
+              this.registerProvider(provider);
+              break;
+            } catch (error: any) {
+              logger.warn('Failed To Register Google Provider:', error.message);
+            }
+          }
+        }
+      }
 
-          try {
-            this.registerProvider(provider);
-          } catch (error: any) {
-            logger.warn('Failed To Register Provider: ', provider.name, 'error:', error.message);
+      // Then register other providers
+      for (const exportedItem of Object.values(providers)) {
+        if (typeof exportedItem === 'function' && exportedItem.prototype instanceof BaseProvider) {
+          const provider = new exportedItem();
+          if (provider.name !== 'Google') {
+            try {
+              this.registerProvider(provider);
+            } catch (error: any) {
+              logger.warn('Failed To Register Provider: ', provider.name, 'error:', error.message);
+            }
           }
         }
       }

@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { classNames } from '~/utils/classNames';
+import Cookies from 'js-cookie';
 
 interface ModelSelectorProps {
   model?: string;
@@ -22,6 +23,7 @@ export const ModelSelector = ({
   setProvider,
   modelList,
   providerList,
+  apiKeys,
   modelLoading,
 }: ModelSelectorProps) => {
   const [modelSearchQuery, setModelSearchQuery] = useState('');
@@ -187,22 +189,63 @@ export const ModelSelector = ({
     }
   }, [focusedProviderIndex]);
 
+  // Add useEffect for initial provider and model selection
   useEffect(() => {
     if (providerList.length === 0) {
       return;
     }
 
-    if (provider && !providerList.some((p) => p.name === provider.name)) {
-      const firstEnabledProvider = providerList[0];
-      setProvider?.(firstEnabledProvider);
-
-      const firstModel = modelList.find((m) => m.provider === firstEnabledProvider.name);
-
-      if (firstModel) {
-        setModel?.(firstModel.name);
+    // Set Google as default provider if none selected
+    if (!provider) {
+      const googleProvider = providerList.find(p => p.name === 'Google');
+      if (googleProvider) {
+        setProvider?.(googleProvider);
+        
+        // Set Gemini 2.5 Flash Preview as default model
+        const defaultModel = modelList.find(m => m.name === 'gemini-2.5-flash-preview-05-20');
+        if (defaultModel && setModel) {
+          setModel(defaultModel.name);
+          // Save to cookies
+          Cookies.set('selectedModel', defaultModel.name);
+          Cookies.set('selectedProvider', 'Google');
+        }
       }
     }
-  }, [providerList, provider, setProvider, modelList, setModel]);
+  }, [providerList, modelList, provider, setProvider, setModel]);
+
+  // Handle provider change
+  const handleProviderChange = (newProvider: ProviderInfo) => {
+    setProvider?.(newProvider);
+    setIsProviderDropdownOpen(false);
+
+    // When changing provider, select appropriate model
+    if (newProvider.name === 'Google') {
+      // For Google, prefer Gemini 2.5 Flash Preview
+      const defaultModel = modelList.find(m => m.name === 'gemini-2.5-flash-preview-05-20' && m.provider === 'Google');
+      if (defaultModel && setModel) {
+        setModel(defaultModel.name);
+        Cookies.set('selectedModel', defaultModel.name);
+      }
+    } else {
+      // For other providers, select their first available model
+      const firstModel = modelList.find(m => m.provider === newProvider.name);
+      if (firstModel && setModel) {
+        setModel(firstModel.name);
+        Cookies.set('selectedModel', firstModel.name);
+      }
+    }
+    
+    // Save provider selection
+    Cookies.set('selectedProvider', newProvider.name);
+  };
+
+  // Handle model change
+  const handleModelChange = (newModel: string) => {
+    setModel?.(newModel);
+    setIsModelDropdownOpen(false);
+    // Save model selection
+    Cookies.set('selectedModel', newModel);
+  };
 
   if (providerList.length === 0) {
     return (

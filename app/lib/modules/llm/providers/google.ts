@@ -13,6 +13,12 @@ export default class GoogleProvider extends BaseProvider {
   };
 
   staticModels: ModelInfo[] = [
+    { 
+      name: 'gemini-2.5-flash-preview-05-20',
+      label: 'Gemini 2.5 Flash Preview 05-20 - context 1114k',
+      provider: 'Google',
+      maxTokenAllowed: 1114000
+    },
     { name: 'gemini-1.5-flash-latest', label: 'Gemini 1.5 Flash', provider: 'Google', maxTokenAllowed: 8192 },
     {
       name: 'gemini-2.0-flash-thinking-exp-01-21',

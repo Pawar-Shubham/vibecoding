@@ -34,7 +34,38 @@ export const initAuth = async () => {
   authStore.set({ ...authStore.get(), loading: true, error: null });
   
   try {
+    // First try to get session from storage
     const session = await getSession();
+    
+    // If no session, try to restore from localStorage
+    if (!session && typeof window !== 'undefined') {
+      try {
+        const storedSession = localStorage.getItem('supabase.auth.token');
+        if (storedSession) {
+          const parsedSession = JSON.parse(storedSession);
+          if (parsedSession?.currentSession) {
+            await supabase.auth.setSession(parsedSession.currentSession);
+            const refreshedSession = await getSession();
+            if (refreshedSession) {
+              const user = await getCurrentUser();
+              if (user) {
+                logStore.logAuth('session_restored_from_storage', true, { userId: user.id });
+                authStore.set({ 
+                  user, 
+                  session: refreshedSession, 
+                  loading: false, 
+                  initialized: true,
+                  error: null 
+                });
+                return;
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error restoring session from storage:', error);
+      }
+    }
     
     if (session) {
       const user = await getCurrentUser();

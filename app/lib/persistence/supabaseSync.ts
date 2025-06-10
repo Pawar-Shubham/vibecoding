@@ -25,12 +25,17 @@ export async function syncChatToSupabase(chat: ChatHistoryItem): Promise<void> {
 
     // Add retry logic for network issues
     let retryCount = 0;
-    const maxRetries = 3;
+    const maxRetries = 5; // Increased from 3 to 5
     let lastError: Error | null = null;
     
     while (retryCount < maxRetries) {
       try {
-        const { error } = await supabase
+        // Add timeout to prevent hanging requests
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Request timeout')), 10000);
+        });
+
+        const syncPromise = supabase
           .from('chat_history')
           .upsert({
             id: chat.id,
@@ -40,14 +45,22 @@ export async function syncChatToSupabase(chat: ChatHistoryItem): Promise<void> {
             messages: chat.messages,
             timestamp: chat.timestamp,
             metadata: chat.metadata,
+            updated_at: new Date().toISOString(), // Add updated_at for better sync
           }, {
             onConflict: 'id'
           });
 
+        const { error } = await Promise.race([syncPromise, timeoutPromise]);
+
         if (error) {
           if (error.message.includes('JWT') || error.message.includes('auth')) {
             logger.error('Authentication error during sync:', error);
-            return;
+            // Try to refresh the session
+            const { error: refreshError } = await supabase.auth.refreshSession();
+            if (refreshError) {
+              return; // Exit if we can't refresh the session
+            }
+            throw error; // Retry with refreshed session
           }
           throw error;
         }
@@ -59,8 +72,8 @@ export async function syncChatToSupabase(chat: ChatHistoryItem): Promise<void> {
         retryCount++;
         
         if (retryCount < maxRetries) {
-          const delay = Math.min(1000 * Math.pow(2, retryCount), 8000); // Exponential backoff with max 8s
-          logger.warn(`Sync attempt ${retryCount} failed, retrying in ${delay/1000}s...`);
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 15000); // Increased max backoff to 15s
+          logger.warn(`Sync attempt ${retryCount} failed, retrying in ${delay/1000}s...`, { error: lastError.message });
           await new Promise(resolve => setTimeout(resolve, delay));
           continue;
         }
@@ -78,11 +91,12 @@ export async function syncChatToSupabase(chat: ChatHistoryItem): Promise<void> {
     // and when we've exhausted all retries
     if (error instanceof Error) {
       const isNetworkError = error.message.includes('network') || 
-                            error.message.includes('timeout') ||
-                            error.message.includes('failed to fetch');
+                          error.message.includes('timeout') ||
+                          error.message.includes('failed to fetch') ||
+                          error.message.includes('Request timeout');
       const isAuthError = error.message.includes('JWT') || 
-                         error.message.includes('auth') ||
-                         error.message.includes('unauthorized');
+                       error.message.includes('auth') ||
+                       error.message.includes('unauthorized');
       
       if (!isNetworkError && !isAuthError) {
         // Show error only for critical failures
