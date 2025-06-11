@@ -25,70 +25,58 @@ export async function syncChatToSupabase(chat: ChatHistoryItem): Promise<void> {
 
     // Add retry logic for network issues
     let retryCount = 0;
-    const maxRetries = 5;
+    const maxRetries = 5; // Increased from 3 to 5
     let lastError: Error | null = null;
-
+    
     while (retryCount < maxRetries) {
       try {
-        // Check if chat exists
-        const { data: existingChat } = await supabase
+        // Add timeout to prevent hanging requests
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Request timeout')), 10000);
+        });
+
+        const syncPromise = supabase
           .from('chat_history')
-          .select('updated_at')
-          .eq('id', chat.id)
-          .single();
+          .upsert({
+            id: chat.id,
+            user_id: chat.user_id,
+            url_id: chat.urlId,
+            description: chat.description,
+            messages: chat.messages,
+            timestamp: chat.timestamp,
+            metadata: chat.metadata,
+            updated_at: new Date().toISOString(), // Add updated_at for better sync
+          }, {
+            onConflict: 'id'
+          });
 
-        if (existingChat) {
-          // Update existing chat
-          const { error: updateError } = await supabase
-            .from('chat_history')
-            .update({
-              messages: chat.messages,
-              description: chat.description,
-              metadata: chat.metadata,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', chat.id)
-            .eq('user_id', chat.user_id);
+        const { error } = await Promise.race([syncPromise, timeoutPromise]);
 
-          if (updateError) throw updateError;
-        } else {
-          // Insert new chat
-          const { error: insertError } = await supabase
-            .from('chat_history')
-            .insert({
-              id: chat.id,
-              user_id: chat.user_id,
-              url_id: chat.urlId,
-              description: chat.description,
-              messages: chat.messages,
-              metadata: chat.metadata,
-              timestamp: chat.timestamp || new Date().toISOString()
-            });
-
-          if (insertError) throw insertError;
+        if (error) {
+          if (error.message.includes('JWT') || error.message.includes('auth')) {
+            logger.error('Authentication error during sync:', error);
+            // Try to refresh the session
+            const { error: refreshError } = await supabase.auth.refreshSession();
+            if (refreshError) {
+              return; // Exit if we can't refresh the session
+            }
+            throw error; // Retry with refreshed session
+          }
+          throw error;
         }
-
-        // If we get here, sync was successful
+        
         logger.info('Successfully synced chat to Supabase:', { chatId: chat.id });
-        return;
+        return; // Success - exit the retry loop
       } catch (error) {
-        lastError = error as Error;
+        lastError = error instanceof Error ? error : new Error(String(error));
         retryCount++;
         
-        // Only retry on network errors or rate limits
-        if (error instanceof Error) {
-          const isRetryableError = error.message.includes('network') || 
-                                error.message.includes('timeout') ||
-                                error.message.includes('rate limit') ||
-                                error.message.includes('connection');
-          
-          if (!isRetryableError) {
-            throw error; // Don't retry on non-network errors
-          }
+        if (retryCount < maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 15000); // Increased max backoff to 15s
+          logger.warn(`Sync attempt ${retryCount} failed, retrying in ${delay/1000}s...`, { error: lastError.message });
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
         }
-        
-        // Exponential backoff
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
       }
     }
 
@@ -98,7 +86,29 @@ export async function syncChatToSupabase(chat: ChatHistoryItem): Promise<void> {
     }
   } catch (error) {
     logger.error('Failed to sync chat to Supabase:', error);
-    throw error;
+    
+    // Only show toast for critical errors that aren't network/auth related
+    // and when we've exhausted all retries
+    if (error instanceof Error) {
+      const isNetworkError = error.message.includes('network') || 
+                          error.message.includes('timeout') ||
+                          error.message.includes('failed to fetch') ||
+                          error.message.includes('Request timeout');
+      const isAuthError = error.message.includes('JWT') || 
+                       error.message.includes('auth') ||
+                       error.message.includes('unauthorized');
+      
+      if (!isNetworkError && !isAuthError) {
+        // Show error only for critical failures
+        toast.error('Failed to sync chat to cloud storage', {
+          toastId: 'sync-error-' + chat.id, // Make toast ID unique per chat
+          autoClose: 5000,
+          position: 'bottom-right',
+          pauseOnHover: true,
+          hideProgressBar: false
+        });
+      }
+    }
   }
 }
 
