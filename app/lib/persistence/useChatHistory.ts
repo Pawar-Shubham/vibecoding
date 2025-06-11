@@ -375,6 +375,75 @@ export function useChatHistory() {
     [database],
   );
 
+  const storeMessageHistory = useCallback(
+    async (messages: Message[], description?: string, metadata?: IChatMetadata) => {
+      if (!database || !user?.id) {
+        return;
+      }
+
+      try {
+        const id = chatId.get() || generateId();
+        const timestamp = new Date().toISOString();
+
+        // Store in local database first
+        await setMessages(database, id, messages, user.id, urlId, description, timestamp, metadata);
+
+        // Prepare chat object for sync
+        const chatToSync: ChatHistoryItem = {
+          id,
+          user_id: user.id,
+          urlId,
+          description,
+          messages,
+          timestamp,
+          metadata
+        };
+
+        // Set local state
+        chatId.set(id);
+        if (description) description.set(description);
+        if (metadata) chatMetadata.set(metadata);
+        setInitialMessages(messages);
+        setReady(true);
+
+        // Sync to Supabase with retries
+        try {
+          await syncChatToSupabase(chatToSync);
+        } catch (error) {
+          console.error('Failed to sync chat to Supabase:', error);
+          // Schedule a retry in the background
+          setTimeout(() => {
+            syncChatToSupabase(chatToSync).catch(console.error);
+          }, 5000);
+        }
+
+        return id;
+      } catch (error) {
+        console.error('Failed to store message history:', error);
+        toast.error('Failed to save chat');
+        throw error;
+      }
+    },
+    [database, user?.id, urlId],
+  );
+
+  // Enhance initial sync to handle cross-browser scenarios
+  useEffect(() => {
+    if (database && user?.id && !isSyncing) {
+      setIsSyncing(true);
+      performInitialSync(database, user.id)
+        .then(() => {
+          setIsSyncing(false);
+          // Force reload entries after sync
+          loadEntries();
+        })
+        .catch((error) => {
+          console.error('Initial sync failed:', error);
+          setIsSyncing(false);
+        });
+    }
+  }, [database, user?.id]);
+
   return {
     ready: !mixedId || ready,
     initialMessages,
@@ -403,104 +472,7 @@ export function useChatHistory() {
         console.error(error);
       }
     },
-    storeMessageHistory: async (messages: Message[]) => {
-      if (!database || messages.length === 0 || !user?.id) {
-        return;
-      }
-
-      const { firstArtifact } = workbenchStore;
-      messages = messages.filter((m) => !m.annotations?.includes('no-store'));
-
-      let _urlId = urlId;
-
-      if (!urlId && firstArtifact?.id) {
-        const urlId = await getUrlId(database, firstArtifact.id);
-        _urlId = urlId;
-        navigateChat(urlId);
-        setUrlId(urlId);
-      }
-
-      let chatSummary: string | undefined = undefined;
-      const lastMessage = messages[messages.length - 1];
-
-      if (lastMessage.role === 'assistant') {
-        const annotations = lastMessage.annotations as JSONValue[];
-        const filteredAnnotations = (annotations?.filter(
-          (annotation: JSONValue) =>
-            annotation && typeof annotation === 'object' && Object.keys(annotation).includes('type'),
-        ) || []) as { type: string; value: any } & { [key: string]: any }[];
-
-        if (filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')) {
-          chatSummary = filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')?.summary;
-        }
-      }
-
-      takeSnapshot(messages[messages.length - 1].id, workbenchStore.files.get(), _urlId, chatSummary);
-
-      if (!description.get() && firstArtifact?.title) {
-        description.set(firstArtifact?.title);
-      }
-
-      if (initialMessages.length === 0 && !chatId.get()) {
-        const nextId = await getNextId(database);
-        chatId.set(nextId);
-
-        if (!urlId) {
-          navigateChat(nextId);
-        }
-      }
-
-      const finalChatId = chatId.get();
-
-      if (!finalChatId) {
-        console.error('Cannot save messages, chat ID is not set.');
-        toast.error('Failed to save chat messages: Chat ID missing.');
-        return;
-      }
-
-      const timestamp = new Date().toISOString();
-      const allMessages = [...archivedMessages, ...messages];
-
-      try {
-        // First save locally
-        await setMessages(
-          database,
-          finalChatId,
-          allMessages,
-          user.id,
-          urlId,
-          description.get(),
-          timestamp,
-          chatMetadata.get(),
-        );
-
-        // Then try to sync to cloud if we have network
-        if (navigator.onLine) {
-          try {
-            await syncChatToSupabase({
-              id: finalChatId,
-              user_id: user.id,
-              urlId,
-              description: description.get(),
-              messages: allMessages,
-              timestamp,
-              metadata: chatMetadata.get(),
-            });
-          } catch (error) {
-            // Log but don't show error to user since local save succeeded
-            logger.error('Failed to sync to cloud but local save succeeded:', error);
-          }
-        } else {
-          logger.info('Offline - skipping cloud sync, local save only');
-        }
-      } catch (error) {
-        console.error('Failed to save messages:', error);
-        toast.error('Failed to save chat messages', {
-          toastId: 'save-error-' + finalChatId,
-          autoClose: 5000
-        });
-      }
-    },
+    storeMessageHistory,
     duplicateCurrentChat: async (listItemId: string) => {
       if (!database || (!mixedId && !listItemId) || !user?.id) {
         return;
