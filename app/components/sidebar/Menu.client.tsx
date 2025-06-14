@@ -28,7 +28,7 @@ const menuVariants = {
     visibility: 'hidden',
     x: '-100%',
     transition: {
-      duration: 0.3,
+      duration: 0.2,
       ease: cubicEasingFn,
     },
   },
@@ -37,7 +37,7 @@ const menuVariants = {
     visibility: 'initial',
     x: '0%',
     transition: {
-      duration: 0.3,
+      duration: 0.2,
       ease: cubicEasingFn,
     },
   },
@@ -340,11 +340,37 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
     setIsSettingsOpen(false);
   };
 
+  // Add touch event handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    const startX = touch.clientX;
+    const threshold = 50; // minimum distance to trigger close
+    
+    const handleTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - startX;
+      
+      if (deltaX < -threshold) {
+        sidebarStore.set(false);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+      }
+    };
+    
+    const handleTouchEnd = () => {
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+    
+    document.addEventListener('touchmove', handleTouchMove);
+    document.addEventListener('touchend', handleTouchEnd);
+  }, []);
+
   return (
     <>
-      {/* Hover trigger area */}
+      {/* Hover trigger area - show only on desktop */}
       <div
-        className="fixed left-0 top-0 w-2 h-full z-[99] bg-transparent"
+        className="fixed left-0 top-0 w-2 h-full z-[99] bg-transparent hidden sm:block"
         onMouseEnter={handleMouseEnter}
       />
       
@@ -355,33 +381,35 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
         variants={menuVariants}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
         className={classNames(
-          'fixed left-0 top-0 h-full w-[340px] flex flex-col',
+          'fixed left-0 top-0 h-full w-[300px] sm:w-[340px] flex flex-col',
           'bg-white dark:bg-[#141414]',
           'shadow-2xl',
           'text-sm overflow-hidden',
-          'z-[98] rounded-r-2xl'
+          'z-[98] rounded-r-2xl',
+          'touch-pan-y'
         )}
       >
         {/* Header with menu icon and logo */}
-        <div className="flex items-center justify-between px-5 py-4 h-[var(--header-height)]">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 h-[var(--header-height)]">
           <button
             onClick={() => sidebarStore.set(false)}
-            className="flex items-center justify-center p-0 bg-transparent"
+            className="flex items-center justify-center p-2 bg-transparent rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
           >
-            <span className="i-ph:sidebar-simple w-5 h-5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200" />
+            <span className="i-ph:sidebar-simple w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
 
           <a href="/" className="text-2xl font-semibold text-accent flex items-center">
             {!chat.started ? (
               <>
-                <img src="/logo-light-styled.png" alt="logo" className="w-[90px] inline-block dark:hidden" />
-                <img src="/logo-dark-styled.png" alt="logo" className="w-[90px] inline-block hidden dark:block" />
+                <img src="/logo-light-styled.png" alt="logo" className="w-[70px] sm:w-[90px] inline-block dark:hidden" />
+                <img src="/logo-dark-styled.png" alt="logo" className="w-[70px] sm:w-[90px] inline-block hidden dark:block" />
               </>
             ) : (
               <>
-                <img src="/chat-logo-light-styled.png" alt="logo" className="w-[90px] inline-block dark:hidden" />
-                <img src="/chat-logo-dark-styled.png" alt="logo" className="w-[90px] inline-block hidden dark:block" />
+                <img src="/chat-logo-light-styled.png" alt="logo" className="w-[70px] sm:w-[90px] inline-block dark:hidden" />
+                <img src="/chat-logo-dark-styled.png" alt="logo" className="w-[70px] sm:w-[90px] inline-block hidden dark:block" />
               </>
             )}
           </a>

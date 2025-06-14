@@ -127,14 +127,21 @@ export const ImportFolderButton: React.FC<ImportFolderButtonProps> = ({ classNam
           'text-bolt-elements-textPrimary',
           'hover:bg-bolt-elements-background-depth-2',
           'border border-bolt-elements-borderColor',
-          'h-10 px-4 py-2 min-w-[120px] justify-center',
+          'h-10 px-3 sm:px-4 py-2 min-w-[100px] sm:min-w-[120px] justify-center',
           'transition-all duration-200 ease-in-out',
           className,
         )}
         disabled={isLoading}
       >
         <span className="i-ph:upload-simple w-4 h-4" />
-        {isLoading ? 'Importing...' : 'Import Folder'}
+        {isLoading ? (
+          <span>Loading...</span>
+        ) : (
+          <>
+            <span className="hidden sm:inline">Import Folder</span>
+            <span className="sm:hidden">Folder</span>
+          </>
+        )}
       </Button>
     </>
   );

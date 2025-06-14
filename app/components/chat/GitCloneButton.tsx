@@ -164,14 +164,15 @@ ${escapeBoltTags(file.content)}
           'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
           'hover:bg-gray-100 dark:hover:bg-gray-900',
           'border border-[#e5e7eb] dark:border-[rgba(255,255,255,0.08)]',
-          'h-10 px-4 py-2 min-w-[120px] justify-center',
+          'h-10 px-3 sm:px-4 py-2 min-w-[100px] sm:min-w-[120px] justify-center',
           'transition-all duration-200 ease-in-out',
           className,
         )}
         disabled={!ready || loading}
       >
         <span className="i-ph:git-branch w-4 h-4" />
-        Clone a Git Repo
+        <span className="hidden sm:inline">Clone a Git Repo</span>
+        <span className="sm:hidden">Git</span>
       </Button>
 
       <RepositorySelectionDialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} onSelect={handleClone} />

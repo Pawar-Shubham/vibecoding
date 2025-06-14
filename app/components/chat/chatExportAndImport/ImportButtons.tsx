@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { ImportFolderButton } from '~/components/chat/ImportFolderButton';
 import { Button } from '~/components/ui/Button';
 import { classNames } from '~/utils/classNames';
+import GitCloneButton from '~/components/chat/GitCloneButton';
 
 type ChatData = {
   messages?: Message[]; // Standard Bolt format
@@ -71,12 +72,13 @@ export function ImportButtons(importChat: ((description: string, messages: Messa
               'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
               'hover:bg-gray-100 dark:hover:bg-gray-900',
               'border border-[#e5e7eb] dark:border-[rgba(255,255,255,0.08)]',
-              'h-10 px-4 py-2 min-w-[120px] justify-center',
+              'h-10 px-3 sm:px-4 py-2 min-w-[100px] sm:min-w-[120px] justify-center',
               'transition-all duration-200 ease-in-out',
             )}
           >
             <span className="i-ph:upload-simple w-4 h-4" />
-            Import Chat
+            <span className="hidden sm:inline">Import Chat</span>
+            <span className="sm:hidden">Chat</span>
           </Button>
           <ImportFolderButton
             importChat={importChat}
@@ -85,7 +87,18 @@ export function ImportButtons(importChat: ((description: string, messages: Messa
               'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
               'hover:bg-gray-100 dark:hover:bg-gray-900',
               'border border-[#e5e7eb] dark:border-[rgba(255,255,255,0.08)]',
-              'h-10 px-4 py-2 min-w-[120px] justify-center',
+              'h-10 px-3 sm:px-4 py-2 min-w-[100px] sm:min-w-[120px] justify-center',
+              'transition-all duration-200 ease-in-out',
+            )}
+          />
+          <GitCloneButton
+            importChat={importChat}
+            className={classNames(
+              'gap-2 bg-gray-50 dark:bg-gray-950',
+              'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+              'hover:bg-gray-100 dark:hover:bg-gray-900',
+              'border border-[#e5e7eb] dark:border-[rgba(255,255,255,0.08)]',
+              'h-10 px-3 sm:px-4 py-2 min-w-[100px] sm:min-w-[120px] justify-center',
               'transition-all duration-200 ease-in-out',
             )}
           />

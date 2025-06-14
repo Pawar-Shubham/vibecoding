@@ -436,13 +436,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
-              <div id="intro" className="mt-[13.5vh] w-full max-w-3xl mx-auto text-center px-4 lg:px-0 mb-4">
-                <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-2 animate-fade-in flex items-center justify-center gap-2">
-                  <span className="text-3xl lg:text-5xl flex items-center gap-0">Build better with <img src="/logo-dark-styled.png" alt="logo" className="h-[50px] lg:h-[75px] w-auto hidden dark:inline-block" />
-                  <img src="/chat-logo-light-styled.png" alt="logo" className="h-[50px] lg:h-[75px] w-auto dark:hidden inline-block" /></span>
+              <div id="intro" className="mt-[8vh] lg:mt-[13.5vh] w-full max-w-3xl mx-auto text-center px-4 lg:px-0 mb-4">
+                <h1 className="text-2xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-1 lg:mb-2 animate-fade-in flex items-center justify-center gap-2">
+                  <span className="text-2xl lg:text-5xl flex items-center gap-0">Build better with <img src="/logo-dark-styled.png" alt="logo" className="h-[40px] lg:h-[75px] w-auto hidden dark:inline-block" />
+                  <img src="/chat-logo-light-styled.png" alt="logo" className="h-[40px] lg:h-[75px] w-auto dark:hidden inline-block" /></span>
                 </h1>
-                <p className="mb-0 text-bolt-elements-textSecondary animate-fade-in animation-delay-200" style={{ fontSize: '1.25rem', lineHeight: '0.8' }}>
-                innovation begins with your <span className="text-black dark:text-white">vibe</span>.
+                <p className="mb-0 text-bolt-elements-textSecondary animate-fade-in animation-delay-200" style={{ fontSize: '1rem', lineHeight: '1.2', marginBottom: '0.5rem' }}>
+                  innovation begins with your <span className="text-black dark:text-white">vibe</span>.
                 </p>
                 <ClientOnly>{() => <Menu isLandingPage={true} />}</ClientOnly>
               </div>
@@ -730,7 +730,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <div className="text-center text-sm text-gray-500 -mt-3 mb-6"></div>
                   <div className="flex justify-center gap-2">
                     {ImportButtons(importChat)}
-                    <GitCloneButton importChat={importChat} />
                   </div>
                 </>
               )}

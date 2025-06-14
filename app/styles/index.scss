@@ -39,6 +39,19 @@ html[data-theme='dark'] {
   image-rendering: crisp-edges; /* Modern browsers */
 }
 
+/* Remove background image on mobile */
+@media (max-width: 640px) {
+  html {
+    background-image: none !important;
+    background-color: #ffffff;
+  }
+
+  html[data-theme='dark'] {
+    background-image: none !important;
+    background-color: #1a1a1a;
+  }
+}
+
 :root {
   --gradient-opacity: 0.8;
   --primary-color: rgba(239, 68, 68, var(--gradient-opacity));
@@ -145,4 +158,63 @@ html[data-theme='dark'] {
 /* Remove the old background container styles since we're using direct background images */
 .background-container {
   display: none;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  :root {
+    --header-height: 56px; /* Slightly smaller header on mobile */
+  }
+
+  /* Improve touch targets */
+  button, 
+  [role="button"],
+  a {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px;
+    touch-action: manipulation;
+  }
+
+  /* Prevent text selection while scrolling */
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  /* Improve scrolling */
+  .overflow-auto,
+  .overflow-y-auto,
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Prevent horizontal overflow */
+  body {
+    overflow-x: hidden;
+    width: 100vw;
+  }
+
+  /* Adjust font sizes */
+  html {
+    font-size: 14px;
+  }
+
+  /* Improve form elements */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important; /* Prevent iOS zoom on focus */
+  }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-top: env(safe-area-inset-top);
+  }
 }
