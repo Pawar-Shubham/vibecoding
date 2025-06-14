@@ -216,52 +216,21 @@ export async function deleteById(db: IDBDatabase, id: string): Promise<void> {
     const chatStore = transaction.objectStore('chats');
     const snapshotStore = transaction.objectStore('snapshots');
 
-    let chatDeleted = false;
-    let snapshotDeleted = false;
-    let cloudDeleted = false;
-
-    const checkCompletion = () => {
-      if (chatDeleted && snapshotDeleted) {
-        // Try to delete from cloud first
-        deleteChatFromSupabase(id)
-          .then(() => {
-            cloudDeleted = true;
-            logger.info('Successfully deleted chat from both local and cloud storage:', id);
-            resolve();
-          })
-          .catch((error) => {
-            // If cloud deletion fails, log but don't fail the operation
-            logger.error('Failed to delete chat from cloud storage:', { id, error });
-            // Still resolve since local deletion was successful
-            resolve();
-          });
-      }
-    };
-
     // Delete from chat store
     const deleteChatRequest = chatStore.delete(id);
-    deleteChatRequest.onsuccess = () => {
-      chatDeleted = true;
-      checkCompletion();
-    };
     deleteChatRequest.onerror = () => reject(deleteChatRequest.error);
 
     // Delete from snapshot store
     const deleteSnapshotRequest = snapshotStore.delete(id);
-    deleteSnapshotRequest.onsuccess = () => {
-      snapshotDeleted = true;
-      checkCompletion();
-    };
     deleteSnapshotRequest.onerror = (event) => {
       if ((event.target as IDBRequest).error?.name === 'NotFoundError') {
-        snapshotDeleted = true;
-        checkCompletion();
-      } else {
-        reject(deleteSnapshotRequest.error);
+        // Ignore NotFoundError for snapshots
+        return;
       }
+      reject(deleteSnapshotRequest.error);
     };
 
-    // Also clean up any related localStorage items
+    // Clean up any related localStorage items
     try {
       localStorage.removeItem(`snapshot:${id}`);
       localStorage.removeItem(`chat:${id}`);
@@ -269,9 +238,19 @@ export async function deleteById(db: IDBDatabase, id: string): Promise<void> {
       logger.warn('Failed to clean up localStorage items for chat:', { id, error });
     }
 
-    transaction.oncomplete = () => {
-      // Transaction complete, but we wait for cloud deletion in checkCompletion
+    // Wait for both operations to complete
+    transaction.oncomplete = async () => {
+      try {
+        // Delete from Supabase
+        await deleteChatFromSupabase(id);
+        resolve();
+      } catch (error) {
+        logger.error('Failed to delete chat from Supabase:', error);
+        // Still resolve since local deletion was successful
+        resolve();
+      }
     };
+
     transaction.onerror = () => reject(transaction.error);
   });
 }
