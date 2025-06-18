@@ -58,7 +58,6 @@ export function Header() {
       {isAuthenticated && (
         <button
           onClick={toggleSidebar}
-          onMouseEnter={() => sidebarStore.set(true)}
           className="flex items-center justify-center p-0 bg-transparent"
         >
           <span className="i-ph:sidebar-simple w-5 h-5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200" />

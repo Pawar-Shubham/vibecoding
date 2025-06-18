@@ -441,7 +441,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <span className="text-2xl lg:text-5xl flex items-center gap-0">Build better with <img src="/logo-dark-styled.png" alt="logo" className="h-[40px] lg:h-[75px] w-auto hidden dark:inline-block" />
                   <img src="/chat-logo-light-styled.png" alt="logo" className="h-[40px] lg:h-[75px] w-auto dark:hidden inline-block" /></span>
                 </h1>
-                <p className="mb-0 text-bolt-elements-textSecondary animate-fade-in animation-delay-200" style={{ fontSize: '1rem', lineHeight: '1.2', marginBottom: '0.5rem' }}>
+                <p className="mb-0 text-bolt-elements-textSecondary animate-fade-in animation-delay-200" style={{ fontSize: '1.3rem', lineHeight: '1.2', marginBottom: '0.5rem' }}>
                   innovation begins with your <span className="text-black dark:text-white">vibe</span>.
                 </p>
                 <ClientOnly>{() => <Menu isLandingPage={true} />}</ClientOnly>

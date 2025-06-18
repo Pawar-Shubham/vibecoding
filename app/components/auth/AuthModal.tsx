@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import Cookies from 'js-cookie';
 import { getSession, getCurrentUser } from '~/lib/supabase';
 import { authStore } from '~/lib/stores/auth';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -23,6 +24,8 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
   const [forgotPassword, setForgotPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Reset tab when modal opens with initialTab
   useEffect(() => {
@@ -118,6 +121,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setSuccessMessage(null);
     setIsLoading(true);
 
     try {
@@ -144,6 +148,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setSuccessMessage(null);
     
     if (!email || !password) {
       setErrorMessage('Please enter both email and password');
@@ -171,7 +176,6 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
         setSuccessMessage('Check your email to confirm your account');
         toast.success('Check your email to confirm your account');
         setTabValue('signin');
-        // Don't close the modal here as we want the user to check their email
       }
     } catch (error: any) {
       console.error('Email sign up error:', error);
@@ -184,6 +188,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setSuccessMessage(null);
     
     if (!email) {
       setErrorMessage('Please enter your email');
@@ -201,7 +206,6 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
         setSuccessMessage('Check your email for password reset instructions');
         toast.success('Check your email for password reset instructions');
         setForgotPassword(false);
-        // Don't close the modal here as we want to show the success message
       }
     } catch (error: any) {
       console.error('Password reset error:', error);
@@ -210,6 +214,12 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
       setIsLoading(false);
     }
   };
+
+  // Reset messages when switching tabs or toggling forgot password
+  useEffect(() => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+  }, [tabValue, forgotPassword]);
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -286,20 +296,26 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
                         required
                       />
                     </div>
-                    <div>
-                      <label htmlFor="password" className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-2">
-                        Password
-                      </label>
+                    <div className="relative">
                       <input
                         id="password"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="auth-input w-full px-4 py-3 rounded-lg"
+                        className="auth-input w-full px-4 py-3 rounded-lg pr-12"
                         disabled={isLoading}
                         placeholder="********"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent border-none outline-none focus:outline-none"
+                        tabIndex={-1}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                      </button>
                     </div>
                     <div className="flex justify-end">
                       <button
@@ -338,35 +354,47 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
                         required
                       />
                     </div>
-                    <div>
-                      <label htmlFor="signup-password" className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-2">
-                        Password
-                      </label>
+                    <div className="relative">
                       <input
                         id="signup-password"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="auth-input w-full px-4 py-3 rounded-lg"
+                        className="auth-input w-full px-4 py-3 rounded-lg pr-12"
                         disabled={isLoading}
                         placeholder="********"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent border-none outline-none focus:outline-none"
+                        tabIndex={-1}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                      </button>
                     </div>
-                    <div>
-                      <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-2">
-                        Confirm Password
-                      </label>
+                    <div className="relative">
                       <input
                         id="confirm-password"
-                        type="password"
+                        type={showConfirmPassword ? "text" : "password"}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="auth-input w-full px-4 py-3 rounded-lg"
+                        className="auth-input w-full px-4 py-3 rounded-lg pr-12"
                         disabled={isLoading}
                         placeholder="********"
                         required
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent border-none outline-none focus:outline-none"
+                        tabIndex={-1}
+                        aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                      >
+                        {showConfirmPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                      </button>
                     </div>
                     <button
                       type="submit"

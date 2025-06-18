@@ -383,20 +383,13 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
 
   return (
     <>
-      {/* Hover trigger area - show only on desktop */}
-      <div
-        className="fixed left-0 top-0 w-2 h-full z-[99] bg-transparent hidden sm:block"
-        onMouseEnter={handleMouseEnter}
-      />
+      {/* Remove hover trigger area */}
       
       <motion.div
         ref={menuRef}
         initial="closed"
         animate={isSidebarOpen ? 'open' : 'closed'}
         variants={menuVariants}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onTouchStart={handleTouchStart}
         className={classNames(
           'fixed left-0 top-0 h-full w-[300px] sm:w-[340px] flex flex-col',
           'bg-white dark:bg-[#141414]',

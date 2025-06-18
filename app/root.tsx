@@ -74,6 +74,15 @@ export const Head = createHead(() => (
   <>
     <meta charSet="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+    <meta property="og:title" content="VxC - VibesXCoded AI Assistant" />
+    <meta property="og:description" content="Talk with VibesXCoded, an AI assistant to help you build your next project faster!" />
+    <meta property="og:image" content="/logo-dark-styled.png" />
+    <meta property="og:image:alt" content="VibesXCoded Logo" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="VxC - VibesXCoded AI Assistant" />
+    <meta name="twitter:description" content="Talk with VibesXCoded, an AI assistant to help you build your next project faster!" />
+    <meta name="twitter:image" content="/logo-dark-styled.png" />
     <Meta />
     <Links />
     <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />

@@ -68,6 +68,12 @@ const CloudProvidersTab = () => {
 
   const handleToggleProvider = useCallback(
     (provider: IProviderConfig, enabled: boolean) => {
+      // Don't allow disabling Google provider
+      if (provider.name === 'Google') {
+        toast.info('Google is the default provider and cannot be disabled');
+        return;
+      }
+
       // Update the provider settings in the store
       settings.updateProviderSettings(provider.name, { ...provider.settings, enabled });
 
@@ -87,7 +93,7 @@ const CloudProvidersTab = () => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-medium text-bolt-elements-textPrimary">Cloud Providers</h3>
-          <p className="text-sm text-bolt-elements-textSecondary">
+          <p className="text-sm text-bolt-elements-textSecondary mt-1">
             Configure and manage your cloud AI providers
           </p>
         </div>
@@ -98,54 +104,56 @@ const CloudProvidersTab = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid gap-4">
         {filteredProviders.map((provider, index) => (
           <motion.div
             key={provider.name}
-            className={classNames(
-              'rounded-lg border bg-bolt-elements-background text-bolt-elements-textPrimary shadow-sm',
-              'bg-bolt-elements-background-depth-2',
-              'hover:bg-bolt-elements-background-depth-3',
-              'transition-all duration-200',
-              'relative overflow-hidden group',
-              'flex flex-col',
-            )}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            whileHover={{ scale: 1.02 }}
+            className={classNames(
+              'group relative p-4 rounded-lg transition-all duration-200',
+              'bg-bolt-elements-background-depth-2',
+              'hover:bg-bolt-elements-background-depth-3',
+            )}
           >
-            <div className="p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <motion.div
-                    className={classNames(
-                      'w-12 h-12 flex items-center justify-center rounded-xl',
-                      'bg-bolt-elements-background-depth-3',
-                      provider.settings.enabled ? 'text-yellow-500' : 'text-bolt-elements-textSecondary',
-                    )}
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                  >
-                    {React.createElement(PROVIDER_ICONS[provider.name as ProviderName], {
-                      className: 'w-7 h-7',
-                      'aria-label': `${provider.name} icon`,
-                    })}
-                  </motion.div>
-                  <div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <motion.div
+                  className={classNames(
+                    'w-12 h-12 flex items-center justify-center rounded-xl',
+                    'bg-bolt-elements-background-depth-3',
+                    provider.settings.enabled ? 'text-yellow-500' : 'text-bolt-elements-textSecondary',
+                  )}
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                >
+                  {React.createElement(PROVIDER_ICONS[provider.name as ProviderName], {
+                    className: 'w-7 h-7',
+                    'aria-label': `${provider.name} icon`,
+                  })}
+                </motion.div>
+                <div>
+                  <div className="flex items-center gap-2">
                     <h4 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-purple-500 transition-colors">
                       {provider.name}
                     </h4>
-                    <p className="text-xs text-bolt-elements-textSecondary mt-0.5">
-                      {PROVIDER_DESCRIPTIONS[provider.name as ProviderName]}
-                    </p>
+                    {provider.name === 'Google' && (
+                      <span className="px-2 py-0.5 text-xs rounded-full bg-purple-500/10 text-purple-500 font-medium">
+                        Default Provider
+                      </span>
+                    )}
                   </div>
+                  <p className="text-xs text-bolt-elements-textSecondary mt-0.5">
+                    {PROVIDER_DESCRIPTIONS[provider.name as ProviderName]}
+                  </p>
                 </div>
-                <Switch
-                  checked={provider.settings.enabled}
-                  onCheckedChange={(checked) => handleToggleProvider(provider, checked)}
-                  aria-label={`Toggle ${provider.name} provider`}
-                />
               </div>
+              <Switch
+                checked={provider.settings.enabled}
+                onCheckedChange={(checked) => handleToggleProvider(provider, checked)}
+                aria-label={`Toggle ${provider.name} provider`}
+                disabled={provider.name === 'Google'}
+              />
             </div>
           </motion.div>
         ))}

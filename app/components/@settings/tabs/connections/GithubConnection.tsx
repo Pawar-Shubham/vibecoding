@@ -582,16 +582,24 @@ export default function GitHubConnection() {
               }}
               disabled={isConnecting || !!connection.user}
               className={classNames(
-                'w-full px-3 py-2 rounded-lg text-sm',
-                'bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-1',
-                'border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor',
-                'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
-                'focus:outline-none focus:ring-1 focus:ring-bolt-elements-item-contentAccent dark:focus:ring-bolt-elements-item-contentAccent',
+                'w-full px-3 py-2 rounded-lg text-sm appearance-none',
+                'bg-white dark:bg-[#1A1A1A]',
+                'border border-gray-200 dark:border-bolt-elements-borderColor',
+                'text-gray-900 dark:text-white',
+                'focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-bolt-elements-item-contentAccent',
                 'disabled:opacity-50',
+                'relative',
+                'pr-10', // Add padding for the custom arrow
               )}
+              style={{
+                backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='${connection.user ? '#9CA3AF' : '#4B5563'}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 0.75rem center',
+                backgroundSize: '1rem'
+              }}
             >
-              <option value="classic">Personal Access Token (Classic)</option>
-              <option value="fine-grained">Fine-grained Token</option>
+              <option value="classic" className="bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white">Personal Access Token (Classic)</option>
+              <option value="fine-grained" className="bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white">Fine-grained Token</option>
             </select>
           </div>
 
