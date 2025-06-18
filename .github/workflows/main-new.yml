@@ -42,21 +42,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      - name: Enable Docker BuildKit
-        run: |
-          echo '{ "features": { "buildkit": true } }' | sudo tee /etc/docker/daemon.json
-          sudo systemctl restart docker
+      - name: Build Docker Image with Buildx & Caching
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: vibescoding-app:latest
+          load: true
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
 
-      - name: Build with BuildKit + Cache
-        run: |
-          export DOCKER_BUILDKIT=1
-          docker build \
-            --file Dockerfile \
-            --tag vibescoding-app:latest \
-            --cache-from=type=local,src=/tmp/.buildx-cache \
-            --cache-to=type=local,dest=/tmp/.buildx-cache-new .
-
-      - name: Move Cache for Next Run
+      - name: Move Docker Cache for Next Build
         run: |
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
