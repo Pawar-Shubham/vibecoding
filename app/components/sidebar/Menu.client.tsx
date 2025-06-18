@@ -5,7 +5,7 @@ import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { Button } from '~/components/ui/Button';
 import { db, deleteById, getAll, chatId, type ChatHistoryItem, useChatHistory, migrateExistingChatsToUser } from '~/lib/persistence';
-import { deleteChatFromSupabase } from '~/lib/persistence/supabaseSync';
+import { deleteChatFromSupabase, forceSyncAllChats } from '~/lib/persistence/supabaseSync';
 import { cubicEasingFn } from '~/utils/easings';
 import { HistoryItem } from './HistoryItem';
 import { binDates } from './date-binning';
@@ -96,14 +96,29 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
   const settingsStore = useSettingsStore();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  const loadEntries = useCallback(() => {
+  const loadEntries = useCallback(async () => {
     if (db && user?.id) {
-      getAll(db, user.id)
-        .then((list) => list.filter((item) => item.urlId && item.description))
-        .then(setList)
-        .catch((error) => toast.error(error.message));
+      try {
+        // First perform sync with Supabase to ensure we have the latest data
+        await forceSyncAllChats(db, user.id);
+        
+        // Then load all chats from local database
+        const allChats = await getAll(db, user.id);
+        const filteredChats = allChats.filter((item) => item.urlId && item.description);
+        setList(filteredChats);
+      } catch (error) {
+        console.error('Error loading chat entries:', error);
+        // Fallback to just loading from local if sync fails
+        try {
+          const localChats = await getAll(db, user.id);
+          const filteredChats = localChats.filter((item) => item.urlId && item.description);
+          setList(filteredChats);
+        } catch (localError) {
+          toast.error('Failed to load chats');
+        }
+      }
     }
-  }, [user?.id]);
+  }, [db, user?.id]);
 
   const deleteChat = useCallback(
     async (id: string): Promise<void> => {

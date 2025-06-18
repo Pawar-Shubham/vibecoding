@@ -211,77 +211,113 @@ export async function getMessagesById(db: IDBDatabase, id: string): Promise<Chat
 }
 
 export async function deleteById(db: IDBDatabase, id: string): Promise<void> {
+  logger.info('Starting chat deletion process:', { id });
+  
+  // First, try to delete from Supabase to ensure it's removed from cloud
+  try {
+    await deleteChatFromSupabase(id);
+    logger.info('Successfully deleted chat from Supabase:', { id });
+  } catch (supabaseError) {
+    // Log error but continue with local deletion
+    logger.error('Failed to delete chat from Supabase, continuing with local deletion:', { id, error: supabaseError });
+  }
+
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(['chats', 'snapshots'], 'readwrite');
     const chatStore = transaction.objectStore('chats');
     const snapshotStore = transaction.objectStore('snapshots');
 
+    let chatDeleted = false;
+    let snapshotDeleted = false;
+
+    const checkCompletion = () => {
+      if (chatDeleted && snapshotDeleted) {
+        logger.info('Successfully completed local deletion:', { id });
+        resolve();
+      }
+    };
+
     // Delete from chat store
     const deleteChatRequest = chatStore.delete(id);
-    deleteChatRequest.onerror = () => reject(deleteChatRequest.error);
+    deleteChatRequest.onsuccess = () => {
+      logger.info('Deleted chat from local chat store:', { id });
+      chatDeleted = true;
+      checkCompletion();
+    };
+    deleteChatRequest.onerror = () => {
+      logger.error('Failed to delete chat from local chat store:', { id, error: deleteChatRequest.error });
+      reject(deleteChatRequest.error);
+    };
 
     // Delete from snapshot store
     const deleteSnapshotRequest = snapshotStore.delete(id);
+    deleteSnapshotRequest.onsuccess = () => {
+      logger.info('Deleted snapshot from local storage:', { id });
+      snapshotDeleted = true;
+      checkCompletion();
+    };
     deleteSnapshotRequest.onerror = (event) => {
       if ((event.target as IDBRequest).error?.name === 'NotFoundError') {
-        // Ignore NotFoundError for snapshots
-        return;
+        // Snapshot doesn't exist, that's okay
+        logger.info('Snapshot not found (already deleted):', { id });
+        snapshotDeleted = true;
+        checkCompletion();
+      } else {
+        logger.error('Failed to delete snapshot from local storage:', { id, error: deleteSnapshotRequest.error });
+        reject(deleteSnapshotRequest.error);
       }
-      reject(deleteSnapshotRequest.error);
     };
 
     // Clean up any related localStorage items
     try {
       localStorage.removeItem(`snapshot:${id}`);
       localStorage.removeItem(`chat:${id}`);
+      logger.info('Cleaned up localStorage items for chat:', { id });
     } catch (error) {
       logger.warn('Failed to clean up localStorage items for chat:', { id, error });
     }
 
-    // Wait for both operations to complete
-    transaction.oncomplete = async () => {
-      try {
-        // Delete from Supabase
-        await deleteChatFromSupabase(id);
-        resolve();
-      } catch (error) {
-        logger.error('Failed to delete chat from Supabase:', error);
-        // Still resolve since local deletion was successful
-        resolve();
-      }
+    transaction.onerror = () => {
+      logger.error('Transaction error during deletion:', { id, error: transaction.error });
+      reject(transaction.error);
     };
-
-    transaction.onerror = () => reject(transaction.error);
   });
 }
 
 export async function getNextId(db: IDBDatabase): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction('chats', 'readonly');
-    const store = transaction.objectStore('chats');
-    const request = store.getAllKeys();
-
-    request.onsuccess = () => {
-      const highestId = request.result.reduce((cur, acc) => Math.max(+cur, +acc), 0);
-      resolve(String(+highestId + 1));
-    };
-
-    request.onerror = () => reject(request.error);
-  });
+  // Generate a truly unique ID using timestamp + random string
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 8);
+  const uniqueId = `${timestamp}-${random}`;
+  
+  // Verify this ID doesn't already exist (very unlikely but just to be safe)
+  try {
+    const existing = await getMessagesById(db, uniqueId);
+    if (existing) {
+      // If it somehow exists, recurse to generate another
+      return getNextId(db);
+    }
+  } catch {
+    // ID doesn't exist, which is what we want
+  }
+  
+  return uniqueId;
 }
 
 export async function getUrlId(db: IDBDatabase, id: string): Promise<string> {
-  const idList = await getUrlIds(db);
-  
-  // Add timestamp to make the ID unique
+  // Generate a unique URL ID using timestamp and random string for better uniqueness
   const timestamp = Date.now();
-  const baseId = `${id}-${timestamp}`;
+  const random = Math.random().toString(36).substring(2, 8);
+  const baseId = `chat-${timestamp}-${random}`;
+  
+  // Get existing URL IDs to ensure uniqueness
+  const idList = await getUrlIds(db);
   
   if (!idList.includes(baseId)) {
     return baseId;
   }
   
-  // In the unlikely case of collision, add an incrementing number
+  // In the very unlikely case of collision, add an incrementing number
   let i = 2;
   while (idList.includes(`${baseId}-${i}`)) {
     i++;
