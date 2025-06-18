@@ -8,7 +8,6 @@ import * as dotenv from 'dotenv';
 import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import compression from 'vite-plugin-compression';
 
 dotenv.config();
 
@@ -91,14 +90,6 @@ export default defineConfig((config) => {
               if (id.includes('@codemirror')) {
                 return 'vendor-codemirror';
               }
-              // Split AI-related dependencies
-              if (id.includes('@ai-sdk') || id.includes('ai')) {
-                return 'vendor-ai';
-              }
-              // Split chart-related dependencies
-              if (id.includes('chart.js') || id.includes('react-chartjs')) {
-                return 'vendor-charts';
-              }
               // Other node_modules go to vendors chunk
               return 'vendors';
             }
@@ -125,8 +116,7 @@ export default defineConfig((config) => {
       cssCodeSplit: true,
       reportCompressedSize: false,
       chunkSizeWarningLimit: 1000,
-      target: 'esnext',
-      assetsInlineLimit: 4096, // Inline assets < 4kb
+      target: 'esnext'
     },
     esbuild: {
       treeShaking: true,
@@ -186,10 +176,7 @@ export default defineConfig((config) => {
       tsconfigPaths(),
       chrome129IssuePlugin(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
-      // Add compression plugins for production
-      config.mode === 'production' && compression(), // gzip
-      config.mode === 'production' && compression({ algorithm: 'brotliCompress', ext: '.br' }), // brotli
-    ].filter(Boolean),
+    ],
     envPrefix: [
       'VITE_',
       'OPENAI_LIKE_API_BASE_URL',
