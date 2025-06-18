@@ -31,17 +31,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Enable Docker BuildKit
-        run: "echo '{ \"features\": { \"buildkit\": true } }' | sudo tee /etc/docker/daemon.json && sudo systemctl restart docker"
+      - name: Build and Run with Docker Compose
+        run: docker compose -f docker-compose.yaml up --build -d app-dev
 
-
-      - name: Build and Run with BuildKit Caching
-        run: |
-          export DOCKER_BUILDKIT=1
-          docker compose -f docker-compose.yaml build --progress=plain
-          docker compose -f docker-compose.yaml up -d app-dev
-
-      - name: Wait for App to Start
+      - name: Wait for App to Start (optional)
         run: sleep 10
 
       - name: Check if App is Running
