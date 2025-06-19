@@ -8,14 +8,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 
 // Import UI components
-import { Input, SearchInput, Badge, FilterChip } from '~/components/ui';
+import { Input, SearchInput, Badge, FilterChip, EmptyState } from '~/components/ui';
 
 // Import the components we've extracted
 import { RepositoryList } from './RepositoryList';
 import { StatsDialog } from './StatsDialog';
 import { GitHubAuthDialog } from './GitHubAuthDialog';
 import { RepositoryDialogContext } from './RepositoryDialogContext';
-import { EmptyState } from './EmptyState';
 
 interface GitHubTreeResponse {
   tree: Array<{
