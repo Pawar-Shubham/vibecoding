@@ -11,11 +11,11 @@ import Cookies from 'js-cookie';
 import { Input, SearchInput, Badge, FilterChip } from '~/components/ui';
 
 // Import the components we've extracted
-import { RepositoryList } from './RepositoryList';
-import { StatsDialog } from './StatsDialog';
-import { GitHubAuthDialog } from './GitHubAuthDialog';
-import { RepositoryDialogContext } from './RepositoryDialogContext';
-import { EmptyState } from './EmptyState';
+import { RepositoryList } from './RepositoryList.tsx';
+import { StatsDialog } from './StatsDialog.tsx';
+import { GitHubAuthDialog } from './GitHubAuthDialog.tsx';
+import { RepositoryDialogContext } from './RepositoryDialogContext.tsx';
+import { EmptyState } from './EmptyState.tsx';
 
 interface GitHubTreeResponse {
   tree: Array<{
