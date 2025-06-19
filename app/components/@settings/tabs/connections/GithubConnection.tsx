@@ -6,8 +6,7 @@ import { classNames } from '~/utils/classNames';
 import Cookies from 'js-cookie';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
 import { Button } from '~/components/ui/Button';
-import { useUserConnections } from '~/lib/hooks/useUserConnections';
-import { useAuth } from '~/lib/hooks/useAuth';
+import { useUserConnections, useAuth } from '~/lib/hooks';
 
 interface GitHubUserResponse {
   login: string;
