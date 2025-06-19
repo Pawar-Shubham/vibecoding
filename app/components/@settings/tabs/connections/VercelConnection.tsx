@@ -11,7 +11,8 @@ import {
   updateVercelConnection,
   fetchVercelStats,
 } from '~/lib/stores/vercel';
-import { useUserConnections, useAuth } from '~/lib/hooks';
+import { useUserConnections } from '~/lib/hooks/useUserConnections';
+import { useAuth } from '~/lib/hooks/useAuth';
 
 export default function VercelConnection() {
   const { user, isAuthenticated } = useAuth();
