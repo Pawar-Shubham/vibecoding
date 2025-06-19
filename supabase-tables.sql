@@ -128,6 +128,32 @@ CREATE POLICY "Users can manage their own project chats"
   USING (project_id IN (SELECT id FROM projects WHERE user_id = auth.uid()))
   WITH CHECK (project_id IN (SELECT id FROM projects WHERE user_id = auth.uid()));
 
+-- Create user_connections table to store API tokens for external services
+CREATE TABLE IF NOT EXISTS user_connections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  provider TEXT NOT NULL CHECK (provider IN ('github', 'netlify', 'vercel', 'supabase')),
+  token TEXT, -- Encrypted token
+  token_type TEXT, -- 'classic' or 'fine-grained' for GitHub
+  user_data JSONB DEFAULT '{}'::JSONB, -- Store user info from the provider
+  stats JSONB DEFAULT '{}'::JSONB, -- Store stats/metadata
+  is_active BOOLEAN DEFAULT true,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  
+  CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  UNIQUE(user_id, provider)
+);
+
+-- Enable Row Level Security on user_connections
+ALTER TABLE user_connections ENABLE ROW LEVEL SECURITY;
+
+-- Create policy for user_connections
+CREATE POLICY "Users can manage their own connections"
+  ON user_connections
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
 -- Create function to handle updated_at timestamp
 CREATE OR REPLACE FUNCTION update_modified_column()
 RETURNS TRIGGER AS $$
@@ -155,5 +181,10 @@ EXECUTE FUNCTION update_modified_column();
 
 CREATE TRIGGER update_projects_updated_at
 BEFORE UPDATE ON projects
+FOR EACH ROW
+EXECUTE FUNCTION update_modified_column();
+
+CREATE TRIGGER update_user_connections_updated_at
+BEFORE UPDATE ON user_connections
 FOR EACH ROW
 EXECUTE FUNCTION update_modified_column(); 

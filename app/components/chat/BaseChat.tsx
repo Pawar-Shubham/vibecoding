@@ -350,7 +350,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         data-chat-visible={showChat}
       >
         {/* Animated orbs for both light and dark modes */}
-        <div className="fixed inset-0 w-screen h-screen pointer-events-none overflow-hidden -z-10">
+        <div className="fixed inset-0 w-screen h-screen pointer-events-none overflow-hidden -z-[1]">
           <div 
             className="absolute rounded-full blur-3xl"
             style={{

@@ -72,7 +72,7 @@ export function Header() {
       {/* Logo - always visible and above the menu */}
       <div 
         className={classNames(
-          "flex items-center z-[99] text-bolt-elements-textPrimary transition-all duration-300",
+          "flex items-center z-[90] text-bolt-elements-textPrimary transition-all duration-300",
           {
             "ml-1 opacity-100": !isSidebarOpen && isAuthenticated,
             "opacity-0": isSidebarOpen,
@@ -107,7 +107,7 @@ export function Header() {
       )}
 
       {/* Right-aligned action buttons and user profile */}
-      <div className="flex items-center gap-2 sm:gap-3 ml-auto">
+      <div className="flex items-center gap-2 sm:gap-3 ml-auto relative z-[10]">
         {chat.started && (
           <ClientOnly>
             {() => (
@@ -140,7 +140,9 @@ export function Header() {
                       background: 'linear-gradient(90deg, #ffd700, #4CAF50)',
                     }}
                   >
-                    <div className="i-ph:rocket-launch text-base sm:text-lg" />
+                    <div className="relative z-10">
+                      <div className="i-ph:rocket-launch text-base sm:text-lg text-black" />
+                    </div>
                     <span className="relative z-10 text-black hidden sm:inline">Get Started</span>
                     <div
                       className="absolute inset-0 transition-opacity duration-500 ease-in-out opacity-0 hover:opacity-100"

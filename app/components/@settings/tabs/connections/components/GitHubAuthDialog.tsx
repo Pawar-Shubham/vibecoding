@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import Cookies from 'js-cookie';
 import type { GitHubUserResponse } from '~/types/GitHub';
+import { classNames } from '~/utils/classNames';
 
 interface GitHubAuthDialogProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export function GitHubAuthDialog({ isOpen, onClose }: GitHubAuthDialogProps) {
   const [token, setToken] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tokenType, setTokenType] = useState<'classic' | 'fine-grained'>('classic');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +25,7 @@ export function GitHubAuthDialog({ isOpen, onClose }: GitHubAuthDialogProps) {
     }
 
     setIsSubmitting(true);
+    setIsLoading(true);
 
     try {
       const response = await fetch('https://api.github.com/user', {
@@ -69,6 +72,7 @@ export function GitHubAuthDialog({ isOpen, onClose }: GitHubAuthDialogProps) {
       toast.error('Failed to connect to GitHub. Please try again.');
     } finally {
       setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
@@ -83,7 +87,7 @@ export function GitHubAuthDialog({ isOpen, onClose }: GitHubAuthDialogProps) {
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
           >
-            <Dialog.Content className="bg-white dark:bg-[#1A1A1A] rounded-lg shadow-xl max-w-sm w-full mx-4 overflow-hidden">
+            <Dialog.Content className="fixed top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[90vw] md:w-[750px] max-h-[85vh] overflow-hidden bg-white dark:bg-gray-900 rounded-xl shadow-xl z-[60] border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
               <div className="p-4 space-y-3">
                 <h2 className="text-lg font-semibold text-[#111111] dark:text-white">Access Private Repositories</h2>
 
@@ -147,27 +151,42 @@ export function GitHubAuthDialog({ isOpen, onClose }: GitHubAuthDialogProps) {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      className={classNames(
+                        'w-full h-12 px-4 py-2 rounded-xl text-black transition-all duration-200 flex items-center gap-2 justify-center',
+                        token && !isSubmitting
+                          ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 shadow-md'
+                          : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed text-gray-500 dark:text-gray-400'
+                      )}
                     >
-                      {isSubmitting ? 'Connecting...' : 'Connect to GitHub'}
+                      {isSubmitting ? (
+                        <>
+                          <div className="i-svg-spinners:90-ring-with-bg w-5 h-5" />
+                          Connecting...
+                        </>
+                      ) : (
+                        <>
+                          <span className="i-ph:git-pull-request w-5 h-5" />
+                          Connect to GitHub
+                        </>
+                      )}
                     </button>
                   </form>
                 </div>
 
-                <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg space-y-1.5">
-                  <h3 className="text-sm text-amber-800 dark:text-amber-300 font-medium flex items-center gap-1.5">
-                    <span className="i-ph:warning-circle w-4 h-4" />
-                    Accessing Private Repositories
-                  </h3>
-                  <p className="text-xs text-amber-700 dark:text-amber-400">
-                    Important things to know about accessing private repositories:
-                  </p>
-                  <ul className="list-disc pl-4 text-xs text-amber-700 dark:text-amber-400 space-y-0.5">
-                    <li>You must be granted access to the repository by its owner</li>
-                    <li>Your GitHub token must have the 'repo' scope</li>
-                    <li>For organization repositories, you may need additional permissions</li>
-                    <li>No token can give you access to repositories you don't have permission for</li>
-                  </ul>
+                <div className="mt-6 p-4 rounded-lg bg-[#1B1B1B] border border-bolt-elements-borderColor-dark">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="i-ph:info text-yellow-500" />
+                    <h3 className="text-sm font-medium text-white">Accessing Private Repositories</h3>
+                  </div>
+                  <div className="text-sm text-gray-400 space-y-2">
+                    <p>Important things to know about accessing private repositories:</p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>You must be granted access to the repository by its owner</li>
+                      <li>Your GitHub token must have the 'repo' scope</li>
+                      <li>For organization repositories, you may need additional permissions</li>
+                      <li>No token can give you access to repositories you don't have permission for</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
 

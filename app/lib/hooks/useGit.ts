@@ -155,9 +155,9 @@ export function useGit() {
           toast.error(`Repository not found. Please check the URL and make sure the repository exists.`);
           throw new Error(`Repository not found. Please check the URL and make sure the repository exists.`);
         } else if (errorMessage.includes('401')) {
-          toast.error(`Unauthorized access to repository. Please connect your GitHub account with proper permissions.`);
+          toast.error(`Repository not found or requires authentication. Please check the URL and try again.`);
           throw new Error(
-            `Unauthorized access to repository. Please connect your GitHub account with proper permissions.`,
+            `Repository not found or requires authentication. Please check the URL and try again.`,
           );
         } else {
           toast.error(`Failed to clone repository: ${errorMessage}`);

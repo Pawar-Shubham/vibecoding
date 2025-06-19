@@ -163,7 +163,7 @@ export function ControlPanel({ open, onClose }: ControlPanelProps) {
   return (
     <RadixDialog.Root open={open}>
       <RadixDialog.Portal>
-        <div className="fixed inset-0 flex items-center justify-center z-[100] modern-scrollbar">
+        <div className="fixed inset-0 flex items-center justify-center z-control-panel modern-scrollbar">
           <RadixDialog.Overlay asChild>
             <motion.div
               className="absolute inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm"
@@ -178,7 +178,7 @@ export function ControlPanel({ open, onClose }: ControlPanelProps) {
             aria-describedby={undefined}
             onEscapeKeyDown={onClose}
             onPointerDownOutside={onClose}
-            className="relative z-[101]"
+            className="relative z-control-panel-content"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}

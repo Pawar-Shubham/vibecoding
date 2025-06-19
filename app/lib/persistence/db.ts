@@ -416,7 +416,7 @@ export async function updateChatDescription(db: IDBDatabase, id: string, descrip
     throw new Error('Description cannot be empty');
   }
 
-  await setMessages(db, id, chat.messages, chat.userId, chat.urlId, description, chat.timestamp, chat.metadata);
+  await setMessages(db, id, chat.messages, chat.user_id, chat.urlId, description, chat.timestamp, chat.metadata);
 }
 
 export async function updateChatMetadata(
@@ -430,7 +430,7 @@ export async function updateChatMetadata(
     throw new Error('Chat not found');
   }
 
-  await setMessages(db, id, chat.messages, chat.userId, chat.urlId, chat.description, chat.timestamp, metadata);
+  await setMessages(db, id, chat.messages, chat.user_id, chat.urlId, chat.description, chat.timestamp, metadata);
 }
 
 export async function getSnapshot(db: IDBDatabase, chatId: string): Promise<Snapshot | undefined> {

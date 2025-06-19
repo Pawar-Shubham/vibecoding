@@ -18,6 +18,7 @@ interface HistoryItemProps {
   selectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelection?: (id: string) => void;
+  onRefresh?: () => void;
 }
 
 export function HistoryItem({
@@ -28,6 +29,7 @@ export function HistoryItem({
   selectionMode = false,
   isSelected = false,
   onToggleSelection,
+  onRefresh,
 }: HistoryItemProps) {
   const { id: urlId } = useParams();
   const isActiveChat = urlId === item.urlId;
@@ -39,6 +41,7 @@ export function HistoryItem({
       initialDescription: item.description,
       customChatId: item.id,
       syncWithGlobalStore: isActiveChat,
+      onSuccess: onRefresh,
     });
 
   const handleChatNavigation = useCallback(

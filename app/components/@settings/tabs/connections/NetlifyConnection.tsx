@@ -4,6 +4,8 @@ import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
 import type { NetlifySite, NetlifyDeploy, NetlifyBuild, NetlifyUser } from '~/types/netlify';
+import { useUserConnections } from '~/lib/hooks/useUserConnections';
+import { useAuth } from '~/lib/hooks/useAuth';
 import {
   CloudIcon,
   BuildingLibraryIcon,
@@ -42,6 +44,17 @@ interface SiteAction {
 }
 
 export default function NetlifyConnection() {
+  const { user, isAuthenticated } = useAuth();
+  const { 
+    saveConnection, 
+    getConnectionByProvider, 
+    removeConnection, 
+    updateStats,
+    migrateFromLocalStorage,
+    connections,
+    loading: connectionsLoading
+  } = useUserConnections();
+  
   const connection = useStore(netlifyConnection);
   const [tokenInput, setTokenInput] = useState('');
   const [fetchingStats, setFetchingStats] = useState(false);
@@ -140,9 +153,59 @@ export default function NetlifyConnection() {
   };
 
   useEffect(() => {
-    // Initialize connection with environment token if available
-    initializeNetlifyConnection();
-  }, []);
+    const loadSavedConnection = async () => {
+      // Don't load if connections are still loading
+      if (connectionsLoading) {
+        return;
+      }
+
+      try {
+        // For authenticated users, check database first
+        if (isAuthenticated && user) {
+          // Wait a bit for connections to be fully loaded
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          const dbConnection = getConnectionByProvider('netlify');
+          if (dbConnection) {
+            updateNetlifyConnection({
+              user: dbConnection.user_data,
+              token: dbConnection.token || '',
+              stats: dbConnection.stats
+            });
+
+            // If we have a token but no stats, fetch them
+            if (dbConnection.token && (!dbConnection.stats || !dbConnection.stats.sites)) {
+              fetchNetlifyStats(dbConnection.token);
+            }
+            return;
+          }
+          
+          // Try to migrate from localStorage to database if no DB connection exists
+          await migrateFromLocalStorage();
+          
+          // Check again after migration
+          const dbConnectionAfterMigration = getConnectionByProvider('netlify');
+          if (dbConnectionAfterMigration) {
+            updateNetlifyConnection({
+              user: dbConnectionAfterMigration.user_data,
+              token: dbConnectionAfterMigration.token || '',
+              stats: dbConnectionAfterMigration.stats
+            });
+            return;
+          }
+        }
+
+        // Fallback: Initialize connection with environment token if available
+        initializeNetlifyConnection();
+      } catch (error) {
+        console.error('Error loading Netlify connection:', error);
+        // Fallback to environment token
+        initializeNetlifyConnection();
+      }
+    };
+
+    loadSavedConnection();
+  }, [isAuthenticated, user?.id, connectionsLoading, connections]);
 
   useEffect(() => {
     // Check if we have a connection with a token but no stats
@@ -187,7 +250,22 @@ export default function NetlifyConnection() {
         token: tokenInput,
       });
 
-      toast.success('Connected to Netlify successfully');
+      // Save connection to database if user is authenticated
+      if (isAuthenticated && user) {
+        await saveConnection({
+          provider: 'netlify',
+          token: tokenInput,
+          user_data: userData,
+          stats: {}
+        });
+      } else {
+        // Fallback to localStorage for non-authenticated users
+        localStorage.setItem('netlify_connection', JSON.stringify({
+          user: userData,
+          token: tokenInput,
+        }));
+        toast.success('Connected to Netlify successfully');
+      }
 
       // Fetch stats after successful connection
       fetchNetlifyStats(tokenInput);
@@ -200,9 +278,14 @@ export default function NetlifyConnection() {
     }
   };
 
-  const handleDisconnect = () => {
-    // Clear from localStorage
-    localStorage.removeItem('netlify_connection');
+  const handleDisconnect = async () => {
+    // Remove from database if authenticated
+    if (isAuthenticated) {
+      await removeConnection('netlify');
+    } else {
+      // Fallback to localStorage for non-authenticated users
+      localStorage.removeItem('netlify_connection');
+    }
 
     // Remove cookies
     document.cookie = 'netlifyToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
@@ -271,15 +354,22 @@ export default function NetlifyConnection() {
       }
 
       // Update the stats in the store
+      const stats = {
+        sites: sitesData,
+        deploys: deploysData,
+        builds: buildsData,
+        lastDeployTime,
+        totalSites: sitesData.length,
+      };
+
       updateNetlifyConnection({
-        stats: {
-          sites: sitesData,
-          deploys: deploysData,
-          builds: buildsData,
-          lastDeployTime,
-          totalSites: sitesData.length,
-        },
+        stats,
       });
+
+      // Save to database if authenticated
+      if (isAuthenticated && user) {
+        await updateStats('netlify', stats);
+      }
 
       toast.success('Netlify stats updated');
     } catch (error) {
@@ -646,6 +736,16 @@ export default function NetlifyConnection() {
             <h2 className="text-lg font-medium text-bolt-elements-textPrimary">Netlify Connection</h2>
           </div>
         </div>
+
+        {!isAuthenticated && (
+          <div className="text-xs text-bolt-elements-textSecondary bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 p-3 rounded-lg mb-4">
+            <p className="flex items-center gap-1 mb-1">
+              <span className="i-ph:warning w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />
+              <span className="font-medium">Sign in required:</span> Please sign in to save your connections securely to your account.
+            </p>
+            <p>Without signing in, connections will only be stored locally and may be lost.</p>
+          </div>
+        )}
 
         {!connection.user ? (
           <div className="mt-4">

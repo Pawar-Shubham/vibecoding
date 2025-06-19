@@ -11,21 +11,94 @@ import {
   updateVercelConnection,
   fetchVercelStats,
 } from '~/lib/stores/vercel';
+import { useUserConnections } from '~/lib/hooks/useUserConnections';
+import { useAuth } from '~/lib/hooks/useAuth';
 
 export default function VercelConnection() {
+  const { user, isAuthenticated } = useAuth();
+  const { 
+    saveConnection, 
+    getConnectionByProvider, 
+    removeConnection, 
+    updateStats,
+    migrateFromLocalStorage,
+    connections,
+    loading: connectionsLoading
+  } = useUserConnections();
+  
   const connection = useStore(vercelConnection);
   const connecting = useStore(isConnecting);
   const fetchingStats = useStore(isFetchingStats);
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(false);
 
+  // Save stats to database when they're updated
   useEffect(() => {
-    const fetchProjects = async () => {
-      if (connection.user && connection.token) {
-        await fetchVercelStats(connection.token);
+    if (isAuthenticated && user && connection.user && connection.stats) {
+      const saveStats = async () => {
+        try {
+          await updateStats('vercel', connection.stats);
+        } catch (error) {
+          console.error('Error saving Vercel stats to database:', error);
+        }
+      };
+      saveStats();
+    }
+  }, [connection.stats, isAuthenticated, user?.id]);
+
+  useEffect(() => {
+    const loadSavedConnection = async () => {
+      // Don't load if connections are still loading
+      if (connectionsLoading) {
+        return;
+      }
+
+      try {
+        // For authenticated users, check database first
+        if (isAuthenticated && user) {
+          // Wait a bit for connections to be fully loaded
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          const dbConnection = getConnectionByProvider('vercel');
+          if (dbConnection) {
+            updateVercelConnection({
+              user: dbConnection.user_data,
+              token: dbConnection.token || '',
+              stats: dbConnection.stats
+            });
+
+            // If we have a token but no stats, fetch them
+            if (dbConnection.token && !dbConnection.stats) {
+              await fetchVercelStats(dbConnection.token);
+            }
+            return;
+          }
+          
+          // Try to migrate from localStorage to database if no DB connection exists
+          await migrateFromLocalStorage();
+          
+          // Check again after migration
+          const dbConnectionAfterMigration = getConnectionByProvider('vercel');
+          if (dbConnectionAfterMigration) {
+            updateVercelConnection({
+              user: dbConnectionAfterMigration.user_data,
+              token: dbConnectionAfterMigration.token || '',
+              stats: dbConnectionAfterMigration.stats
+            });
+            return;
+          }
+        }
+
+        // For existing connections, fetch stats if needed (but only if no stats exist)
+        if (connection.user && connection.token && !connection.stats) {
+          await fetchVercelStats(connection.token);
+        }
+      } catch (error) {
+        console.error('Error loading Vercel connection:', error);
       }
     };
-    fetchProjects();
-  }, [connection.user, connection.token]);
+
+    loadSavedConnection();
+  }, [isAuthenticated, user?.id, connectionsLoading]);
 
   const handleConnect = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -49,8 +122,24 @@ export default function VercelConnection() {
         token: connection.token,
       });
 
+      // Save connection to database if user is authenticated
+      if (isAuthenticated && user) {
+        await saveConnection({
+          provider: 'vercel',
+          token: connection.token,
+          user_data: userData.user || userData,
+          stats: {}
+        });
+      } else {
+        // Fallback to localStorage for non-authenticated users
+        localStorage.setItem('vercel_connection', JSON.stringify({
+          user: userData.user || userData,
+          token: connection.token,
+        }));
+        toast.success('Successfully connected to Vercel');
+      }
+
       await fetchVercelStats(connection.token);
-      toast.success('Successfully connected to Vercel');
     } catch (error) {
       console.error('Auth error:', error);
       logStore.logError('Failed to authenticate with Vercel', { error });
@@ -61,7 +150,15 @@ export default function VercelConnection() {
     }
   };
 
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
+    // Remove from database if authenticated
+    if (isAuthenticated) {
+      await removeConnection('vercel');
+    } else {
+      // Fallback to localStorage for non-authenticated users
+      localStorage.removeItem('vercel_connection');
+    }
+
     updateVercelConnection({ user: null, token: '' });
     toast.success('Disconnected from Vercel');
   };
@@ -88,6 +185,16 @@ export default function VercelConnection() {
             <h3 className="text-base font-medium text-bolt-elements-textPrimary">Vercel Connection</h3>
           </div>
         </div>
+
+        {!isAuthenticated && (
+          <div className="text-xs text-bolt-elements-textSecondary bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 p-3 rounded-lg mb-4">
+            <p className="flex items-center gap-1 mb-1">
+              <span className="i-ph:warning w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />
+              <span className="font-medium">Sign in required:</span> Please sign in to save your connections securely to your account.
+            </p>
+            <p>Without signing in, connections will only be stored locally and may be lost.</p>
+          </div>
+        )}
 
         {!connection.user ? (
           <div className="space-y-4">

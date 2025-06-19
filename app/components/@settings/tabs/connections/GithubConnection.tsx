@@ -6,6 +6,8 @@ import { classNames } from '~/utils/classNames';
 import Cookies from 'js-cookie';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
 import { Button } from '~/components/ui/Button';
+import { useUserConnections } from '~/lib/hooks/useUserConnections';
+import { useAuth } from '~/lib/hooks/useAuth';
 
 interface GitHubUserResponse {
   login: string;
@@ -94,6 +96,17 @@ const GithubLogo = () => (
 );
 
 export default function GitHubConnection() {
+  const { user, isAuthenticated } = useAuth();
+  const { 
+    saveConnection, 
+    getConnectionByProvider, 
+    removeConnection, 
+    updateStats,
+    migrateFromLocalStorage,
+    connections,
+    loading: connectionsLoading
+  } = useUserConnections();
+  
   const [connection, setConnection] = useState<GitHubConnection>({
     user: null,
     token: '',
@@ -155,15 +168,26 @@ export default function GitHubConnection() {
       Cookies.set('githubToken', token);
       Cookies.set('git:github.com', JSON.stringify({ username: token, password: 'x-oauth-basic' }));
 
-      // Store connection details in localStorage
-      localStorage.setItem(
-        'github_connection',
-        JSON.stringify({
-          user,
+      // Save connection to database if user is authenticated
+      if (isAuthenticated && user) {
+        await saveConnection({
+          provider: 'github',
           token,
-          tokenType: tokenTypeRef.current,
-        }),
-      );
+          token_type: tokenTypeRef.current,
+          user_data: user,
+          stats: {}
+        });
+      } else {
+        // Fallback to localStorage for non-authenticated users
+        localStorage.setItem(
+          'github_connection',
+          JSON.stringify({
+            user,
+            token,
+            tokenType: tokenTypeRef.current,
+          }),
+        );
+      }
 
       logStore.logInfo('Connected to GitHub', {
         type: 'system',
@@ -282,8 +306,7 @@ export default function GitHubConnection() {
       };
 
       // Get the current user first to ensure we have the latest value
-      const currentConnection = JSON.parse(localStorage.getItem('github_connection') || '{}');
-      const currentUser = currentConnection.user || connection.user;
+      const currentUser = connection.user;
 
       // Update connection with stats
       const updatedConnection: GitHubConnection = {
@@ -294,8 +317,14 @@ export default function GitHubConnection() {
         rateLimit: connection.rateLimit,
       };
 
-      // Update localStorage
-      localStorage.setItem('github_connection', JSON.stringify(updatedConnection));
+      // Save to database if authenticated
+      if (isAuthenticated && user) {
+        await updateStats('github', stats);
+      } else {
+        // Fallback to localStorage for non-authenticated users
+        const currentConnection = JSON.parse(localStorage.getItem('github_connection') || '{}');
+        localStorage.setItem('github_connection', JSON.stringify(updatedConnection));
+      }
 
       // Update state
       setConnection(updatedConnection);
@@ -347,74 +376,138 @@ export default function GitHubConnection() {
 
   useEffect(() => {
     const loadSavedConnection = async () => {
-      setIsLoading(true);
-
-      const savedConnection = localStorage.getItem('github_connection');
-
-      if (savedConnection) {
-        try {
-          const parsed = JSON.parse(savedConnection);
-
-          if (!parsed.tokenType) {
-            parsed.tokenType = 'classic';
-          }
-
-          // Update the ref with the parsed token type
-          tokenTypeRef.current = parsed.tokenType;
-
-          // Set the connection
-          setConnection(parsed);
-
-          // If we have a token but no stats or incomplete stats, fetch them
-          if (
-            parsed.user &&
-            parsed.token &&
-            (!parsed.stats || !parsed.stats.repos || parsed.stats.repos.length === 0)
-          ) {
-            console.log('Fetching missing GitHub stats for saved connection');
-            await fetchGitHubStats(parsed.token);
-          }
-        } catch (error) {
-          console.error('Error parsing saved GitHub connection:', error);
-          localStorage.removeItem('github_connection');
-        }
-      } else {
-        // Check for environment variable token
-        const envToken = import.meta.env.VITE_GITHUB_ACCESS_TOKEN;
-
-        if (envToken) {
-          // Check if token type is specified in environment variables
-          const envTokenType = import.meta.env.VITE_GITHUB_TOKEN_TYPE;
-          console.log('Environment token type:', envTokenType);
-
-          const tokenType =
-            envTokenType === 'classic' || envTokenType === 'fine-grained'
-              ? (envTokenType as 'classic' | 'fine-grained')
-              : 'classic';
-
-          console.log('Using token type:', tokenType);
-
-          // Update both the state and the ref
-          tokenTypeRef.current = tokenType;
-          setConnection((prev) => ({
-            ...prev,
-            tokenType,
-          }));
-
-          try {
-            // Fetch user data with the environment token
-            await fetchGithubUser(envToken);
-          } catch (error) {
-            console.error('Failed to connect with environment token:', error);
-          }
-        }
+      // Don't load if connections are still loading
+      if (connectionsLoading) {
+        return;
       }
 
-      setIsLoading(false);
+      setIsLoading(true);
+
+      try {
+        // For authenticated users, check database first
+        if (isAuthenticated && user) {
+          // Wait a bit for connections to be fully loaded
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          const dbConnection = getConnectionByProvider('github');
+          if (dbConnection) {
+            const parsed = {
+              user: dbConnection.user_data,
+              token: dbConnection.token || '',
+              tokenType: (dbConnection.token_type as 'classic' | 'fine-grained') || 'classic',
+              stats: dbConnection.stats
+            };
+
+            // Update the ref with the parsed token type
+            tokenTypeRef.current = parsed.tokenType;
+
+            // Set the connection
+            setConnection(parsed);
+
+            // If we have a token but no stats or incomplete stats, fetch them
+            if (
+              parsed.user &&
+              parsed.token &&
+              (!parsed.stats || !parsed.stats.repos || parsed.stats.repos.length === 0)
+            ) {
+              console.log('Fetching missing GitHub stats for saved connection');
+              await fetchGitHubStats(parsed.token);
+            }
+            
+            setIsLoading(false);
+            return;
+          }
+          
+          // Try to migrate from localStorage to database if no DB connection exists
+          await migrateFromLocalStorage();
+          
+          // Check again after migration
+          const dbConnectionAfterMigration = getConnectionByProvider('github');
+          if (dbConnectionAfterMigration) {
+            const parsed = {
+              user: dbConnectionAfterMigration.user_data,
+              token: dbConnectionAfterMigration.token || '',
+              tokenType: (dbConnectionAfterMigration.token_type as 'classic' | 'fine-grained') || 'classic',
+              stats: dbConnectionAfterMigration.stats
+            };
+
+            tokenTypeRef.current = parsed.tokenType;
+            setConnection(parsed);
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // Fallback to localStorage for non-authenticated users or if no database connection
+        const savedConnection = localStorage.getItem('github_connection');
+
+        if (savedConnection) {
+          try {
+            const parsed = JSON.parse(savedConnection);
+
+            if (!parsed.tokenType) {
+              parsed.tokenType = 'classic';
+            }
+
+            // Update the ref with the parsed token type
+            tokenTypeRef.current = parsed.tokenType;
+
+            // Set the connection
+            setConnection(parsed);
+
+            // If we have a token but no stats or incomplete stats, fetch them
+            if (
+              parsed.user &&
+              parsed.token &&
+              (!parsed.stats || !parsed.stats.repos || parsed.stats.repos.length === 0)
+            ) {
+              console.log('Fetching missing GitHub stats for saved connection');
+              await fetchGitHubStats(parsed.token);
+            }
+          } catch (error) {
+            console.error('Error parsing saved GitHub connection:', error);
+            localStorage.removeItem('github_connection');
+          }
+        } else {
+          // Check for environment variable token as fallback
+          const envToken = import.meta.env.VITE_GITHUB_ACCESS_TOKEN;
+
+          if (envToken) {
+            // Check if token type is specified in environment variables
+            const envTokenType = import.meta.env.VITE_GITHUB_TOKEN_TYPE;
+            console.log('Environment token type:', envTokenType);
+
+            const tokenType =
+              envTokenType === 'classic' || envTokenType === 'fine-grained'
+                ? (envTokenType as 'classic' | 'fine-grained')
+                : 'classic';
+
+            console.log('Using token type:', tokenType);
+
+            // Update both the state and the ref
+            tokenTypeRef.current = tokenType;
+            setConnection((prev) => ({
+              ...prev,
+              tokenType,
+            }));
+
+            try {
+              // Fetch user data with the environment token
+              await fetchGithubUser(envToken);
+            } catch (error) {
+              console.error('Failed to connect with environment token:', error);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading GitHub connection:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadSavedConnection();
-  }, []);
+  }, [isAuthenticated, user?.id, connectionsLoading, connections]); // Added connectionsLoading and connections as dependencies
 
   // Ensure cookies are updated when connection changes
   useEffect(() => {
@@ -478,7 +571,7 @@ export default function GitHubConnection() {
     };
   }, [connection.token, connection.user]);
 
-  if (isLoading || isConnecting || isFetchingStats) {
+  if (isLoading || isConnecting || isFetchingStats || connectionsLoading) {
     return <LoadingSpinner />;
   }
 
@@ -489,19 +582,6 @@ export default function GitHubConnection() {
     try {
       // Update the ref with the current state value before connecting
       tokenTypeRef.current = connection.tokenType;
-
-      /*
-       * Save token type to localStorage even before connecting
-       * This ensures the token type is persisted even if connection fails
-       */
-      localStorage.setItem(
-        'github_connection',
-        JSON.stringify({
-          user: null,
-          token: connection.token,
-          tokenType: connection.tokenType,
-        }),
-      );
 
       // Attempt to fetch the user info which validates the token
       await fetchGithubUser(connection.token);
@@ -519,8 +599,14 @@ export default function GitHubConnection() {
     }
   };
 
-  const handleDisconnect = () => {
-    localStorage.removeItem('github_connection');
+  const handleDisconnect = async () => {
+    // Remove from database if authenticated
+    if (isAuthenticated) {
+      await removeConnection('github');
+    } else {
+      // Fallback to localStorage for non-authenticated users
+      localStorage.removeItem('github_connection');
+    }
 
     // Remove all GitHub-related cookies
     Cookies.remove('githubToken');
@@ -549,6 +635,16 @@ export default function GitHubConnection() {
             </h3>
           </div>
         </div>
+
+        {!isAuthenticated && (
+          <div className="text-xs text-bolt-elements-textSecondary bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 p-3 rounded-lg mb-4">
+            <p className="flex items-center gap-1 mb-1">
+              <span className="i-ph:warning w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />
+              <span className="font-medium">Sign in required:</span> Please sign in to save your connections securely to your account.
+            </p>
+            <p>Without signing in, connections will only be stored locally and may be lost.</p>
+          </div>
+        )}
 
         {!connection.user && (
           <div className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-1 p-3 rounded-lg mb-4">

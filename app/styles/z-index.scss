@@ -1,11 +1,23 @@
-$zIndexMax: 999;
+$zIndexMax: 1001;
 
 .z-logo {
-  z-index: $zIndexMax - 1;
+  z-index: 90;
 }
 
 .z-sidebar {
-  z-index: $zIndexMax - 2;
+  z-index: 999;
+}
+
+.z-sidebar-backdrop {
+  z-index: 998;
+}
+
+.z-control-panel {
+  z-index: 1000;
+}
+
+.z-control-panel-content {
+  z-index: 1001;
 }
 
 .z-port-dropdown {

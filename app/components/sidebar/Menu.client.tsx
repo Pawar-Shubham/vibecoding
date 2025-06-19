@@ -395,7 +395,7 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
           'bg-white dark:bg-[#141414]',
           'shadow-2xl',
           'text-sm overflow-hidden',
-          'z-[98] rounded-r-2xl',
+          'z-[999] rounded-r-2xl',
           'touch-pan-y'
         )}
       >
@@ -542,6 +542,7 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
                       selectionMode={selectionMode}
                       isSelected={selectedItems.includes(item.id)}
                       onToggleSelection={toggleItemSelection}
+                      onRefresh={loadEntries}
                     />
                   ))}
                 </div>
@@ -615,7 +616,7 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[97] bg-black/20 dark:bg-black/40"
+          className="fixed inset-0 z-[998] bg-black/20 dark:bg-black/40"
           onClick={() => sidebarStore.set(false)}
         />
       )}

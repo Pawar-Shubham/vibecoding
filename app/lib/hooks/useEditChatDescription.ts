@@ -8,11 +8,14 @@ import {
   getMessages,
   updateChatDescription,
 } from '~/lib/persistence';
+import { syncChatToSupabase } from '~/lib/persistence/supabaseSync';
+import { useAuth } from '~/lib/hooks/useAuth';
 
 interface EditChatDescriptionOptions {
   initialDescription?: string;
   customChatId?: string;
   syncWithGlobalStore?: boolean;
+  onSuccess?: () => void;
 }
 
 type EditChatDescriptionHook = {
@@ -43,6 +46,7 @@ export function useEditChatDescription({
   initialDescription = descriptionStore.get()!,
   customChatId,
   syncWithGlobalStore,
+  onSuccess,
 }: EditChatDescriptionOptions): EditChatDescriptionHook {
   const chatIdFromStore = useStore(chatIdStore);
   const [editing, setEditing] = useState(false);
@@ -128,20 +132,52 @@ export function useEditChatDescription({
           return;
         }
 
+        // Update local database first
         await updateChatDescription(db, chatId, currentDescription);
 
         if (syncWithGlobalStore) {
           descriptionStore.set(currentDescription);
         }
 
+        // Get updated chat data and sync to Supabase
+        const updatedChat = await getMessages(db, chatId);
+        if (updatedChat && navigator.onLine) {
+          try {
+            // Validate that the chat has a user_id and it matches current session
+            if (!updatedChat.user_id) {
+              console.warn('Chat has no user_id, skipping Supabase sync');
+              toast.warning('Description updated locally but could not sync to cloud storage (missing user ID)');
+            } else {
+              await syncChatToSupabase(updatedChat);
+            }
+          } catch (syncError) {
+            console.error('Failed to sync updated description to Supabase:', syncError);
+            // Don't fail the entire operation if Supabase sync fails
+            if (syncError instanceof Error) {
+              if (syncError.message.includes('User authentication mismatch')) {
+                toast.warning('Description updated locally but could not sync to cloud storage (authentication issue)');
+              } else {
+                toast.warning('Description updated locally but failed to sync to cloud storage');
+              }
+            } else {
+              toast.warning('Description updated locally but failed to sync to cloud storage');
+            }
+          }
+        }
+
         toast.success('Chat description updated successfully');
+        
+        // Call onSuccess callback if provided (for sidebar refresh)
+        if (onSuccess) {
+          onSuccess();
+        }
       } catch (error) {
         toast.error('Failed to update chat description: ' + (error as Error).message);
       }
 
       toggleEditMode();
     },
-    [currentDescription, db, chatId, initialDescription, customChatId],
+    [currentDescription, db, chatId, initialDescription, customChatId, onSuccess],
   );
 
   const handleKeyDown = useCallback(
