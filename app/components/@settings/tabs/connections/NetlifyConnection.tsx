@@ -4,8 +4,8 @@ import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
 import type { NetlifySite, NetlifyDeploy, NetlifyBuild, NetlifyUser } from '~/types/netlify';
-import { useUserConnections } from '../../../../../lib/hooks/useUserConnections';
-import { useAuth } from '../../../../../lib/hooks/useAuth';
+import { useUserConnections } from '~/lib/hooks/useUserConnections';
+import { useAuth } from '~/lib/hooks/useAuth';
 import {
   CloudIcon,
   BuildingLibraryIcon,

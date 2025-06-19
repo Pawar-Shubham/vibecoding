@@ -3,11 +3,8 @@ import React, { Suspense, useState } from 'react';
 import { classNames } from '~/utils/classNames';
 import ConnectionDiagnostics from './ConnectionDiagnostics';
 import { Button } from '~/components/ui/Button';
-
-
-// Use React.lazy for dynamic imports
-const GitHubConnection = React.lazy(() => import('~/components/@settings/tabs/connections/GithubConnection'));
-const NetlifyConnection = React.lazy(() => import('~/components/@settings/tabs/connections/NetlifyConnection'));
+import GitHubConnection from './GithubConnection';
+import NetlifyConnection from './NetlifyConnection';
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -150,12 +147,8 @@ export default function ConnectionsTab() {
       </motion.div>
 
       <div className="grid grid-cols-1 gap-6">
-        <Suspense fallback={<LoadingFallback />}>
-          <GitHubConnection />
-        </Suspense>
-        <Suspense fallback={<LoadingFallback />}>
-          <NetlifyConnection />
-        </Suspense>
+        <GitHubConnection />
+        <NetlifyConnection />
       </div>
 
       {/* Additional help text */}
