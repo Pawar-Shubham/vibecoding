@@ -6,16 +6,127 @@ import { classNames } from '~/utils/classNames';
 import Cookies from 'js-cookie';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
 import { Button } from '~/components/ui/Button';
-// import { useUserConnections } from '~/lib/hooks/useUserConnections';
 import { useAuth } from '~/lib/hooks/useAuth';
+import { supabase } from '~/lib/supabase';
 
-// Temporary mock implementation
+// Simplified inline implementation of useUserConnections
 const useUserConnections = () => {
+  const { user, isAuthenticated } = useAuth();
+
+  const getConnectionByProvider = async (provider: string) => {
+    if (!user?.id || !isAuthenticated) {
+      return undefined;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('provider', provider)
+        .eq('is_active', true)
+        .single();
+
+      if (error || !data) {
+        return undefined;
+      }
+
+      // Decrypt token if present
+      if (data.token) {
+        try {
+          data.token = atob(data.token);
+        } catch {
+          // Token is already decrypted or invalid
+        }
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error getting connection:', error);
+      return undefined;
+    }
+  };
+
+  const saveConnection = async (connectionData: any) => {
+    if (!user?.id || !isAuthenticated) {
+      return false;
+    }
+
+    try {
+      const encryptedToken = connectionData.token ? btoa(connectionData.token) : null;
+      
+      const { error } = await supabase
+        .from('user_connections')
+        .upsert({
+          user_id: user.id,
+          provider: connectionData.provider,
+          token: encryptedToken,
+          token_type: connectionData.token_type,
+          user_data: connectionData.user_data || {},
+          stats: connectionData.stats || {},
+          is_active: true,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,provider'
+        });
+
+      return !error;
+    } catch (error) {
+      console.error('Error saving connection:', error);
+      return false;
+    }
+  };
+
+  const updateStats = async (provider: string, stats: any) => {
+    if (!user?.id || !isAuthenticated) {
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_connections')
+        .update({ 
+          stats,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .eq('provider', provider);
+
+      return !error;
+    } catch (error) {
+      console.error('Error updating stats:', error);
+      return false;
+    }
+  };
+
+  const removeConnection = async (provider: string) => {
+    if (!user?.id || !isAuthenticated) {
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_connections')
+        .update({ 
+          is_active: false,
+          token: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .eq('provider', provider);
+
+      return !error;
+    } catch (error) {
+      console.error('Error removing connection:', error);
+      return false;
+    }
+  };
+
   return {
-    saveConnection: async () => false,
-    getConnectionByProvider: () => undefined,
-    removeConnection: async () => false,
-    updateStats: async () => false,
+    saveConnection,
+    getConnectionByProvider,
+    removeConnection,
+    updateStats,
     migrateFromLocalStorage: async () => {},
     connections: [],
     loading: false
@@ -402,7 +513,7 @@ export default function GitHubConnection() {
           // Wait a bit for connections to be fully loaded
           await new Promise(resolve => setTimeout(resolve, 100));
           
-          const dbConnection = getConnectionByProvider('github');
+          const dbConnection = await getConnectionByProvider('github');
           if (dbConnection) {
             const parsed = {
               user: dbConnection.user_data,
@@ -435,7 +546,7 @@ export default function GitHubConnection() {
           await migrateFromLocalStorage();
           
           // Check again after migration
-          const dbConnectionAfterMigration = getConnectionByProvider('github');
+          const dbConnectionAfterMigration = await getConnectionByProvider('github');
           if (dbConnectionAfterMigration) {
             const parsed = {
               user: dbConnectionAfterMigration.user_data,
@@ -520,7 +631,7 @@ export default function GitHubConnection() {
     };
 
     loadSavedConnection();
-  }, [isAuthenticated, user?.id, connectionsLoading, connections]); // Added connectionsLoading and connections as dependencies
+  }, [isAuthenticated, user?.id]); // Load connection when user changes
 
   // Ensure cookies are updated when connection changes
   useEffect(() => {

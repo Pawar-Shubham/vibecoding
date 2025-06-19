@@ -4,8 +4,8 @@ import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
 import type { NetlifySite, NetlifyDeploy, NetlifyBuild, NetlifyUser } from '~/types/netlify';
-// import { useUserConnections } from '~/lib/hooks/useUserConnections';
 import { useAuth } from '~/lib/hooks/useAuth';
+import { supabase } from '~/lib/supabase';
 import {
   CloudIcon,
   BuildingLibraryIcon,
@@ -26,11 +26,122 @@ import { Badge } from '~/components/ui/Badge';
 
 // Temporary mock implementation
 const useUserConnections = () => {
+  const { user, isAuthenticated } = useAuth();
+
+  const getConnectionByProvider = async (provider: string) => {
+    if (!user?.id || !isAuthenticated) {
+      return undefined;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('provider', provider)
+        .eq('is_active', true)
+        .single();
+
+      if (error || !data) {
+        return undefined;
+      }
+
+      // Decrypt token if present
+      if (data.token) {
+        try {
+          data.token = atob(data.token);
+        } catch {
+          // Token is already decrypted or invalid
+        }
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error getting connection:', error);
+      return undefined;
+    }
+  };
+
+  const saveConnection = async (connectionData: any) => {
+    if (!user?.id || !isAuthenticated) {
+      return false;
+    }
+
+    try {
+      const encryptedToken = connectionData.token ? btoa(connectionData.token) : null;
+      
+      const { error } = await supabase
+        .from('user_connections')
+        .upsert({
+          user_id: user.id,
+          provider: connectionData.provider,
+          token: encryptedToken,
+          token_type: connectionData.token_type,
+          user_data: connectionData.user_data || {},
+          stats: connectionData.stats || {},
+          is_active: true,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,provider'
+        });
+
+      return !error;
+    } catch (error) {
+      console.error('Error saving connection:', error);
+      return false;
+    }
+  };
+
+  const updateStats = async (provider: string, stats: any) => {
+    if (!user?.id || !isAuthenticated) {
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_connections')
+        .update({ 
+          stats,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .eq('provider', provider);
+
+      return !error;
+    } catch (error) {
+      console.error('Error updating stats:', error);
+      return false;
+    }
+  };
+
+  const removeConnection = async (provider: string) => {
+    if (!user?.id || !isAuthenticated) {
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_connections')
+        .update({ 
+          is_active: false,
+          token: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .eq('provider', provider);
+
+      return !error;
+    } catch (error) {
+      console.error('Error removing connection:', error);
+      return false;
+    }
+  };
+
   return {
-    saveConnection: async () => false,
-    getConnectionByProvider: () => undefined,
-    removeConnection: async () => false,
-    updateStats: async () => false,
+    saveConnection,
+    getConnectionByProvider,
+    removeConnection,
+    updateStats,
     migrateFromLocalStorage: async () => {},
     connections: [],
     loading: false
@@ -181,7 +292,7 @@ export default function NetlifyConnection() {
           // Wait a bit for connections to be fully loaded
           await new Promise(resolve => setTimeout(resolve, 100));
           
-          const dbConnection = getConnectionByProvider('netlify');
+          const dbConnection = await getConnectionByProvider('netlify');
           if (dbConnection) {
             // Update the store with database data
             updateNetlifyConnection({
@@ -198,7 +309,7 @@ export default function NetlifyConnection() {
           await migrateFromLocalStorage();
           
           // Check again after migration
-          const dbConnectionAfterMigration = getConnectionByProvider('netlify');
+          const dbConnectionAfterMigration = await getConnectionByProvider('netlify');
           if (dbConnectionAfterMigration) {
             updateNetlifyConnection({
               user: dbConnectionAfterMigration.user_data,
@@ -221,7 +332,7 @@ export default function NetlifyConnection() {
     };
 
     loadSavedConnection();
-  }, [isAuthenticated, user?.id, connectionsLoading, connections]);
+  }, [isAuthenticated, user?.id]);
 
   useEffect(() => {
     // Check if we have a connection with a token but no stats
