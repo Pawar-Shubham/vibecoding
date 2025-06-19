@@ -132,7 +132,7 @@ CREATE POLICY "Users can manage their own project chats"
 CREATE TABLE IF NOT EXISTS user_connections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  provider TEXT NOT NULL CHECK (provider IN ('github', 'netlify', 'vercel', 'supabase')),
+  provider TEXT NOT NULL CHECK (provider IN ('github', 'netlify', 'supabase')),
   token TEXT, -- Encrypted token
   token_type TEXT, -- 'classic' or 'fine-grained' for GitHub
   user_data JSONB DEFAULT '{}'::JSONB, -- Store user info from the provider

@@ -67,6 +67,7 @@ export default function NetlifyConnection() {
   const [activeSiteIndex, setActiveSiteIndex] = useState(0);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Add site actions
   const siteActions: SiteAction[] = [
@@ -159,6 +160,8 @@ export default function NetlifyConnection() {
         return;
       }
 
+      setIsLoading(true);
+
       try {
         // For authenticated users, check database first
         if (isAuthenticated && user) {
@@ -167,16 +170,14 @@ export default function NetlifyConnection() {
           
           const dbConnection = getConnectionByProvider('netlify');
           if (dbConnection) {
+            // Update the store with database data
             updateNetlifyConnection({
               user: dbConnection.user_data,
               token: dbConnection.token || '',
               stats: dbConnection.stats
             });
-
-            // If we have a token but no stats, fetch them
-            if (dbConnection.token && (!dbConnection.stats || !dbConnection.stats.sites)) {
-              fetchNetlifyStats(dbConnection.token);
-            }
+            
+            setIsLoading(false);
             return;
           }
           
@@ -191,16 +192,18 @@ export default function NetlifyConnection() {
               token: dbConnectionAfterMigration.token || '',
               stats: dbConnectionAfterMigration.stats
             });
+            
+            setIsLoading(false);
             return;
           }
         }
 
-        // Fallback: Initialize connection with environment token if available
-        initializeNetlifyConnection();
+        // Initialize connection with environment token if available (fallback)
+    initializeNetlifyConnection();
       } catch (error) {
         console.error('Error loading Netlify connection:', error);
-        // Fallback to environment token
-        initializeNetlifyConnection();
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -264,8 +267,9 @@ export default function NetlifyConnection() {
           user: userData,
           token: tokenInput,
         }));
-        toast.success('Connected to Netlify successfully');
       }
+
+      toast.success('Connected to Netlify successfully');
 
       // Fetch stats after successful connection
       fetchNetlifyStats(tokenInput);
@@ -284,7 +288,7 @@ export default function NetlifyConnection() {
       await removeConnection('netlify');
     } else {
       // Fallback to localStorage for non-authenticated users
-      localStorage.removeItem('netlify_connection');
+    localStorage.removeItem('netlify_connection');
     }
 
     // Remove cookies
@@ -355,18 +359,18 @@ export default function NetlifyConnection() {
 
       // Update the stats in the store
       const stats = {
-        sites: sitesData,
-        deploys: deploysData,
-        builds: buildsData,
-        lastDeployTime,
-        totalSites: sitesData.length,
+          sites: sitesData,
+          deploys: deploysData,
+          builds: buildsData,
+          lastDeployTime,
+          totalSites: sitesData.length,
       };
 
       updateNetlifyConnection({
         stats,
       });
 
-      // Save to database if authenticated
+      // Save stats to database if authenticated
       if (isAuthenticated && user) {
         await updateStats('netlify', stats);
       }
@@ -724,6 +728,20 @@ export default function NetlifyConnection() {
       </div>
     );
   };
+
+  // Show loading spinner while loading
+  if (isLoading || isConnecting || fetchingStats || connectionsLoading) {
+    return (
+      <div className="space-y-6 bg-bolt-elements-background dark:bg-bolt-elements-background border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor rounded-lg">
+        <div className="p-6 flex items-center justify-center">
+          <div className="flex items-center gap-2 text-bolt-elements-textSecondary">
+            <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
+            <span>Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 bg-bolt-elements-background dark:bg-bolt-elements-background border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor rounded-lg">

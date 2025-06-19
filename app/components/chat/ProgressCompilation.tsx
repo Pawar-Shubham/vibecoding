@@ -45,8 +45,8 @@ export default function ProgressCompilation({ data }: { data?: ProgressAnnotatio
       >
         <div
           className={classNames(
-            'bg-bolt-elements-item-backgroundAccent',
-            'p-1 rounded-lg text-bolt-elements-item-contentAccent',
+            'bg-gray-800/80',
+            'p-1 rounded-lg text-white',
             'flex ',
           )}
         >

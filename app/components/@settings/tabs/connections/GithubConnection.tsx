@@ -179,14 +179,14 @@ export default function GitHubConnection() {
         });
       } else {
         // Fallback to localStorage for non-authenticated users
-        localStorage.setItem(
-          'github_connection',
-          JSON.stringify({
-            user,
-            token,
-            tokenType: tokenTypeRef.current,
-          }),
-        );
+      localStorage.setItem(
+        'github_connection',
+        JSON.stringify({
+          user,
+          token,
+          tokenType: tokenTypeRef.current,
+        }),
+      );
       }
 
       logStore.logInfo('Connected to GitHub', {
@@ -323,7 +323,7 @@ export default function GitHubConnection() {
       } else {
         // Fallback to localStorage for non-authenticated users
         const currentConnection = JSON.parse(localStorage.getItem('github_connection') || '{}');
-        localStorage.setItem('github_connection', JSON.stringify(updatedConnection));
+      localStorage.setItem('github_connection', JSON.stringify(updatedConnection));
       }
 
       // Update state
@@ -439,70 +439,70 @@ export default function GitHubConnection() {
         }
 
         // Fallback to localStorage for non-authenticated users or if no database connection
-        const savedConnection = localStorage.getItem('github_connection');
+      const savedConnection = localStorage.getItem('github_connection');
 
-        if (savedConnection) {
-          try {
-            const parsed = JSON.parse(savedConnection);
+      if (savedConnection) {
+        try {
+          const parsed = JSON.parse(savedConnection);
 
-            if (!parsed.tokenType) {
-              parsed.tokenType = 'classic';
-            }
-
-            // Update the ref with the parsed token type
-            tokenTypeRef.current = parsed.tokenType;
-
-            // Set the connection
-            setConnection(parsed);
-
-            // If we have a token but no stats or incomplete stats, fetch them
-            if (
-              parsed.user &&
-              parsed.token &&
-              (!parsed.stats || !parsed.stats.repos || parsed.stats.repos.length === 0)
-            ) {
-              console.log('Fetching missing GitHub stats for saved connection');
-              await fetchGitHubStats(parsed.token);
-            }
-          } catch (error) {
-            console.error('Error parsing saved GitHub connection:', error);
-            localStorage.removeItem('github_connection');
+          if (!parsed.tokenType) {
+            parsed.tokenType = 'classic';
           }
-        } else {
+
+          // Update the ref with the parsed token type
+          tokenTypeRef.current = parsed.tokenType;
+
+          // Set the connection
+          setConnection(parsed);
+
+          // If we have a token but no stats or incomplete stats, fetch them
+          if (
+            parsed.user &&
+            parsed.token &&
+            (!parsed.stats || !parsed.stats.repos || parsed.stats.repos.length === 0)
+          ) {
+            console.log('Fetching missing GitHub stats for saved connection');
+            await fetchGitHubStats(parsed.token);
+          }
+        } catch (error) {
+          console.error('Error parsing saved GitHub connection:', error);
+          localStorage.removeItem('github_connection');
+        }
+      } else {
           // Check for environment variable token as fallback
-          const envToken = import.meta.env.VITE_GITHUB_ACCESS_TOKEN;
+        const envToken = import.meta.env.VITE_GITHUB_ACCESS_TOKEN;
 
-          if (envToken) {
-            // Check if token type is specified in environment variables
-            const envTokenType = import.meta.env.VITE_GITHUB_TOKEN_TYPE;
-            console.log('Environment token type:', envTokenType);
+        if (envToken) {
+          // Check if token type is specified in environment variables
+          const envTokenType = import.meta.env.VITE_GITHUB_TOKEN_TYPE;
+          console.log('Environment token type:', envTokenType);
 
-            const tokenType =
-              envTokenType === 'classic' || envTokenType === 'fine-grained'
-                ? (envTokenType as 'classic' | 'fine-grained')
-                : 'classic';
+          const tokenType =
+            envTokenType === 'classic' || envTokenType === 'fine-grained'
+              ? (envTokenType as 'classic' | 'fine-grained')
+              : 'classic';
 
-            console.log('Using token type:', tokenType);
+          console.log('Using token type:', tokenType);
 
-            // Update both the state and the ref
-            tokenTypeRef.current = tokenType;
-            setConnection((prev) => ({
-              ...prev,
-              tokenType,
-            }));
+          // Update both the state and the ref
+          tokenTypeRef.current = tokenType;
+          setConnection((prev) => ({
+            ...prev,
+            tokenType,
+          }));
 
-            try {
-              // Fetch user data with the environment token
-              await fetchGithubUser(envToken);
-            } catch (error) {
-              console.error('Failed to connect with environment token:', error);
-            }
+          try {
+            // Fetch user data with the environment token
+            await fetchGithubUser(envToken);
+          } catch (error) {
+            console.error('Failed to connect with environment token:', error);
           }
         }
+      }
       } catch (error) {
         console.error('Error loading GitHub connection:', error);
       } finally {
-        setIsLoading(false);
+      setIsLoading(false);
       }
     };
 
@@ -605,7 +605,7 @@ export default function GitHubConnection() {
       await removeConnection('github');
     } else {
       // Fallback to localStorage for non-authenticated users
-      localStorage.removeItem('github_connection');
+    localStorage.removeItem('github_connection');
     }
 
     // Remove all GitHub-related cookies

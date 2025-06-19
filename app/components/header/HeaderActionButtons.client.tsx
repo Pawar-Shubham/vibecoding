@@ -2,14 +2,13 @@ import { useStore } from '@nanostores/react';
 import useViewport from '~/lib/hooks';
 import { chatStore } from '~/lib/stores/chat';
 import { netlifyConnection } from '~/lib/stores/netlify';
-import { vercelConnection } from '~/lib/stores/vercel';
+
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { useEffect, useRef, useState } from 'react';
 import { streamingState } from '~/lib/stores/streaming';
 import { NetlifyDeploymentLink } from '~/components/chat/NetlifyDeploymentLink.client';
-import { VercelDeploymentLink } from '~/components/chat/VercelDeploymentLink.client';
-import { useVercelDeploy } from '~/components/deploy/VercelDeploy.client';
+
 import { useNetlifyDeploy } from '~/components/deploy/NetlifyDeploy.client';
 
 interface HeaderActionButtonsProps {}
@@ -18,18 +17,18 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const showWorkbench = useStore(workbenchStore.showWorkbench);
   const { showChat } = useStore(chatStore);
   const netlifyConn = useStore(netlifyConnection);
-  const vercelConn = useStore(vercelConnection);
+
   const [activePreviewIndex] = useState(0);
   const previews = useStore(workbenchStore.previews);
   const activePreview = previews[activePreviewIndex];
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deployingTo, setDeployingTo] = useState<'netlify' | 'vercel' | null>(null);
+  const [deployingTo, setDeployingTo] = useState<'netlify' | null>(null);
   const isSmallViewport = useViewport(1024);
   const canHideChat = showWorkbench || !showChat;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const isStreaming = useStore(streamingState);
-  const { handleVercelDeploy } = useVercelDeploy();
+
   const { handleNetlifyDeploy } = useNetlifyDeploy();
 
   useEffect(() => {
@@ -43,17 +42,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const onVercelDeploy = async () => {
-    setIsDeploying(true);
-    setDeployingTo('vercel');
 
-    try {
-      await handleVercelDeploy();
-    } finally {
-      setIsDeploying(false);
-      setDeployingTo(null);
-    }
-  };
 
   const onNetlifyDeploy = async () => {
     setIsDeploying(true);
@@ -108,26 +97,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
               </span>
               {netlifyConn.user && <NetlifyDeploymentLink />}
             </Button>
-            <Button
-              active
-              onClick={() => {
-                onVercelDeploy();
-                setIsDropdownOpen(false);
-              }}
-              disabled={isDeploying || !activePreview || !vercelConn.user}
-              className="flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-gray-100 dark:hover:bg-gray-700 gap-2 rounded-md group relative"
-            >
-              <img
-                className="w-5 h-5 bg-black p-1 rounded"
-                height="24"
-                width="24"
-                crossOrigin="anonymous"
-                src="https://cdn.simpleicons.org/vercel/white"
-                alt="vercel"
-              />
-              <span className="mx-auto">{!vercelConn.user ? 'No Vercel Account Connected' : 'Deploy to Vercel'}</span>
-              {vercelConn.user && <VercelDeploymentLink />}
-            </Button>
+
           </div>
         )}
       </div>

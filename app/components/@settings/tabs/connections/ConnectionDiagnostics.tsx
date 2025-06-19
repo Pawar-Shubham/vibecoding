@@ -38,7 +38,7 @@ export default function ConnectionDiagnostics() {
       const localStorageChecks = {
         githubConnection: localStorage.getItem('github_connection'),
         netlifyConnection: localStorage.getItem('netlify_connection'),
-        vercelConnection: localStorage.getItem('vercel_connection'),
+    
         supabaseConnection: localStorage.getItem('supabase_connection'),
       };
 
@@ -99,24 +99,7 @@ export default function ConnectionDiagnostics() {
         }
       }
 
-      // === Vercel Checks ===
-      const vercelConnectionParsed = safeJsonParse(localStorageChecks.vercelConnection);
-      const vercelToken = vercelConnectionParsed?.token;
-      let vercelUserCheck = null;
 
-      if (vercelToken) {
-        try {
-          const vercelResp = await fetch('https://api.vercel.com/v2/user', {
-            headers: { Authorization: `Bearer ${vercelToken}` },
-          });
-          vercelUserCheck = { status: vercelResp.status, ok: vercelResp.ok };
-        } catch (error) {
-          vercelUserCheck = {
-            error: error instanceof Error ? error.message : String(error),
-            ok: false,
-          };
-        }
-      }
 
       // === Supabase Checks ===
       const supabaseConnectionParsed = safeJsonParse(localStorageChecks.supabaseConnection);
@@ -136,17 +119,14 @@ export default function ConnectionDiagnostics() {
         localStorage: {
           hasGithubConnection: Boolean(localStorageChecks.githubConnection),
           hasNetlifyConnection: Boolean(localStorageChecks.netlifyConnection),
-          hasVercelConnection: Boolean(localStorageChecks.vercelConnection),
           hasSupabaseConnection: Boolean(localStorageChecks.supabaseConnection),
           githubConnectionParsed,
           netlifyConnectionParsed,
-          vercelConnectionParsed,
           supabaseConnectionParsed,
         },
         apiEndpoints: {
           github: githubResults,
           netlify: netlifyUserCheck,
-          vercel: vercelUserCheck,
           supabase: supabaseCheck,
         },
         serverDiagnostics,
@@ -163,9 +143,7 @@ export default function ConnectionDiagnostics() {
         toast.error('Netlify API connection is failing. Try reconnecting.');
       }
 
-      if (results.localStorage.hasVercelConnection && vercelUserCheck && !vercelUserCheck.ok) {
-        toast.error('Vercel API connection is failing. Try reconnecting.');
-      }
+
 
       if (results.localStorage.hasSupabaseConnection && supabaseCheck && !supabaseCheck.ok) {
         toast.warning('Supabase connection check failed or missing details. Verify settings.');
@@ -174,7 +152,6 @@ export default function ConnectionDiagnostics() {
       if (
         !results.localStorage.hasGithubConnection &&
         !results.localStorage.hasNetlifyConnection &&
-        !results.localStorage.hasVercelConnection &&
         !results.localStorage.hasSupabaseConnection
       ) {
         toast.info('No connection data found in browser storage.');
@@ -216,17 +193,7 @@ export default function ConnectionDiagnostics() {
     }
   };
 
-  // Helper to reset Vercel connection
-  const resetVercelConnection = () => {
-    try {
-      localStorage.removeItem('vercel_connection');
-      toast.success('Vercel connection data cleared. Please refresh the page and reconnect.');
-      setDiagnosticResults(null);
-    } catch (error) {
-      console.error('Error clearing Vercel data:', error);
-      toast.error('Failed to clear Vercel connection data');
-    }
-  };
+
 
   // Helper to reset Supabase connection
   const resetSupabaseConnection = () => {
@@ -375,70 +342,7 @@ export default function ConnectionDiagnostics() {
           )}
         </div>
 
-        {/* Vercel Connection Card */}
-        <div className="p-4 rounded-lg bg-bolt-elements-background dark:bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor hover:border-bolt-elements-borderColorActive/70 dark:hover:border-bolt-elements-borderColorActive/70 transition-all duration-200 h-[180px] flex flex-col">
-          <div className="flex items-center gap-2">
-            <div className="i-si:vercel text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent w-4 h-4" />
-            <div className="text-sm font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
-              Vercel Connection
-            </div>
-          </div>
-          {diagnosticResults ? (
-            <>
-              <div className="flex items-center gap-2 mt-2">
-                <span
-                  className={classNames(
-                    'text-xl font-semibold',
-                    diagnosticResults.localStorage.hasVercelConnection
-                      ? 'text-green-500 dark:text-green-400'
-                      : 'text-red-500 dark:text-red-400',
-                  )}
-                >
-                  {diagnosticResults.localStorage.hasVercelConnection ? 'Connected' : 'Not Connected'}
-                </span>
-              </div>
-              {diagnosticResults.localStorage.hasVercelConnection && (
-                <>
-                  <div className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mt-2 flex items-center gap-1.5">
-                    <div className="i-ph:user w-3.5 h-3.5 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
-                    User:{' '}
-                    {diagnosticResults.localStorage.vercelConnectionParsed?.user?.username ||
-                      diagnosticResults.localStorage.vercelConnectionParsed?.user?.user?.username ||
-                      'N/A'}
-                  </div>
-                  <div className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mt-2 flex items-center gap-1.5">
-                    <div className="i-ph:check-circle w-3.5 h-3.5 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
-                    API Status:{' '}
-                    <Badge
-                      variant={diagnosticResults.apiEndpoints.vercel?.ok ? 'default' : 'destructive'}
-                      className="ml-1"
-                    >
-                      {diagnosticResults.apiEndpoints.vercel?.ok ? 'OK' : 'Failed'}
-                    </Badge>
-                  </div>
-                </>
-              )}
-              {!diagnosticResults.localStorage.hasVercelConnection && (
-                <Button
-                  onClick={() => window.location.reload()}
-                  variant="outline"
-                  size="sm"
-                  className="mt-auto self-start hover:bg-bolt-elements-item-backgroundActive/10 hover:text-bolt-elements-textPrimary dark:hover:bg-bolt-elements-item-backgroundActive/10 dark:hover:text-bolt-elements-textPrimary transition-colors"
-                >
-                  <div className="i-ph:plug w-3.5 h-3.5 mr-1" />
-                  Connect Now
-                </Button>
-              )}
-            </>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary flex items-center gap-2">
-                <div className="i-ph:info w-4 h-4" />
-                Run diagnostics to check connection status
-              </div>
-            </div>
-          )}
-        </div>
+
 
         {/* Supabase Connection Card */}
         <div className="p-4 rounded-lg bg-bolt-elements-background dark:bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor hover:border-bolt-elements-borderColorActive/70 dark:hover:border-bolt-elements-borderColorActive/70 transition-all duration-200 h-[180px] flex flex-col">
@@ -539,15 +443,7 @@ export default function ConnectionDiagnostics() {
           Reset Netlify
         </Button>
 
-        <Button
-          onClick={resetVercelConnection}
-          disabled={isRunning || !diagnosticResults?.localStorage.hasVercelConnection}
-          variant="outline"
-          className="flex items-center gap-2 hover:bg-bolt-elements-item-backgroundActive/10 hover:text-bolt-elements-textPrimary dark:hover:bg-bolt-elements-item-backgroundActive/10 dark:hover:text-bolt-elements-textPrimary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <div className="i-si:vercel w-4 h-4" />
-          Reset Vercel
-        </Button>
+
 
         <Button
           onClick={resetSupabaseConnection}
