@@ -6,8 +6,8 @@ import { Button } from '~/components/ui/Button';
 
 
 // Use React.lazy for dynamic imports
-const GitHubConnection = React.lazy(() => import('./GithubConnection'));
-const NetlifyConnection = React.lazy(() => import('./NetlifyConnection'));
+const GitHubConnection = React.lazy(() => import('~/components/@settings/tabs/connections/GithubConnection'));
+const NetlifyConnection = React.lazy(() => import('~/components/@settings/tabs/connections/NetlifyConnection'));
 
 // Loading fallback component
 const LoadingFallback = () => (
