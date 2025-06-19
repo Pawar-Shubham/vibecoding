@@ -8,13 +8,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 
 // Import UI components
-import { Input, SearchInput, Badge, FilterChip, EmptyState } from '~/components/ui';
+import { Input, SearchInput, Badge, FilterChip } from '~/components/ui';
 
 // Import the components we've extracted
 import { RepositoryList } from './RepositoryList';
 import { StatsDialog } from './StatsDialog';
 import { GitHubAuthDialog } from './GitHubAuthDialog';
 import { RepositoryDialogContext } from './RepositoryDialogContext';
+import { EmptyState } from './EmptyState';
 
 interface GitHubTreeResponse {
   tree: Array<{
@@ -862,13 +863,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
 
                   <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     {repositories.length === 0 ? (
-                      <EmptyState
-                  icon="i-ph:git-repository"
-                  title="No repositories found"
-                  description="Connect your GitHub account or create a new repository to get started"
-                  actionLabel="Connect GitHub Account"
-                  onAction={() => setShowAuthDialog(true)}
-                />
+                      <EmptyState onConnect={() => setShowAuthDialog(true)} />
                     ) : (
                       <RepositoryList
                         repos={activeTab === 'my-repos' ? repositories : searchResults}
