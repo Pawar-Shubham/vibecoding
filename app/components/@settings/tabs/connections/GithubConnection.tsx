@@ -6,8 +6,21 @@ import { classNames } from '~/utils/classNames';
 import Cookies from 'js-cookie';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
 import { Button } from '~/components/ui/Button';
-import { useUserConnections } from '~/lib/hooks/useUserConnections';
+// import { useUserConnections } from '~/lib/hooks/useUserConnections';
 import { useAuth } from '~/lib/hooks/useAuth';
+
+// Temporary mock implementation
+const useUserConnections = () => {
+  return {
+    saveConnection: async () => false,
+    getConnectionByProvider: () => undefined,
+    removeConnection: async () => false,
+    updateStats: async () => false,
+    migrateFromLocalStorage: async () => {},
+    connections: [],
+    loading: false
+  };
+};
 
 interface GitHubUserResponse {
   login: string;

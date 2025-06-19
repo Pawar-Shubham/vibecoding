@@ -4,7 +4,7 @@ import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
 import type { NetlifySite, NetlifyDeploy, NetlifyBuild, NetlifyUser } from '~/types/netlify';
-import { useUserConnections } from '~/lib/hooks/useUserConnections';
+// import { useUserConnections } from '~/lib/hooks/useUserConnections';
 import { useAuth } from '~/lib/hooks/useAuth';
 import {
   CloudIcon,
@@ -23,6 +23,19 @@ import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
 import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '~/components/ui/Badge';
+
+// Temporary mock implementation
+const useUserConnections = () => {
+  return {
+    saveConnection: async () => false,
+    getConnectionByProvider: () => undefined,
+    removeConnection: async () => false,
+    updateStats: async () => false,
+    migrateFromLocalStorage: async () => {},
+    connections: [],
+    loading: false
+  };
+};
 
 // Add the Netlify logo SVG component at the top of the file
 const NetlifyLogo = () => (
