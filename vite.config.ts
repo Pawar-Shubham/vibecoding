@@ -7,7 +7,7 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import * as dotenv from 'dotenv';
 import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 
 dotenv.config();
 
@@ -52,6 +52,11 @@ const pkg = getPackageJson();
 
 export default defineConfig((config) => {
   return {
+    resolve: {
+      alias: {
+        '~': resolve(__dirname, './app')
+      }
+    },
     server: {
       host: true,
       allowedHosts: ['vibescoded.com', 'localhost' , 'www.vibescoded.com'],
