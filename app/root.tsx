@@ -1,4 +1,5 @@
 import { useStore } from '@nanostores/react';
+import { chatStore } from './lib/stores/chat';
 import type { LinksFunction } from '@remix-run/cloudflare';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLocation } from '@remix-run/react';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
@@ -22,9 +23,10 @@ import 'virtual:uno.css';
 // Inline SocialMediaIcons component to avoid import issues
 function SocialMediaIcons() {
   const location = useLocation();
+  const { started: chatStarted } = useStore(chatStore);
   
-  // Only show icons on the homepage
-  if (location.pathname !== '/') {
+  // Hide icons if we're not on homepage or if chat has started
+  if (location.pathname !== '/' || chatStarted) {
     return null;
   }
   
