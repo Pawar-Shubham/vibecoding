@@ -1,4 +1,4 @@
-import type { GitHubRepoInfo, GitHubContent, RepositoryStats, GitHubUserResponse } from '~/types/GitHub';
+import type { GitHubRepoInfo } from '~/types/GitHub';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -24,6 +24,12 @@ interface GitHubTreeResponse {
   }>;
 }
 
+interface GitHubContent {
+  content: string;
+  data: string | Uint8Array;
+  encoding?: string;
+}
+
 interface RepositorySelectionDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -34,6 +40,16 @@ interface SearchFilters {
   language?: string;
   stars?: number;
   forks?: number;
+}
+
+interface RepositoryStats {
+  totalSize: number;
+  totalFiles: number;
+  languages: Record<string, number>;
+  hasPackageJson: boolean;
+  hasDependencies: boolean;
+  fileCount: number;
+  largestFiles: Array<{ path: string; size: number }>;
 }
 
 export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: RepositorySelectionDialogProps) {
@@ -365,6 +381,8 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
         languages,
         hasPackageJson,
         hasDependencies,
+        fileCount: totalFiles,
+        largestFiles: [],
       };
 
       return stats;
@@ -442,7 +460,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
         toast.error(
           <div className="space-y-2">
             <p>{errorMessage}</p>
-            <button onClick={() => setShowAuthDialog(true)} className="underline font-medium block text-yellow-500">
+            <button onClick={() => setShowAuthDialog(true)} className="underline font-medium block text-[#07F29C]">
               Learn how to access private repositories
             </button>
           </div>,
@@ -494,11 +512,24 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
       >
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
-          <Dialog.Content className="fixed top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[90vw] md:w-[750px] max-h-[85vh] overflow-hidden bg-white dark:bg-gray-900 rounded-xl shadow-xl z-[51] border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
+          <Dialog.Content className={classNames(
+            'fixed top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2',
+            'w-[90vw] md:w-[750px] max-h-[85vh] overflow-hidden',
+            'bg-white dark:bg-gray-900 rounded-xl shadow-xl z-[51]',
+            'border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark'
+          )}>
             {/* Header */}
-            <div className="p-5 border-b border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark flex items-center justify-between">
+            <div className={classNames(
+              'p-5 border-b border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
+              'flex items-center justify-between'
+            )}>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500/20 to-yellow-500/10 flex items-center justify-center text-yellow-500 shadow-sm">
+                <div className={classNames(
+                  'w-10 h-10 rounded-xl',
+                  'bg-gradient-to-br from-[#07F29C]/20 to-[#07F29C]/10',
+                  'flex items-center justify-center',
+                  'text-[#07F29C] shadow-sm'
+                )}>
                   <span className="i-ph:github-logo w-5 h-5" />
                 </div>
                 <div>
@@ -535,8 +566,18 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
               </div>
               <motion.button
                 onClick={() => setShowAuthDialog(true)}
-                className="px-3 py-1.5 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-black text-sm transition-colors flex items-center gap-1.5 shadow-sm"
+                className={classNames(
+                  'px-4 py-2 rounded-lg',
+                  'bg-[#07F29C] text-white',
+                  'hover:bg-[#07F29C]/90',
+                  'transition-all duration-200',
+                  'flex items-center gap-2',
+                  'text-sm'
+                )}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
+                <span className="i-ph:github-logo w-4 h-4" />
                 Connect GitHub Account
               </motion.button>
             </div>
@@ -593,7 +634,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                     </h3>
 
                     <div className="relative">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-yellow-500">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#07F29C]">
                         <span className="i-ph:github-logo w-5 h-5" />
                       </div>
                       <Input
@@ -601,13 +642,25 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                         placeholder="Enter GitHub repository URL (e.g., https://github.com/user/repo)"
                         value={customUrl}
                         onChange={(e) => setCustomUrl(e.target.value)}
-                        className="w-full pl-10 py-3 border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark dark:bg-gray-800 focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                        className={classNames(
+                          'w-full pl-10 py-3',
+                          'border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
+                          'dark:bg-gray-800',
+                          'focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent'
+                        )}
                       />
                     </div>
 
-                    <div className="mt-3 text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark bg-white/50 dark:bg-bolt-elements-background-depth-4/50 p-3 rounded-lg border border-bolt-elements-borderColor/30 dark:border-bolt-elements-borderColor-dark/30 backdrop-blur-sm">
+                    <div className={classNames(
+                      'mt-3 text-xs',
+                      'text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark',
+                      'bg-white/50 dark:bg-bolt-elements-background-depth-4/50',
+                      'p-3 rounded-lg',
+                      'border border-bolt-elements-borderColor/30 dark:border-bolt-elements-borderColor-dark/30',
+                      'backdrop-blur-sm'
+                    )}>
                       <p className="flex items-start gap-2">
-                        <span className="i-ph:info w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-yellow-500" />
+                        <span className="i-ph:info w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#07F29C]" />
                         <span>
                           You can paste any GitHub repository URL, including specific branches or tags.
                           <br />
@@ -653,29 +706,23 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
 
                         <div className="flex gap-2">
                           <div className="flex-1">
-                            <SearchInput
-                              placeholder="Search GitHub repositories..."
-                              value={searchQuery}
-                              onChange={(e) => {
-                                setSearchQuery(e.target.value);
-
-                                if (e.target.value.length > 2) {
-                                  handleSearch(e.target.value);
-                                }
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && searchQuery.length > 2) {
-                                  handleSearch(searchQuery);
-                                }
-                              }}
-                              onClear={() => {
-                                setSearchQuery('');
-                                setSearchResults([]);
-                              }}
-                              iconClassName="text-yellow-500"
-                              className="py-3 bg-white dark:bg-bolt-elements-background-depth-4 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark focus:outline-none focus:ring-2 focus:ring-yellow-500 shadow-sm"
-                              loading={isLoading}
-                            />
+                            <div className="relative">
+                              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#07F29C]">
+                                <span className="i-ph:magnifying-glass w-5 h-5" />
+                              </div>
+                              <input
+                                type="text"
+                                placeholder="Search repositories..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className={classNames(
+                                  'w-full pl-10 py-3',
+                                  'border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
+                                  'dark:bg-gray-800',
+                                  'focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent'
+                                )}
+                              />
+                            </div>
                           </div>
                           <motion.button
                             onClick={() => setFilters({})}
@@ -759,16 +806,16 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                               </div>
                               <input
                                 type="text"
-                                placeholder="Language (e.g., javascript)"
+                                placeholder="Language"
                                 value={filters.language || ''}
-                                onChange={(e) => {
-                                  setFilters({ ...filters, language: e.target.value });
-
-                                  if (searchQuery.length > 2) {
-                                    handleSearch(searchQuery);
-                                  }
-                                }}
-                                className="w-full pl-8 px-3 py-2 text-sm rounded-lg bg-white dark:bg-bolt-elements-background-depth-4 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                onChange={(e) => handleFilterChange('language', e.target.value)}
+                                className={classNames(
+                                  'pl-9 pr-3 py-2 rounded-lg',
+                                  'bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3',
+                                  'border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
+                                  'text-sm',
+                                  'focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent'
+                                )}
                               />
                             </div>
                             <div className="relative">
@@ -780,7 +827,13 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                                 placeholder="Min stars"
                                 value={filters.stars || ''}
                                 onChange={(e) => handleFilterChange('stars', e.target.value)}
-                                className="w-full pl-8 px-3 py-2 text-sm rounded-lg bg-white dark:bg-bolt-elements-background-depth-4 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                className={classNames(
+                                  'pl-9 pr-3 py-2 rounded-lg',
+                                  'bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3',
+                                  'border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
+                                  'text-sm',
+                                  'focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent'
+                                )}
                               />
                             </div>
                             <div className="relative">
@@ -792,18 +845,30 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                                 placeholder="Min forks"
                                 value={filters.forks || ''}
                                 onChange={(e) => handleFilterChange('forks', e.target.value)}
-                                className="w-full pl-8 px-3 py-2 text-sm rounded-lg bg-white dark:bg-bolt-elements-background-depth-4 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                className={classNames(
+                                  'pl-9 pr-3 py-2 rounded-lg',
+                                  'bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3',
+                                  'border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
+                                  'text-sm',
+                                  'focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent'
+                                )}
                               />
                             </div>
                           </div>
                         </div>
 
-                        <div className="mt-3 text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark bg-white/50 dark:bg-bolt-elements-background-depth-4/50 p-3 rounded-lg border border-bolt-elements-borderColor/30 dark:border-bolt-elements-borderColor-dark/30 backdrop-blur-sm">
+                        <div className={classNames(
+                          'mt-3 text-xs',
+                          'text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark',
+                          'bg-white/50 dark:bg-bolt-elements-background-depth-4/50',
+                          'p-3 rounded-lg',
+                          'border border-bolt-elements-borderColor/30 dark:border-bolt-elements-borderColor-dark/30',
+                          'backdrop-blur-sm'
+                        )}>
                           <p className="flex items-start gap-2">
-                            <span className="i-ph:info w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-yellow-500" />
+                            <span className="i-ph:info w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#07F29C]" />
                             <span>
-                              Search for repositories by name, description, or topics. Use filters to narrow down
-                              results.
+                              Search for repositories by name, description, or topics. Use filters to narrow down results.
                             </span>
                           </p>
                         </div>
@@ -814,7 +879,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                   <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     {repositories.length === 0 ? (
                       <EmptyState
-                        icon="i-ph:git-repository"
+                        icon="i-ph:git-branch"
                         title="No repositories found"
                         description="Connect your GitHub account or create a new repository to get started"
                         actionLabel="Connect GitHub Account"

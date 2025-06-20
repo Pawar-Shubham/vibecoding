@@ -29,7 +29,7 @@ export function StatsDialog({ isOpen, onClose, onConfirm, stats, isLargeRepo }: 
             <Dialog.Content className="bg-white dark:bg-bolt-elements-background-depth-1 rounded-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-xl">
               <div className="p-6 space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-bolt-elements-background-depth-3 flex items-center justify-center text-purple-500">
+                  <div className="w-10 h-10 rounded-xl bg-bolt-elements-background-depth-3 flex items-center justify-center text-[#07F29C]">
                     <span className="i-ph:git-branch w-5 h-5" />
                   </div>
                   <div>
@@ -47,9 +47,9 @@ export function StatsDialog({ isOpen, onClose, onConfirm, stats, isLargeRepo }: 
                 </div>
 
                 {isLargeRepo && (
-                  <div className="p-3 bg-yellow-50 dark:bg-yellow-500/10 rounded-lg text-sm flex items-start gap-2">
-                    <span className="i-ph:warning text-yellow-600 dark:text-yellow-500 w-4 h-4 flex-shrink-0 mt-0.5" />
-                    <div className="text-yellow-800 dark:text-yellow-500">
+                  <div className="p-3 bg-[#07F29C]/5 dark:bg-[#07F29C]/10 rounded-lg text-sm flex items-start gap-2">
+                    <span className="i-ph:warning text-[#07F29C] dark:text-[#07F29C] w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <div className="text-[#07F29C] dark:text-[#07F29C]">
                       This repository is quite large ({formatSize(stats.totalSize)}). Importing it might take a while
                       and could impact performance.
                     </div>

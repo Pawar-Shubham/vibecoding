@@ -3,6 +3,8 @@ import type { GitHubRepoInfo } from '~/types/GitHub';
 import { EmptyState, StatusIndicator } from '~/components/ui';
 import { RepositoryCard } from './RepositoryCard';
 import { RepositoryDialogContext } from './RepositoryDialogContext';
+import { classNames } from '~/utils/classNames';
+import { motion } from 'framer-motion';
 
 interface RepositoryListProps {
   repos: GitHubRepoInfo[];
@@ -17,41 +19,74 @@ export function RepositoryList({ repos, isLoading, onSelect, activeTab }: Reposi
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
-        <StatusIndicator status="loading" pulse={true} size="lg" label="Loading repositories..." className="mb-2" />
-        <p className="text-xs text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark">
-          This may take a moment
-        </p>
+      <div className="flex items-center justify-center h-32">
+        <StatusIndicator status="loading" text="Loading repositories..." />
       </div>
     );
   }
 
   if (repos.length === 0) {
-    if (activeTab === 'my-repos') {
-      return (
-        <EmptyState
-          icon="i-ph:folder-simple-dashed"
-          title="No repositories found"
-          description="Connect your GitHub account or create a new repository to get started"
-          actionLabel="Connect GitHub Account"
-          onAction={() => setShowAuthDialog(true)}
-        />
-      );
-    } else {
-      return (
-        <EmptyState
-          icon="i-ph:magnifying-glass"
-          title="No repositories found"
-          description="Try searching with different keywords or filters"
-        />
-      );
-    }
+    return (
+      <EmptyState
+        icon="i-ph:git-repository"
+        title="No repositories found"
+        description={
+          activeTab === 'my-repos'
+            ? 'Connect your GitHub account or create a new repository to get started'
+            : 'Try adjusting your search query or filters'
+        }
+        actionLabel={activeTab === 'my-repos' ? 'Connect GitHub Account' : undefined}
+        onAction={activeTab === 'my-repos' ? () => setShowAuthDialog(true) : undefined}
+      />
+    );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {repos.map((repo) => (
-        <RepositoryCard key={repo.full_name} repo={repo} onSelect={() => onSelect(repo)} />
+        <motion.button
+          key={repo.full_name}
+          type="button"
+          onClick={() => onSelect(repo)}
+          className={classNames(
+            'w-full p-3 text-left rounded-lg',
+            'bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3',
+            'hover:bg-bolt-elements-background-depth-3 dark:hover:bg-bolt-elements-background-depth-4',
+            'transition-colors group',
+            'border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
+            'hover:border-[#07F29C]/30'
+          )}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="i-ph:git-branch w-4 h-4 text-[#07F29C]" />
+              <span className={classNames(
+                'text-sm font-medium',
+                'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark',
+                'group-hover:text-[#07F29C]'
+              )}>
+                {repo.name}
+              </span>
+            </div>
+            {repo.private && (
+              <span className={classNames(
+                'px-2 py-0.5 text-xs rounded-full',
+                'bg-[#07F29C]/10 text-[#07F29C]',
+                'font-medium flex items-center gap-1'
+              )}>
+                <span className="i-ph:lock w-3 h-3" />
+                Private
+              </span>
+            )}
+          </div>
+          {repo.description && (
+            <p className="mt-1 text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark line-clamp-2">
+              {repo.description}
+            </p>
+          )}
+        </motion.button>
       ))}
     </div>
   );

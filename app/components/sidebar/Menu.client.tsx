@@ -430,7 +430,7 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
               <div className="i-ph:magnifying-glass text-[16px]" />
             </div>
             <input
-              className="w-full bg-gray-100 dark:bg-[#1a1a1a] pl-9 pr-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500 border border-gray-200 dark:border-[#2a2a2a] transition-all duration-200"
+              className="w-full bg-gray-100 dark:bg-[#1a1a1a] pl-9 pr-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#07F29C]/30 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500 border border-gray-200 dark:border-[#2a2a2a] transition-all duration-200"
               type="search"
               placeholder="Search Chats ..."
               onChange={handleSearchChange}

@@ -190,7 +190,7 @@ export function Search() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search"
-            className="w-full pl-9 pr-3 py-2 rounded-md bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary border border-bolt-elements-borderColor focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
+            className="w-full pl-9 pr-3 py-2 rounded-md bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary border border-bolt-elements-borderColor focus:outline-none focus:ring-2 focus:ring-[#07F29C]/30 transition-all"
           />
         </div>
       </div>

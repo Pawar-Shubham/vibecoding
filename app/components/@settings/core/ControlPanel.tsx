@@ -16,7 +16,6 @@ import { DialogTitle } from '~/components/ui/Dialog';
 import { AvatarDropdown } from './AvatarDropdown';
 
 // Import only necessary tab components
-import ProfileTab from '~/components/@settings/tabs/profile/ProfileTab';
 import SettingsTab from '~/components/@settings/tabs/settings/SettingsTab';
 import ConnectionsTab from '~/components/@settings/tabs/connections/ConnectionsTab';
 import CloudProvidersTab from '~/components/@settings/tabs/providers/cloud/CloudProvidersTab';
@@ -28,7 +27,6 @@ interface ControlPanelProps {
 
 const TAB_LABELS: Record<TabType, string> = {
   'settings': 'General',
-  'profile': 'Profile',
   'connection': 'Connection',
   'cloud-providers': 'Cloud Providers'
 } as const;
@@ -37,7 +35,7 @@ export function ControlPanel({ open, onClose }: ControlPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>('settings'); // Default to 'settings' (General)
   
   // Define the tab order
-  const tabs: TabType[] = ['settings', 'profile', 'connection', 'cloud-providers'];
+  const tabs: TabType[] = ['settings', 'connection', 'cloud-providers'];
 
   // State
   const [loadingTab, setLoadingTab] = useState<TabType | null>(null);
@@ -72,8 +70,6 @@ export function ControlPanel({ open, onClose }: ControlPanelProps) {
 
   const getTabComponent = (tabId: TabType) => {
     switch (tabId) {
-      case 'profile':
-        return <ProfileTab />;
       case 'settings':
         return <SettingsTab />;
       case 'cloud-providers':
@@ -125,8 +121,6 @@ export function ControlPanel({ open, onClose }: ControlPanelProps) {
   const renderTabContent = () => {
     if (activeTab === 'settings') {
       return <SettingsTab />;
-    } else if (activeTab === 'profile') {
-      return <ProfileTab />;
     } else if (activeTab === 'connection') {
       return <ConnectionsTab />;
     } else if (activeTab === 'cloud-providers') {
@@ -138,8 +132,6 @@ export function ControlPanel({ open, onClose }: ControlPanelProps) {
 
   const getTabIcon = (tabId: TabType) => {
     switch (tabId) {
-      case 'profile':
-        return <span className="i-ph:user w-4 h-4" />;
       case 'settings':
         return <span className="i-ph:gear w-4 h-4" />;
       case 'cloud-providers':

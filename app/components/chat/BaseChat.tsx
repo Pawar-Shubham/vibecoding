@@ -349,86 +349,64 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden')}
         data-chat-visible={showChat}
       >
-        {/* Animated orbs for both light and dark modes */}
         <div className="fixed inset-0 w-screen h-screen pointer-events-none overflow-hidden -z-[1]">
           <div 
-            className="absolute rounded-full blur-3xl"
+            className="absolute rounded-[50%] blur-[150px] mix-blend-soft-light"
             style={{
-              width: '600px',
-              height: '600px',
-              background: 'radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.15) 50%, rgba(234, 179, 8, 0.15) 100%)',
-              animation: 'float1 45s ease-in-out infinite'
+              width: '800px',
+              height: '800px',
+              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, rgba(7, 242, 156, 0.06) 60%, rgba(242, 229, 159, 0.04) 100%)',
+              animation: 'roamOrb1 30s infinite ease-in-out'
             }}
           />
           <div 
-            className="absolute rounded-full blur-3xl"
+            className="absolute rounded-[50%] blur-[150px] mix-blend-soft-light"
             style={{
-              width: '550px',
-              height: '550px',
-              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, rgba(234, 179, 8, 0.12) 50%, rgba(16, 185, 129, 0.12) 100%)',
-              animation: 'float2 50s ease-in-out infinite'
+              width: '900px',
+              height: '900px',
+              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, rgba(56, 189, 248, 0.08) 40%, rgba(7, 242, 156, 0.05) 100%)',
+              animation: 'roamOrb2 35s infinite ease-in-out'
             }}
           />
-          <div 
-            className="absolute rounded-full blur-2xl"
-            style={{
-              width: '500px',
-              height: '500px',
-              background: 'radial-gradient(circle, rgba(234, 179, 8, 0.18) 0%, rgba(16, 185, 129, 0.18) 50%, rgba(6, 182, 212, 0.18) 100%)',
-              animation: 'float3 40s ease-in-out infinite'
-            }}
-          />
-          {/* Dark mode orbs with higher opacity */}
-          <div className="hidden dark:block">
-            <div 
-              className="absolute rounded-full blur-3xl"
-              style={{
-                width: '600px',
-                height: '600px',
-                background: 'radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(6, 182, 212, 0.2) 50%, rgba(234, 179, 8, 0.2) 100%)',
-                animation: 'float1 45s ease-in-out infinite'
-              }}
-            />
-            <div 
-              className="absolute rounded-full blur-3xl"
-              style={{
-                width: '550px',
-                height: '550px',
-                background: 'radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, rgba(234, 179, 8, 0.15) 50%, rgba(16, 185, 129, 0.15) 100%)',
-                animation: 'float2 50s ease-in-out infinite'
-              }}
-            />
-            <div 
-              className="absolute rounded-full blur-2xl"
-              style={{
-                width: '500px',
-                height: '500px',
-                background: 'radial-gradient(circle, rgba(234, 179, 8, 0.25) 0%, rgba(16, 185, 129, 0.25) 50%, rgba(6, 182, 212, 0.25) 100%)',
-                animation: 'float3 40s ease-in-out infinite'
-              }}
-            />
-          </div>
         </div>
-        
+
         <style dangerouslySetInnerHTML={{
           __html: `
-            @keyframes float1 {
-              0%, 100% { transform: translate(-200px, -200px) scale(0.8); }
-              25% { transform: translate(calc(100vw - 400px), 150px) scale(1.1); }
-              50% { transform: translate(calc(100vw - 300px), calc(100vh - 400px)) scale(0.9); }
-              75% { transform: translate(300px, calc(100vh - 300px)) scale(1.0); }
+            @keyframes roamOrb1 {
+              0%, 100% { 
+                transform: translate(-10vw, -10vh) scale(0.95);
+                filter: blur(150px) contrast(1.2) saturate(1.1);
+              }
+              25% { 
+                transform: translate(60vw, 20vh) scale(1.05);
+                filter: blur(180px) contrast(1.3) saturate(1.2);
+              }
+              50% { 
+                transform: translate(70vw, 70vh) scale(0.98);
+                filter: blur(160px) contrast(1.25) saturate(1.15);
+              }
+              75% { 
+                transform: translate(10vw, 60vh) scale(1.02);
+                filter: blur(170px) contrast(1.2) saturate(1.1);
+              }
             }
-            @keyframes float2 {
-              0%, 100% { transform: translate(calc(100vw - 350px), 250px) scale(1.0); }
-              25% { transform: translate(200px, calc(100vh - 350px)) scale(0.8); }
-              50% { transform: translate(-250px, 200px) scale(1.2); }
-              75% { transform: translate(calc(100vw - 200px), calc(50vh - 150px)) scale(0.9); }
-            }
-            @keyframes float3 {
-              0%, 100% { transform: translate(calc(50vw - 250px), calc(100vh - 200px)) scale(0.9); }
-              25% { transform: translate(-200px, calc(50vh - 300px)) scale(1.1); }
-              50% { transform: translate(calc(100vw - 300px), -200px) scale(0.8); }
-              75% { transform: translate(calc(30vw), 150px) scale(1.0); }
+            @keyframes roamOrb2 {
+              0%, 100% { 
+                transform: translate(70vw, 70vh) scale(1.02);
+                filter: blur(170px) contrast(1.2) saturate(1.1);
+              }
+              25% { 
+                transform: translate(10vw, 60vh) scale(0.98);
+                filter: blur(160px) contrast(1.25) saturate(1.15);
+              }
+              50% { 
+                transform: translate(-5vw, 10vh) scale(1.05);
+                filter: blur(180px) contrast(1.3) saturate(1.2);
+              }
+              75% { 
+                transform: translate(60vw, -5vh) scale(0.95);
+                filter: blur(150px) contrast(1.2) saturate(1.1);
+              }
             }
           `
         }} />
@@ -691,11 +669,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <div className="flex justify-center mt-0 mb-2 w-full max-w-chat mx-auto">
                   <button
                     className={classNames(
-                      'w-full px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-all',
-                      'bg-gradient-to-r from-yellow-400 via-yellow-400 to-green-500 bg-[length:120%_100%] bg-[position:30%_0]',
-                      'text-black shadow-md hover:shadow-lg transform hover:-translate-y-0.5',
-                      'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0',
-                      {'opacity-80': !input.length && !uploadedFiles.length}
+                      'px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md relative overflow-hidden flex items-center justify-center gap-1 sm:gap-2',
+                      'disabled:opacity-50 disabled:cursor-not-allowed',
+                      {'opacity-80': !input.length && !uploadedFiles.length},
+                      {'w-full': chatStarted}
                     )}
                     onClick={(event) => {
                       if (isStreaming) {
@@ -708,18 +685,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       }
                     }}
                     disabled={!providerList || providerList.length === 0}
+                    style={{
+                      background: 'linear-gradient(90deg, #F2E59F, #07F29C)',
+                    }}
                   >
-                    {isStreaming ? (
-                      <>
-                        Stop
-                        <div className="i-ph:stop-circle-bold text-lg" />
-                      </>
-                    ) : (
-                      <>
-                        Generate
-                        <div className="i-ph:lightning-bold text-lg" />
-                      </>
-                    )}
+                    <span className="relative z-10 text-black">
+                      {isStreaming ? 'Stop' : 'Generate'}
+                    </span>
+                    <div className="relative z-10">
+                      {isStreaming ? (
+                        <div className="i-ph:stop-circle-bold text-base sm:text-lg text-black" />
+                      ) : (
+                        <div className="i-ph:lightning-bold text-base sm:text-lg text-black" />
+                      )}
+                    </div>
+                    <div
+                      className="absolute inset-0 transition-opacity duration-500 ease-in-out opacity-0 hover:opacity-100"
+                      style={{
+                        background: 'linear-gradient(90deg, #07F29C, #F2E59F)',
+                      }}
+                    />
                   </button>
                 </div>
               </div>
@@ -790,16 +775,16 @@ function ScrollToBottom() {
       gradientUnits="userSpaceOnUse"
       gradientTransform="rotate(-45)"
     >
-      <stop offset="0%" stopColor="#ffd700" stopOpacity="0%" />
-      <stop offset="40%" stopColor="#ffd700" stopOpacity="80%" />
-      <stop offset="50%" stopColor="#4CAF50" stopOpacity="80%" />
-      <stop offset="100%" stopColor="#4CAF50" stopOpacity="0%" />
+      <stop offset="0%" stopColor="#F2E59F" stopOpacity="0%" />
+      <stop offset="40%" stopColor="#F2E59F" stopOpacity="80%" />
+      <stop offset="50%" stopColor="#07F29C" stopOpacity="80%" />
+      <stop offset="100%" stopColor="#07F29C" stopOpacity="0%" />
     </linearGradient>
     <linearGradient id="shine-gradient">
-      <stop offset="0%" stopColor="#ffd700" stopOpacity="0%" />
-      <stop offset="40%" stopColor="#ffd700" stopOpacity="80%" />
-      <stop offset="50%" stopColor="#4CAF50" stopOpacity="80%" />
-      <stop offset="100%" stopColor="#4CAF50" stopOpacity="0%" />
+      <stop offset="0%" stopColor="#F2E59F" stopOpacity="0%" />
+      <stop offset="40%" stopColor="#F2E59F" stopOpacity="80%" />
+      <stop offset="50%" stopColor="#07F29C" stopOpacity="80%" />
+      <stop offset="100%" stopColor="#07F29C" stopOpacity="0%" />
     </linearGradient>
   </defs>
   <rect className={classNames(styles.PromptEffectLine)} pathLength="100" strokeLinecap="round" />

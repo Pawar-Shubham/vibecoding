@@ -7,8 +7,8 @@
   --auth-border-color: var(--bolt-elements-borderColor);
   --auth-text-primary: var(--bolt-elements-textPrimary);
   --auth-text-secondary: var(--bolt-elements-textSecondary);
-  --auth-primary-color: #ffd700; /* Yellow from logo */
-  --auth-primary-hover: #4CAF50; /* Green from logo */
+  --auth-primary-color: #F2E59F; /* Yellow from logo */
+  --auth-primary-hover: #07F29C; /* Green from logo */
   --auth-input-bg: rgba(255, 255, 255, 0.1); /* Slightly lighter input background */
   --auth-input-border: var(--bolt-elements-borderColor);
   --auth-btn-secondary-bg: var(--bolt-elements-button-secondary-background);
@@ -22,8 +22,8 @@
 /* Specific overrides for light mode */
 :root[data-theme='light'] {
   --auth-modal-bg: #ffffff; /* White background */
-  --auth-primary-color: #4CAF50; /* Green from logo */
-  --auth-primary-hover: #ffd700; /* Yellow from logo */
+  --auth-primary-color: #07F29C; /* Green from logo */
+  --auth-primary-hover: #F2E59F; /* Yellow from logo */
   --auth-border-color: var(--bolt-elements-borderColor);
   --auth-btn-secondary-bg: #ffffff;
   --auth-btn-secondary-hover: theme('colors.gray.100');
@@ -91,7 +91,7 @@
 }
 
 .auth-btn-primary {
-  background: linear-gradient(90deg, #ffd700, #4CAF50);
+  background: linear-gradient(90deg, #F2E59F, #07F29C);
   color: black;
   border: none;
   border-radius: 8px;
@@ -109,7 +109,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(90deg, #4CAF50, #ffd700);
+  background: linear-gradient(90deg, #07F29C, #F2E59F);
   opacity: 0;
   transition: opacity 0.5s ease;
   z-index: -1;

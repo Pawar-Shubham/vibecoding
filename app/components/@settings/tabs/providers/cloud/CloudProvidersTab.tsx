@@ -134,7 +134,7 @@ const CloudProvidersTab = () => {
                 </motion.div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-purple-500 transition-colors">
+                    <h4 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-yellow-500 transition-colors">
                       {provider.name}
                     </h4>
                     {provider.name === 'Google' && (

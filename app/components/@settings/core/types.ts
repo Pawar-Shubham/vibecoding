@@ -104,6 +104,7 @@ export const categoryIcons: Record<SettingCategory, string> = {
 export interface Profile {
   username?: string;
   bio?: string;
+  email?: string;
   avatar?: string;
   preferences?: {
     notifications?: boolean;

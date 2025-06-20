@@ -137,7 +137,7 @@ export function Header() {
                     onClick={() => handleOpenAuthModal('signup')}
                     className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md relative overflow-hidden flex items-center justify-center gap-1 sm:gap-2"
                     style={{
-                      background: 'linear-gradient(90deg, #ffd700, #4CAF50)',
+                      background: 'linear-gradient(90deg, #F2E59F, #07F29C)',
                     }}
                   >
                     <div className="relative z-10">
@@ -147,7 +147,7 @@ export function Header() {
                     <div
                       className="absolute inset-0 transition-opacity duration-500 ease-in-out opacity-0 hover:opacity-100"
                       style={{
-                        background: 'linear-gradient(90deg, #4CAF50, #ffd700)',
+                        background: 'linear-gradient(90deg, #07F29C, #F2E59F)',
                       }}
                     />
                   </button>

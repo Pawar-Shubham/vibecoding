@@ -6,11 +6,11 @@
   transform: translateZ(0);
 
   &[data-variant='primary'] {
-    background: linear-gradient(90deg, #ffd700, #4CAF50);
+    background: linear-gradient(90deg, #07F29C 70%, #F2E59F);
     color: theme('colors.gray.900');
 
     &:hover {
-      background: linear-gradient(90deg, #4CAF50, #ffd700);
+      background: linear-gradient(90deg, #F2E59F 30%, #07F29C);
       transform: translateY(-1px);
     }
 
@@ -24,7 +24,7 @@
     color: var(--bolt-elements-button-secondary-text);
 
     &:hover {
-      background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), rgba(76, 175, 80, 0.1));
+      background: linear-gradient(90deg, rgba(7, 242, 156, 0.1) 70%, rgba(242, 229, 159, 0.1));
       transform: translateY(-1px);
     }
 
@@ -38,7 +38,7 @@
     color: var(--bolt-elements-button-secondary-text);
 
     &:hover {
-      background: linear-gradient(90deg, rgba(255, 215, 0, 0.05), rgba(76, 175, 80, 0.05));
+      background: linear-gradient(90deg, rgba(7, 242, 156, 0.05) 70%, rgba(242, 229, 159, 0.05));
       transform: translateY(-1px);
     }
 
@@ -48,11 +48,11 @@
   }
 
   &[data-variant='destructive'] {
-    background: linear-gradient(90deg, #ffd700, #4CAF50);
+    background: linear-gradient(90deg, #07F29C 70%, #F2E59F);
     color: theme('colors.gray.900');
 
     &:hover {
-      background: linear-gradient(90deg, #4CAF50, #ffd700);
+      background: linear-gradient(90deg, #F2E59F 30%, #07F29C);
       transform: translateY(-1px);
     }
 

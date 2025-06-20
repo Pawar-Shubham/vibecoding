@@ -41,10 +41,10 @@
   /* Dark mode scrollbar */
   :global(html[data-theme='dark']) & {
     ::-webkit-scrollbar-thumb {
-      background-color: rgba(255, 215, 0, 0.2);
+      background-color: rgba(242, 229, 159, 0.2);
 
       &:hover {
-        background-color: rgba(76, 175, 80, 0.3);
+        background-color: rgba(7, 242, 156, 0.3);
       }
     }
   }
@@ -54,7 +54,7 @@
   scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
 
   :global(html[data-theme='dark']) & {
-    scrollbar-color: rgba(255, 215, 0, 0.2) transparent;
+    scrollbar-color: rgba(242, 229, 159, 0.2) transparent;
   }
 
   &[data-chat-visible='false'] {
@@ -115,7 +115,7 @@
     inset: -2px;
     padding: 2px;
     border-radius: 12px;
-    background: linear-gradient(90deg, #ffd700, #4CAF50);
+    background: linear-gradient(90deg, #F2E59F, #07F29C);
     -webkit-mask: 
       linear-gradient(#fff 0 0) content-box, 
       linear-gradient(#fff 0 0);
