@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLocation } from '@remix-run/react';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
@@ -21,23 +21,10 @@ import 'virtual:uno.css';
 
 // Inline SocialMediaIcons component to avoid import issues
 function SocialMediaIcons() {
-  const [chatStarted, setChatStarted] = useState(false);
+  const location = useLocation();
   
-  useEffect(() => {
-    // Check if chat has started by looking for chat messages or other indicators
-    const checkChatStatus = () => {
-      const hasMessages = document.querySelector('[data-chat-messages]');
-      const hasInput = document.querySelector('[data-chat-input]');
-      setChatStarted(!!(hasMessages || hasInput));
-    };
-    
-    checkChatStatus();
-    const interval = setInterval(checkChatStatus, 1000);
-    return () => clearInterval(interval);
-  }, []);
-  
-  // Only show icons when chat hasn't started (homepage)
-  if (chatStarted) {
+  // Only show icons on the homepage
+  if (location.pathname !== '/') {
     return null;
   }
   
