@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
-import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
+import { netlifyConnection, updateNetlifyConnection, resetNetlifyConnection } from '~/lib/stores/netlify';
 import type { NetlifySite, NetlifyDeploy, NetlifyBuild, NetlifyUser } from '~/types/netlify';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { supabase } from '~/lib/supabase';
@@ -287,6 +287,9 @@ export default function NetlifyConnection() {
       setIsLoading(true);
 
       try {
+        // Reset connection state first to ensure clean slate for each user
+        resetNetlifyConnection();
+
         // For authenticated users, check database first
         if (isAuthenticated && user) {
           // Wait a bit for connections to be fully loaded
@@ -320,10 +323,12 @@ export default function NetlifyConnection() {
             setIsLoading(false);
             return;
           }
+        } else {
+          // For unauthenticated users, ensure connection is cleared
+          resetNetlifyConnection();
         }
 
-        // Initialize connection with environment token if available (fallback)
-    initializeNetlifyConnection();
+        // No fallback initialization - each user should have their own connections
       } catch (error) {
         console.error('Error loading Netlify connection:', error);
       } finally {

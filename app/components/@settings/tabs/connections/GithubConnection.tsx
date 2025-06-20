@@ -508,6 +508,14 @@ export default function GitHubConnection() {
       setIsLoading(true);
 
       try {
+        // Reset connection state first to ensure clean slate for each user
+        setConnection({
+          user: null,
+          token: '',
+          tokenType: 'classic',
+        });
+        tokenTypeRef.current = 'classic';
+
         // For authenticated users, check database first
         if (isAuthenticated && user) {
           // Wait a bit for connections to be fully loaded
@@ -593,35 +601,8 @@ export default function GitHubConnection() {
           localStorage.removeItem('github_connection');
         }
       } else {
-          // Check for environment variable token as fallback
-        const envToken = import.meta.env.VITE_GITHUB_ACCESS_TOKEN;
-
-        if (envToken) {
-          // Check if token type is specified in environment variables
-          const envTokenType = import.meta.env.VITE_GITHUB_TOKEN_TYPE;
-          console.log('Environment token type:', envTokenType);
-
-          const tokenType =
-            envTokenType === 'classic' || envTokenType === 'fine-grained'
-              ? (envTokenType as 'classic' | 'fine-grained')
-              : 'classic';
-
-          console.log('Using token type:', tokenType);
-
-          // Update both the state and the ref
-          tokenTypeRef.current = tokenType;
-          setConnection((prev) => ({
-            ...prev,
-            tokenType,
-          }));
-
-          try {
-            // Fetch user data with the environment token
-            await fetchGithubUser(envToken);
-          } catch (error) {
-            console.error('Failed to connect with environment token:', error);
-          }
-        }
+        // No fallback to environment tokens - each user should have their own connections
+        // This ensures proper user isolation and prevents sharing connections between users
       }
       } catch (error) {
         console.error('Error loading GitHub connection:', error);

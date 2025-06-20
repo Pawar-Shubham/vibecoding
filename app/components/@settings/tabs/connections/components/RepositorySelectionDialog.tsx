@@ -8,13 +8,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
 
 // Import UI components
-import { Input, SearchInput, Badge, FilterChip, EmptyState } from '~/components/ui';
+import { Input, SearchInput, Badge, FilterChip } from '~/components/ui';
 
 // Import the components we've extracted
 import { RepositoryList } from './RepositoryList';
 import { StatsDialog } from './StatsDialog';
 import { GitHubAuthDialog } from './GitHubAuthDialog';
 import { RepositoryDialogContext } from './RepositoryDialogContext';
+import { EmptyState } from './EmptyState';
 
 interface GitHubTreeResponse {
   tree: Array<{
@@ -66,56 +67,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
   useEffect(() => {
     const savedConnection = getLocalStorage('github_connection');
 
-    // If no connection exists but environment variables are set, create a connection
-    if (!savedConnection && import.meta.env.VITE_GITHUB_ACCESS_TOKEN) {
-      const token = import.meta.env.VITE_GITHUB_ACCESS_TOKEN;
-      const tokenType = import.meta.env.VITE_GITHUB_TOKEN_TYPE === 'fine-grained' ? 'fine-grained' : 'classic';
-
-      // Fetch GitHub user info to initialize the connection
-      fetch('https://api.github.com/user', {
-        headers: {
-          Accept: 'application/vnd.github.v3+json',
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error('Invalid token or unauthorized');
-          }
-
-          return response.json();
-        })
-        .then((data: unknown) => {
-          const userData = data as GitHubUserResponse;
-
-          // Save connection to local storage
-          const newConnection = {
-            token,
-            tokenType,
-            user: {
-              login: userData.login,
-              avatar_url: userData.avatar_url,
-              name: userData.name || userData.login,
-            },
-            connected_at: new Date().toISOString(),
-          };
-
-          localStorage.setItem('github_connection', JSON.stringify(newConnection));
-
-          // Also save as cookies for API requests
-          Cookies.set('githubToken', token);
-          Cookies.set('githubUsername', userData.login);
-          Cookies.set('git:github.com', JSON.stringify({ username: token, password: 'x-oauth-basic' }));
-
-          // Refresh repositories after connection is established
-          if (isOpen && activeTab === 'my-repos') {
-            fetchUserRepos();
-          }
-        })
-        .catch((error) => {
-          console.error('Failed to initialize GitHub connection from environment variables:', error);
-        });
-    }
+    // No fallback to environment tokens - users must connect manually for proper isolation
   }, [isOpen]);
 
   // Fetch repositories when dialog opens or tab changes

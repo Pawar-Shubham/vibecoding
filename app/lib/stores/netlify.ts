@@ -3,68 +3,21 @@ import type { NetlifyConnection, NetlifyUser } from '~/types/netlify';
 import { logStore } from './logs';
 import { toast } from 'react-toastify';
 
-// Initialize with stored connection or environment variable
+// Initialize with stored connection only - no environment variable fallback
 const storedConnection = typeof window !== 'undefined' ? localStorage.getItem('netlify_connection') : null;
-const envToken = import.meta.env.VITE_NETLIFY_ACCESS_TOKEN;
 
-// If we have an environment token but no stored connection, initialize with the env token
+// Initialize with empty state or stored connection - never use environment tokens globally
 const initialConnection: NetlifyConnection = storedConnection
   ? JSON.parse(storedConnection)
   : {
       user: null,
-      token: envToken || '',
+      token: '',
       stats: undefined,
     };
 
 export const netlifyConnection = atom<NetlifyConnection>(initialConnection);
 export const isConnecting = atom<boolean>(false);
 export const isFetchingStats = atom<boolean>(false);
-
-// Function to initialize Netlify connection with environment token
-export async function initializeNetlifyConnection() {
-  const currentState = netlifyConnection.get();
-
-  // If we already have a connection, don't override it
-  if (currentState.user || !envToken) {
-    return;
-  }
-
-  try {
-    isConnecting.set(true);
-
-    const response = await fetch('https://api.netlify.com/api/v1/user', {
-      headers: {
-        Authorization: `Bearer ${envToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to connect to Netlify: ${response.statusText}`);
-    }
-
-    const userData = await response.json();
-
-    // Update the connection state
-    const connectionData: Partial<NetlifyConnection> = {
-      user: userData as NetlifyUser,
-      token: envToken,
-    };
-
-    // Store in localStorage for persistence
-    localStorage.setItem('netlify_connection', JSON.stringify(connectionData));
-
-    // Update the store
-    updateNetlifyConnection(connectionData);
-
-    // Fetch initial stats
-    await fetchNetlifyStats(envToken);
-  } catch (error) {
-    console.error('Error initializing Netlify connection:', error);
-    logStore.logError('Failed to initialize Netlify connection', { error });
-  } finally {
-    isConnecting.set(false);
-  }
-}
 
 export const updateNetlifyConnection = (updates: Partial<NetlifyConnection>) => {
   const currentState = netlifyConnection.get();
@@ -74,6 +27,22 @@ export const updateNetlifyConnection = (updates: Partial<NetlifyConnection>) => 
   // Persist to localStorage
   if (typeof window !== 'undefined') {
     localStorage.setItem('netlify_connection', JSON.stringify(newState));
+  }
+};
+
+// Reset function to clear connection state (useful for user logout/switch)
+export const resetNetlifyConnection = () => {
+  const emptyState: NetlifyConnection = {
+    user: null,
+    token: '',
+    stats: undefined,
+  };
+  
+  netlifyConnection.set(emptyState);
+  
+  // Clear localStorage
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('netlify_connection');
   }
 };
 
