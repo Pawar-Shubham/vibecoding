@@ -125,7 +125,6 @@ export const ChatImpl = memo(
     const [imageDataList, setImageDataList] = useState<string[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
     const [fakeLoading, setFakeLoading] = useState(false);
-    const [showAuthModal, setShowAuthModal] = useState(false);
     const { isAuthenticated } = useAuth();
     const files = useStore(workbenchStore.files);
     const actionAlert = useStore(workbenchStore.alert);
@@ -348,14 +347,17 @@ export const ChatImpl = memo(
     };
 
     const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
-      if (!isAuthenticated) {
-        setShowAuthModal(true);
-        return;
-      }
-
       const messageContent = messageInput || input;
 
       if (!messageContent?.trim()) {
+        return;
+      }
+
+      // Only check authentication if this is not coming from a post-auth flow
+      // The BaseChat component handles pre-auth prompt storage and modal triggering
+      if (!isAuthenticated && !messageInput) {
+        // If no messageInput is provided, it means this is a direct user action
+        // BaseChat will handle the auth flow, so we just return
         return;
       }
 
@@ -563,7 +565,7 @@ export const ChatImpl = memo(
         const { prompt } = event.detail;
         if (prompt) {
           setInput(prompt);
-          // Trigger the send message
+          // Trigger the send message - this bypasses auth check since it comes from successful auth
           sendMessage({} as React.UIEvent, prompt);
         }
       };
@@ -636,15 +638,6 @@ export const ChatImpl = memo(
           clearDeployAlert={() => workbenchStore.clearDeployAlert()}
           data={chatData}
           auth={isAuthenticated}
-        />
-        <AuthModal 
-          isOpen={showAuthModal} 
-          onClose={() => setShowAuthModal(false)} 
-          onSuccess={() => {
-            setShowAuthModal(false);
-            // Try sending the message again after successful authentication
-            sendMessage({} as React.UIEvent, input);
-          }}
         />
       </>
     );
