@@ -1,12 +1,13 @@
-version: "3.9"
-
 services:
   app-dev:
+    container_name: bolt-ai-dev
     image: bolt-ai:development
     build:
       context: .
       dockerfile: Dockerfile
-      target: bolt-ai-development
+      # Make sure this stage exists in your Dockerfile if using dev mode
+      # OR remove this line if you're now using only production build
+      target: builder
     env_file: '.env.local'
     environment:
       - NODE_ENV=development
@@ -37,4 +38,14 @@ services:
       - /app/node_modules
     ports:
       - '5173:5173'
-    command: pnpm run dev --host 0.0.0.0
+    command: pnpm run dev -- --host 0.0.0.0
+
+  app-prod:
+    container_name: bolt-ai-prod
+    image: bolt-ai:production
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    restart: always
