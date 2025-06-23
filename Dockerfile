@@ -25,5 +25,6 @@ RUN rm /etc/nginx/conf.d/default.conf
 
 
 EXPOSE 80
+RUN git config --global --add safe.directory /app
 
 CMD ["nginx", "-g", "daemon off;"]  
