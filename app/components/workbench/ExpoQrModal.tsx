@@ -25,24 +25,28 @@ export const ExpoQrModal: React.FC<ExpoQrModalProps> = ({ open, onClose }) => {
             Preview on your own Mobile Device
           </DialogTitle>
           <DialogDescription className="bg-bolt-elements-background-depth-3 max-w-sm rounded-md p-1 border border-bolt-elements-borderColor">
-          Install Expo Go on your Mobile Device and Scan the QR Code.
+          Install Expo Go on your mobile phone (Android or iOS) and scan the QR code to get started.
           </DialogDescription>
           <div className="my-6 flex flex-col items-center">
             {expoUrl ? (
               <QRCode
-                logoImage="/favicon.svg"
+                logoImage="/logo-light-styled.png"
                 removeQrCodeBehindLogo={true}
-                logoPadding={3}
-                logoHeight={50}
-                logoWidth={50}
-                logoPaddingStyle="square"
+                logoPadding={2}
+                logoHeight={40}
+                logoWidth={40}
+                logoPaddingStyle="circle"
+                qrStyle="dots"
+                eyeRadius={8}
                 style={{
                   borderRadius: 16,
-                  padding: 2,
-                  backgroundColor: '#8a5fff',
+                  padding: 4,
+                  backgroundColor: '#07f29c',
                 }}
                 value={expoUrl}
                 size={200}
+                bgColor="#ffffff"
+                fgColor="#000000"
               />
             ) : (
               <div className="text-gray-500 text-center">No Expo URL detected.</div>
