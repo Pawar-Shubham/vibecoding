@@ -114,6 +114,7 @@ export const Head = createHead(() => (
   <>
     <meta charSet="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+    <meta name="keywords" content="website coder, coding software, code editor, no code, ai for coding, best website builder, create a website for free, website builder for small business, web designer, website maker free, vibe code, building websites" />
     <meta property="og:title" content="VxC - VibesXCoded AI Assistant" />
     <meta property="og:description" content="Talk with VibesXCoded, an AI assistant to help you build your next project faster!" />
     <meta property="og:image" content="/logo-dark-styled.png" />
@@ -125,6 +126,34 @@ export const Head = createHead(() => (
     <meta name="twitter:image" content="/logo-dark-styled.png" />
     <Meta />
     <Links />
+    
+    {/* Microsoft Clarity */}
+    <script
+      type="text/javascript"
+      dangerouslySetInnerHTML={{
+        __html: `
+          (function(c,l,a,r,i,t,y){
+              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+          })(window, document, "clarity", "script", "rd5l2kpuge");
+        `
+      }}
+    />
+
+    {/* Google Tag Manager */}
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-CGFG5MX371" />
+    <script
+      dangerouslySetInnerHTML={{
+        __html: `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-CGFG5MX371');
+        `
+      }}
+    />
+    
     <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
   </>
 ));
