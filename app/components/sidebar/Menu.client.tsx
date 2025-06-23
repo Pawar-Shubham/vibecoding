@@ -453,6 +453,9 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
                   }
                 }
                 
+                // Close the sidebar before navigating
+                sidebarStore.set(false);
+                
                 // Navigate to home to create a new chat
                 window.location.href = '/';
               }}
