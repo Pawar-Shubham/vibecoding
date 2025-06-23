@@ -1,21 +1,29 @@
-# Development stage named bolt-ai-development
-FROM node:20.18.0 AS bolt-ai-development
-
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+# Start from the same image
+FROM node:20.18.0 AS builder
 
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml ./
-
 RUN npm install -g pnpm && \
     pnpm config set node-linker hoisted && \
     CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
 
 COPY . .
 
-ENV RUNNING_IN_DOCKER=true \
-    VITE_LOG_LEVEL=debug
+# Build the production site
+RUN pnpm run build
 
-EXPOSE 5173
+# -------------------------
+# Now use a lightweight server
+FROM nginx:alpine AS runner
 
-CMD ["pnpm", "run", "dev", "--host", "0.0.0.0"]
+# Copy build output to nginx HTML folder
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Remove default config and add custom (optional)
+RUN rm /etc/nginx/conf.d/default.conf
+
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]  
