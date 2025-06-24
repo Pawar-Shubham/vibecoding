@@ -29,6 +29,9 @@ import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { AuthModal } from '../auth/AuthModal';
+import { LoadingScreen } from '../ui/LoadingScreen';
+import { useMinimumLoadingTime } from '~/lib/hooks/useMinimumLoadingTime';
+import { stopNavigationLoading } from '~/lib/stores/navigation';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -42,21 +45,56 @@ export function Chat() {
 
   const { ready, initialMessages, storeMessageHistory, importChat, exportChat } = useChatHistory();
   const title = useStore(description);
+  const location = useLocation();
+  
+  // Use minimum loading time to ensure smooth UX
+  const shouldShowLoading = useMinimumLoadingTime(!ready, 1500);
+  
   useEffect(() => {
     workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
   }, [initialMessages]);
 
+  // Stop navigation loading when chat is ready
+  useEffect(() => {
+    if (ready) {
+      stopNavigationLoading();
+    }
+  }, [ready]);
+
+  // Show loading state while chat is being loaded
+  if (shouldShowLoading) {
+    return <LoadingScreen />;
+  }
+  
+  // If we're on a chat URL but have no messages and ready is true, show a fallback
+  if (ready && location.pathname.startsWith('/chat/') && initialMessages.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <div className="text-center">
+          <p className="text-lg font-medium text-gray-900 dark:text-white">Chat not found</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            This chat may have been deleted or you may not have access to it.
+          </p>
+          <button
+            onClick={() => window.location.href = '/'}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Go to Homepage
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      {ready && (
-        <ChatImpl
-          description={title}
-          initialMessages={initialMessages}
-          exportChat={exportChat}
-          storeMessageHistory={storeMessageHistory}
-          importChat={importChat}
-        />
-      )}
+      <ChatImpl
+        description={title}
+        initialMessages={initialMessages}
+        exportChat={exportChat}
+        storeMessageHistory={storeMessageHistory}
+        importChat={importChat}
+      />
       <ToastContainer
         closeButton={({ closeToast }) => {
           return (
@@ -146,7 +184,6 @@ export const ChatImpl = memo(
     });
 
     const { showChat } = useStore(chatStore);
-    const location = useLocation();
 
     const [animationScope, animate] = useAnimate();
 
@@ -308,10 +345,11 @@ export const ChatImpl = memo(
     // Handle browser navigation (back/forward) and ensure proper state management
     useEffect(() => {
       const handlePopState = (event: PopStateEvent) => {
-        console.log('Navigation detected:', location.pathname);
+        const currentPath = window.location.pathname;
+        console.log('Navigation detected:', currentPath);
         
         // If navigating back to the homepage, reset chat state
-        if (location.pathname === '/') {
+        if (currentPath === '/') {
           console.log('Resetting chat state for homepage navigation');
           setChatStarted(false);
           chatStore.setKey('started', false);
@@ -342,31 +380,23 @@ export const ChatImpl = memo(
       window.addEventListener('popstate', handlePopState);
 
       // Handle initial page load for chat URLs - detect reload scenarios
-      if (location.pathname.startsWith('/chat/') && initialMessages.length === 0) {
-        console.log('Chat URL detected on reload:', location.pathname);
+      const currentPath = window.location.pathname;
+      if (currentPath.startsWith('/chat/') && initialMessages.length === 0) {
+        console.log('Chat URL detected on reload:', currentPath);
         
         // Extract chat ID from URL
-        const chatId = location.pathname.split('/chat/')[1];
+        const chatId = currentPath.split('/chat/')[1];
         if (chatId) {
           console.log('Attempting to load chat:', chatId);
-          
-          // Give some time for the chat history to load, then check if it succeeded
-          const checkChatLoad = setTimeout(() => {
-            if (initialMessages.length === 0 && location.pathname.startsWith('/chat/')) {
-              console.warn('Chat failed to load after timeout, redirecting to homepage');
-              // If the chat still hasn't loaded, redirect to homepage
-              window.location.href = '/';
-            }
-          }, 3000); // 3 second timeout
-          
-          return () => clearTimeout(checkChatLoad);
+          // Don't redirect to homepage - let the useChatHistory hook handle the loading
+          // The chat should either load successfully or show an appropriate error
         }
       }
 
       return () => {
         window.removeEventListener('popstate', handlePopState);
       };
-    }, [location.pathname, messages.length, isLoading, initialMessages.length]);
+    }, [messages.length, isLoading, initialMessages.length]);
 
     const scrollTextArea = () => {
       const textarea = textareaRef.current;

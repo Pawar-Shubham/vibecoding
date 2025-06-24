@@ -11,6 +11,9 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
 import { useAuth } from './lib/hooks/useAuth';
+import { LoadingScreen } from './components/ui/LoadingScreen';
+import { navigationLoading } from './lib/stores/navigation';
+import { useMinimumLoadingTime } from './lib/hooks/useMinimumLoadingTime';
 
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
@@ -160,10 +163,45 @@ export const Head = createHead(() => (
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const theme = useStore(themeStore);
+  const isNavigating = useStore(navigationLoading);
+  const shouldShowNavigationLoading = useMinimumLoadingTime(isNavigating, 1500);
+  const [isPageReloading, setIsPageReloading] = useState(true); // Start with loading on
+  const shouldShowPageReloadLoading = useMinimumLoadingTime(isPageReloading, 1500);
 
   useEffect(() => {
     document.querySelector('html')?.setAttribute('data-theme', theme);
   }, [theme]);
+
+  // Handle page loading states
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      setIsPageReloading(true);
+    };
+
+    // Stop loading when document is ready
+    const stopLoading = () => {
+      setIsPageReloading(false);
+    };
+
+    // Check if page is already loaded
+    if (document.readyState === 'complete') {
+      // Page already loaded, stop loading after a short delay
+      const timer = setTimeout(stopLoading, 100);
+      return () => clearTimeout(timer);
+    } else {
+      // Page still loading, wait for it to complete
+      window.addEventListener('load', stopLoading);
+      document.addEventListener('DOMContentLoaded', stopLoading);
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('load', stopLoading);
+      document.removeEventListener('DOMContentLoaded', stopLoading);
+    };
+  }, []);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -180,8 +218,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Show loading screen during initial page load to prevent content flash
+  if (shouldShowPageReloadLoading && !shouldShowNavigationLoading) {
+    return (
+      <>
+        <LoadingScreen />
+        <ScrollRestoration />
+        <Scripts />
+      </>
+    );
+  }
+
   return (
     <>
+      {shouldShowNavigationLoading && <LoadingScreen />}
       <ClientOnly>{() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}</ClientOnly>
       <SocialMediaIcons />
       <ScrollRestoration />

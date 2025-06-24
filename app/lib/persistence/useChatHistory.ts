@@ -124,9 +124,9 @@ export function useChatHistory() {
         getMessages(database, mixedId)
           .then(async chat => {
             if (!chat) {
-              logger.warn('Chat not found:', mixedId);
+              logger.warn('Chat not found locally:', mixedId);
+              // Don't immediately navigate - give sync process a chance to find the chat
               setReady(true);
-              navigate('/');
               return;
             }
 
@@ -173,8 +173,13 @@ export function useChatHistory() {
             logger.error('Failed to load chat:', error);
             setReady(true);
             toast.error('Failed to load chat');
-            navigate('/');
+            // Don't navigate away immediately - let the sync process handle it
           });
+      } else {
+        // If no mixedId, no database, or no user, set ready immediately
+        // This handles cases like homepage or when conditions aren't met
+        logger.info('Setting ready state immediately', { mixedId, hasDatabase: !!database, hasUser: !!user?.id });
+        setReady(true);
       }
     }
   }, [mixedId, previousMixedId, database, user?.id, navigate, restoreSnapshot]);
@@ -314,11 +319,22 @@ export function useChatHistory() {
                     logger.info('Successfully recovered chat from Supabase:', supabaseChat.id);
                   } else {
                     logger.warn('Chat not found in Supabase either:', mixedId);
-                    navigate('/');
+                    // Instead of navigating away, show a helpful message and let user decide
+                    toast.error(`Chat not found. This chat may have been deleted or you may not have access to it.`, {
+                      toastId: 'chat-not-found',
+                      autoClose: false,
+                      closeOnClick: true
+                    });
+                    // Set ready to true so the UI can show the "chat not found" fallback
+                    setReady(true);
                   }
                 } catch (recoveryError) {
                   logger.error('Failed to recover chat from Supabase:', recoveryError);
-                  navigate('/');
+                  toast.error('Unable to load chat. Please check your connection and try again.', {
+                    toastId: 'recovery-error',
+                    autoClose: 5000
+                  });
+                  setReady(true);
                 }
               }
             }
@@ -340,11 +356,19 @@ export function useChatHistory() {
                     workbenchStore.setDocuments(snapshot.files);
                   }
                 } else {
-                  navigate('/');
+                  toast.error('Chat not found locally. Please check your internet connection.', {
+                    toastId: 'local-chat-error',
+                    autoClose: 5000
+                  });
+                  setReady(true);
                 }
               } catch (localError) {
                 logger.error('Failed to load chat locally:', localError);
-                navigate('/');
+                toast.error('Error loading chat from local storage.', {
+                  toastId: 'local-error',
+                  autoClose: 5000
+                });
+                setReady(true);
               }
             }
           }

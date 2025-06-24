@@ -21,6 +21,7 @@ import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 import { sidebarStore } from '~/lib/stores/sidebar';
 import { chatStore } from '~/lib/stores/chat';
 import { streamingState } from '~/lib/stores/streaming';
+import { startNavigationLoading } from '~/lib/stores/navigation';
 
 const menuVariants = {
   closed: {
@@ -408,7 +409,14 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
             <span className="i-ph:sidebar-simple w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
 
-          <a href="/" className="text-2xl font-semibold text-accent flex items-center">
+          <a 
+            href="/" 
+            className="text-2xl font-semibold text-accent flex items-center"
+            onClick={() => {
+              // Show loading animation immediately when clicking sidebar logo
+              startNavigationLoading();
+            }}
+          >
             {!chat.started ? (
               <>
                 <img src="/logo-light-styled.png" alt="logo" className="w-[70px] sm:w-[90px] inline-block dark:hidden" />
@@ -455,6 +463,9 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
                 
                 // Close the sidebar before navigating
                 sidebarStore.set(false);
+                
+                // Show loading animation immediately
+                startNavigationLoading();
                 
                 // Navigate to home to create a new chat
                 window.location.href = '/';

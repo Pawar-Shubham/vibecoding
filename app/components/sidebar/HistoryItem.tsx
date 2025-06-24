@@ -10,6 +10,7 @@ import { useStore } from '@nanostores/react';
 import { streamingState } from '~/lib/stores/streaming';
 import { toast } from 'react-toastify';
 import { sidebarStore } from '~/lib/stores/sidebar';
+import { startNavigationLoading } from '~/lib/stores/navigation';
 
 interface HistoryItemProps {
   item: ChatHistoryItem;
@@ -66,6 +67,8 @@ export function HistoryItem({
         );
         
         if (confirmNavigation) {
+          // Show loading animation immediately
+          startNavigationLoading();
           navigate(`/chat/${item.urlId}`);
           // Close the sidebar after navigation
           sidebarStore.set(false);
@@ -81,6 +84,8 @@ export function HistoryItem({
       }
 
       // Let the normal navigation happen for other cases
+      // Show loading animation immediately
+      startNavigationLoading();
       // Close the sidebar after navigation
       sidebarStore.set(false);
     },

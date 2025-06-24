@@ -11,6 +11,7 @@ import { AuthModal } from '../auth/AuthModal';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { sidebarStore, toggleSidebar } from '~/lib/stores/sidebar';
+import { startNavigationLoading } from '~/lib/stores/navigation';
 
 export function Header() {
   const chat = useStore(chatStore);
@@ -80,7 +81,14 @@ export function Header() {
           }
         )}
       >
-        <a href="/" className="text-2xl font-semibold text-accent flex items-center">
+        <a 
+          href="/" 
+          className="text-2xl font-semibold text-accent flex items-center"
+          onClick={() => {
+            // Show loading animation immediately when clicking logo
+            startNavigationLoading();
+          }}
+        >
           {!chat.started ? (
             <>
               <img src="/logo-light-styled.png" alt="logo" className="w-[70px] sm:w-[90px] inline-block dark:hidden" />
