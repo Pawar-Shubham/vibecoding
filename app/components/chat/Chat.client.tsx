@@ -20,7 +20,7 @@ import Cookies from 'js-cookie';
 import { debounce } from '~/utils/debounce';
 import { useSettings } from '~/lib/hooks/useSettings';
 import type { ProviderInfo } from '~/types/model';
-import { useSearchParams } from '@remix-run/react';
+import { useSearchParams, useLocation } from '@remix-run/react';
 import { createSampler } from '~/utils/sampler';
 import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
 import { logStore } from '~/lib/stores/logs';
@@ -146,6 +146,7 @@ export const ChatImpl = memo(
     });
 
     const { showChat } = useStore(chatStore);
+    const location = useLocation();
 
     const [animationScope, animate] = useAnimate();
 
@@ -250,9 +251,16 @@ export const ChatImpl = memo(
         setChatStarted(false);
         chatStore.setKey('started', false);
         setMessages([]);
-        // Reset UI to show intro
-        animate('#intro', { opacity: 1, flex: 0, y: 0 }, { duration: 0.2 });
-        animate('#examples', { opacity: 1, display: 'flex', y: 0 }, { duration: 0.2 });
+        // Reset UI to show intro - check if elements exist first
+        const introElement = document.querySelector('#intro');
+        const examplesElement = document.querySelector('#examples');
+        
+        if (introElement) {
+          animate('#intro', { opacity: 1, flex: 0, y: 0 }, { duration: 0.2 });
+        }
+        if (examplesElement) {
+          animate('#examples', { opacity: 1, display: 'flex', y: 0 }, { duration: 0.2 });
+        }
         // Clear workbench state
         workbenchStore.resetAllFileModifications();
         workbenchStore.setDocuments({});
@@ -297,6 +305,69 @@ export const ChatImpl = memo(
       });
     }, [messages, isLoading, parseMessages]);
 
+    // Handle browser navigation (back/forward) and ensure proper state management
+    useEffect(() => {
+      const handlePopState = (event: PopStateEvent) => {
+        console.log('Navigation detected:', location.pathname);
+        
+        // If navigating back to the homepage, reset chat state
+        if (location.pathname === '/') {
+          console.log('Resetting chat state for homepage navigation');
+          setChatStarted(false);
+          chatStore.setKey('started', false);
+          // Reset messages if we have active messages
+          if (messages.length > 0) {
+            setMessages([]);
+          }
+          // Clear any ongoing operations
+          if (isLoading) {
+            stop();
+          }
+          // Clear input and cookies
+          setInput('');
+          Cookies.remove(PROMPT_COOKIE_KEY);
+          // Reset file uploads
+          setUploadedFiles([]);
+          setImageDataList([]);
+          // Clear workbench state
+          workbenchStore.resetAllFileModifications();
+          workbenchStore.setDocuments({});
+          workbenchStore.clearAlert();
+          workbenchStore.clearSupabaseAlert();
+          workbenchStore.clearDeployAlert();
+        }
+      };
+
+      // Listen for browser navigation events
+      window.addEventListener('popstate', handlePopState);
+
+      // Handle initial page load for chat URLs - detect reload scenarios
+      if (location.pathname.startsWith('/chat/') && initialMessages.length === 0) {
+        console.log('Chat URL detected on reload:', location.pathname);
+        
+        // Extract chat ID from URL
+        const chatId = location.pathname.split('/chat/')[1];
+        if (chatId) {
+          console.log('Attempting to load chat:', chatId);
+          
+          // Give some time for the chat history to load, then check if it succeeded
+          const checkChatLoad = setTimeout(() => {
+            if (initialMessages.length === 0 && location.pathname.startsWith('/chat/')) {
+              console.warn('Chat failed to load after timeout, redirecting to homepage');
+              // If the chat still hasn't loaded, redirect to homepage
+              window.location.href = '/';
+            }
+          }, 3000); // 3 second timeout
+          
+          return () => clearTimeout(checkChatLoad);
+        }
+      }
+
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }, [location.pathname, messages.length, isLoading, initialMessages.length]);
+
     const scrollTextArea = () => {
       const textarea = textareaRef.current;
 
@@ -336,7 +407,7 @@ export const ChatImpl = memo(
         return;
       }
 
-      // Check if elements exist before animating
+      // Check if elements exist before animating to prevent framer-motion errors
       const examplesElement = document.querySelector('#examples');
       const introElement = document.querySelector('#intro');
 
