@@ -1,11 +1,11 @@
 import React from 'react';
 
 const EXAMPLE_PROMPTS = [
-  { text: 'Build a Portfolio Website' },
-  { text: 'Create a Habit Tracker Mobile App' },
+  { text: 'Create a Tic Tac Toe Game' },
   { text: 'Design a Sales Dashboard' },
-  { text: 'Make a Space Invaders Game' },
-  { text: 'Build a Blog with Astro' }
+  { text: 'Create a Podcast Landing Page' },
+  { text: 'Make a Mobile QR Scanner App' }, 
+  { text: 'Create a Weather Dashboard' }
 ];
 
 export function ExamplePrompts(sendMessage?: { (event: React.UIEvent, messageInput?: string): void | undefined }) {

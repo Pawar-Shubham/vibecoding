@@ -32,10 +32,10 @@ export const ExpoQrModal: React.FC<ExpoQrModalProps> = ({ open, onClose }) => {
               <QRCode
                 logoImage="/logo-light-styled.png"
                 removeQrCodeBehindLogo={true}
-                logoPadding={2}
+                logoPadding={1}
                 logoHeight={40}
                 logoWidth={40}
-                logoPaddingStyle="circle"
+                logoPaddingStyle="square"
                 qrStyle="dots"
                 eyeRadius={8}
                 style={{
