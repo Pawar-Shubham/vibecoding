@@ -11,8 +11,10 @@ import { AuthModal } from '../auth/AuthModal';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { sidebarStore, toggleSidebar } from '~/lib/stores/sidebar';
-// Navigation loading functionality temporarily disabled due to import issues
-// import { startNavigationLoading } from '~/lib/stores/navigation';
+// Use window events to communicate with root navigation loading
+const startNavigationLoading = () => {
+  window.dispatchEvent(new CustomEvent('start-navigation-loading'));
+};
 
 export function Header() {
   const chat = useStore(chatStore);
@@ -86,8 +88,8 @@ export function Header() {
           href="/" 
           className="text-2xl font-semibold text-accent flex items-center"
           onClick={() => {
-            // Navigation loading temporarily disabled due to import issues
-            // startNavigationLoading();
+            // Show loading animation immediately when clicking logo
+            startNavigationLoading();
           }}
         >
           {!chat.started ? (

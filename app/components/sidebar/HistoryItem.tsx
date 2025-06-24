@@ -10,8 +10,10 @@ import { useStore } from '@nanostores/react';
 import { streamingState } from '~/lib/stores/streaming';
 import { toast } from 'react-toastify';
 import { sidebarStore } from '~/lib/stores/sidebar';
-// Navigation loading functionality temporarily disabled due to import issues
-// import { startNavigationLoading } from '~/lib/stores/navigation';
+// Use window events to communicate with root navigation loading
+const startNavigationLoading = () => {
+  window.dispatchEvent(new CustomEvent('start-navigation-loading'));
+};
 
 interface HistoryItemProps {
   item: ChatHistoryItem;
@@ -68,8 +70,8 @@ export function HistoryItem({
         );
         
         if (confirmNavigation) {
-          // Navigation loading temporarily disabled due to import issues
-          // startNavigationLoading();
+          // Show loading animation immediately
+          startNavigationLoading();
           navigate(`/chat/${item.urlId}`);
           // Close the sidebar after navigation
           sidebarStore.set(false);
@@ -85,8 +87,8 @@ export function HistoryItem({
       }
 
       // Let the normal navigation happen for other cases
-      // Navigation loading temporarily disabled due to import issues
-      // startNavigationLoading();
+      // Show loading animation immediately
+      startNavigationLoading();
       // Close the sidebar after navigation
       sidebarStore.set(false);
     },

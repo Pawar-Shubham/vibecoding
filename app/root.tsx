@@ -256,41 +256,50 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const theme = useStore(themeStore);
   const isNavigating = useStore(navigationLoading);
   const shouldShowNavigationLoading = useMinimumLoadingTime(isNavigating, 1500);
-  const [isPageReloading, setIsPageReloading] = useState(true); // Start with loading on
+  const [isPageReloading, setIsPageReloading] = useState(false); // Start with loading off
   const shouldShowPageReloadLoading = useMinimumLoadingTime(isPageReloading, 1500);
+  
+  // Global loading state for any type of loading
+  const [isAppLoading, setIsAppLoading] = useState(true);
+  const shouldShowAppLoading = useMinimumLoadingTime(isAppLoading, 1500);
 
   useEffect(() => {
     document.querySelector('html')?.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Handle page loading states
+  // Handle page loading states - simplified to avoid getting stuck
   useEffect(() => {
     const handleBeforeUnload = () => {
       setIsPageReloading(true);
+      setIsAppLoading(true);
     };
 
-    // Stop loading when document is ready
-    const stopLoading = () => {
-      setIsPageReloading(false);
+    const handleStartNavigationLoading = () => {
+      navigationLoading.set(true);
     };
 
-    // Check if page is already loaded
-    if (document.readyState === 'complete') {
-      // Page already loaded, stop loading after a short delay
-      const timer = setTimeout(stopLoading, 100);
-      return () => clearTimeout(timer);
-    } else {
-      // Page still loading, wait for it to complete
-      window.addEventListener('load', stopLoading);
-      document.addEventListener('DOMContentLoaded', stopLoading);
-    }
+    const handleStopNavigationLoading = () => {
+      navigationLoading.set(false);
+    };
 
+    // Listen for navigation loading events from components
+    window.addEventListener('start-navigation-loading', handleStartNavigationLoading);
+    window.addEventListener('stop-navigation-loading', handleStopNavigationLoading);
     window.addEventListener('beforeunload', handleBeforeUnload);
 
+    // Turn off page reload loading after component mounts
+    setIsPageReloading(false);
+    
+    // Turn off app loading after a short delay to allow content to render
+    const timer = setTimeout(() => {
+      setIsAppLoading(false);
+    }, 100);
+
     return () => {
+      window.removeEventListener('start-navigation-loading', handleStartNavigationLoading);
+      window.removeEventListener('stop-navigation-loading', handleStopNavigationLoading);
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      window.removeEventListener('load', stopLoading);
-      document.removeEventListener('DOMContentLoaded', stopLoading);
+      clearTimeout(timer);
     };
   }, []);
 
@@ -309,20 +318,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Show loading screen during initial page load to prevent content flash
-  if (shouldShowPageReloadLoading && !shouldShowNavigationLoading) {
-    return (
-      <>
-        <LoadingScreen />
-        <ScrollRestoration />
-        <Scripts />
-      </>
-    );
-  }
-
   return (
     <>
-      {shouldShowNavigationLoading && <LoadingScreen />}
+      {(shouldShowNavigationLoading || shouldShowPageReloadLoading || shouldShowAppLoading) && <LoadingScreen />}
       <ClientOnly>{() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}</ClientOnly>
       <SocialMediaIcons />
       <ScrollRestoration />

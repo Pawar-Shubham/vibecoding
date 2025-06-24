@@ -29,8 +29,9 @@ import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { AuthModal } from '../auth/AuthModal';
-import { LoadingScreen } from '../ui/LoadingScreen';
-import { useMinimumLoadingTime } from '~/lib/hooks/useMinimumLoadingTime';
+// LoadingScreen and useMinimumLoadingTime temporarily disabled due to import issues
+// import { LoadingScreen } from '../ui/LoadingScreen';
+// import { useMinimumLoadingTime } from '~/lib/hooks/useMinimumLoadingTime';
 // Navigation loading functionality temporarily disabled due to import issues
 // import { stopNavigationLoading } from '~/lib/stores/navigation';
 
@@ -48,23 +49,22 @@ export function Chat() {
   const title = useStore(description);
   const location = useLocation();
   
-  // Use minimum loading time to ensure smooth UX
-  const shouldShowLoading = useMinimumLoadingTime(!ready, 1500);
-  
   useEffect(() => {
     workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
   }, [initialMessages]);
 
-  // Navigation loading functionality temporarily disabled due to import issues
-  // useEffect(() => {
-  //   if (ready) {
-  //     stopNavigationLoading();
-  //   }
-  // }, [ready]);
+  // Stop navigation loading when chat is ready
+  useEffect(() => {
+    if (ready) {
+      // Use window event to communicate with root loading system
+      window.dispatchEvent(new CustomEvent('stop-navigation-loading'));
+    }
+  }, [ready]);
 
-  // Show loading state while chat is being loaded
-  if (shouldShowLoading) {
-    return <LoadingScreen />;
+  // Don't show local loading - let root.tsx handle all loading
+  // Just return null if not ready, so root loading screen stays visible
+  if (!ready) {
+    return null;
   }
   
   // If we're on a chat URL but have no messages and ready is true, show a fallback

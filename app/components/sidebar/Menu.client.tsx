@@ -21,8 +21,10 @@ import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 import { sidebarStore } from '~/lib/stores/sidebar';
 import { chatStore } from '~/lib/stores/chat';
 import { streamingState } from '~/lib/stores/streaming';
-// Navigation loading functionality temporarily disabled due to import issues
-// import { startNavigationLoading } from '~/lib/stores/navigation';
+// Use window events to communicate with root navigation loading
+const startNavigationLoading = () => {
+  window.dispatchEvent(new CustomEvent('start-navigation-loading'));
+};
 
 const menuVariants = {
   closed: {
@@ -465,8 +467,8 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
                 // Close the sidebar before navigating
                 sidebarStore.set(false);
                 
-                // Navigation loading temporarily disabled due to import issues
-                // startNavigationLoading();
+                // Show loading animation immediately
+                startNavigationLoading();
                 
                 // Navigate to home to create a new chat
                 window.location.href = '/';
