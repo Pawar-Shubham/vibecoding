@@ -31,7 +31,8 @@ import { useAuth } from '~/lib/hooks/useAuth';
 import { AuthModal } from '../auth/AuthModal';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { useMinimumLoadingTime } from '~/lib/hooks/useMinimumLoadingTime';
-import { stopNavigationLoading } from '~/lib/stores/navigation';
+// Navigation loading functionality temporarily disabled due to import issues
+// import { stopNavigationLoading } from '~/lib/stores/navigation';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -54,12 +55,12 @@ export function Chat() {
     workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
   }, [initialMessages]);
 
-  // Stop navigation loading when chat is ready
-  useEffect(() => {
-    if (ready) {
-      stopNavigationLoading();
-    }
-  }, [ready]);
+  // Navigation loading functionality temporarily disabled due to import issues
+  // useEffect(() => {
+  //   if (ready) {
+  //     stopNavigationLoading();
+  //   }
+  // }, [ready]);
 
   // Show loading state while chat is being loaded
   if (shouldShowLoading) {

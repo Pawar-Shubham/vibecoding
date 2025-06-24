@@ -11,7 +11,8 @@ import { AuthModal } from '../auth/AuthModal';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { sidebarStore, toggleSidebar } from '~/lib/stores/sidebar';
-import { startNavigationLoading } from '~/lib/stores/navigation';
+// Navigation loading functionality temporarily disabled due to import issues
+// import { startNavigationLoading } from '~/lib/stores/navigation';
 
 export function Header() {
   const chat = useStore(chatStore);
@@ -85,8 +86,8 @@ export function Header() {
           href="/" 
           className="text-2xl font-semibold text-accent flex items-center"
           onClick={() => {
-            // Show loading animation immediately when clicking logo
-            startNavigationLoading();
+            // Navigation loading temporarily disabled due to import issues
+            // startNavigationLoading();
           }}
         >
           {!chat.started ? (

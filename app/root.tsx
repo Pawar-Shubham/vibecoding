@@ -11,9 +11,8 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
 import { useAuth } from './lib/hooks/useAuth';
-import { navigationLoading } from './lib/stores/navigation';
-import { useMinimumLoadingTime } from './lib/hooks/useMinimumLoadingTime';
 import { motion } from 'framer-motion';
+import { atom } from 'nanostores';
 
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
@@ -22,6 +21,46 @@ import authModalStyles from './styles/auth-modal.css?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
 import 'virtual:uno.css';
+
+// Inline navigation store to avoid import issues
+const navigationLoading = atom<boolean>(false);
+
+// Inline useMinimumLoadingTime hook to avoid import issues
+function useMinimumLoadingTime(isLoading: boolean, minimumMs: number = 1500) {
+  const [showLoading, setShowLoading] = useState(isLoading);
+  const [startTime, setStartTime] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (isLoading && !startTime) {
+      // Start loading - record the start time
+      setStartTime(Date.now());
+      setShowLoading(true);
+    } else if (!isLoading && startTime) {
+      // Loading finished - check if minimum time has passed
+      const elapsed = Date.now() - startTime;
+      const remaining = minimumMs - elapsed;
+
+      if (remaining > 0) {
+        // Need to wait longer
+        const timeout = setTimeout(() => {
+          setShowLoading(false);
+          setStartTime(null);
+        }, remaining);
+
+        return () => clearTimeout(timeout);
+      } else {
+        // Minimum time already passed
+        setShowLoading(false);
+        setStartTime(null);
+      }
+    } else if (!isLoading && !startTime) {
+      // Not loading and no start time
+      setShowLoading(false);
+    }
+  }, [isLoading, startTime, minimumMs]);
+
+  return showLoading;
+}
 
 // Inline LoadingScreen component to avoid import issues
 function LoadingScreen() {
