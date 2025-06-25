@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import { classNames } from '~/utils/classNames';
-import { profileStore, updateProfile } from '~/lib/stores/profile';
+import { profileStore, updateProfile, initializeProfile } from '~/lib/stores/profile';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
 import { useAuth } from '~/lib/hooks/useAuth';
@@ -18,6 +18,7 @@ export default function ProfileTab() {
   const profile = useStore(profileStore);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   // Safety check: Don't render if no user is authenticated
   if (!user?.id) {
@@ -40,6 +41,27 @@ export default function ProfileTab() {
 
   // Track if form has changes
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Initialize profile if not loaded
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (user?.id && (!profile.userId || profile.userId !== user.id)) {
+        console.log('Profile not loaded for current user, initializing...');
+        setIsProfileLoading(true);
+        try {
+          await initializeProfile(user.id, user.user_metadata);
+        } catch (error) {
+          console.error('Error initializing profile:', error);
+        } finally {
+          setIsProfileLoading(false);
+        }
+      } else {
+        setIsProfileLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [user?.id, profile.userId]);
 
   // Update local state when profile store changes (e.g., from avatar upload)
   useEffect(() => {
@@ -140,6 +162,18 @@ export default function ProfileTab() {
       toast.error('Failed to update profile picture');
     }
   };
+
+  // Show loading state while profile is being loaded
+  if (isProfileLoading) {
+    return (
+      <div className="max-w-2xl mx-auto p-6">
+        <div className="flex items-center justify-center gap-3 text-gray-600 dark:text-gray-400">
+          <div className="i-ph:spinner-gap w-6 h-6 animate-spin" />
+          Loading profile...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
