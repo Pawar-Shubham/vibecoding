@@ -47,9 +47,9 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
       }
     };
 
-    // Get user avatar or first letter of email or name
-    const userAvatar = user?.user_metadata?.avatar_url || profile?.avatar || null;
-    const userName = user?.user_metadata?.name || user?.email || profile?.username || 'User';
+    // Prioritize profile store avatar over user metadata
+    const userAvatar = profile?.avatar || user?.user_metadata?.avatar_url || null;
+    const userName = profile?.username || user?.user_metadata?.name || user?.email || 'User';
     const userInitial = userName[0].toUpperCase();
 
     return (

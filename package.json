@@ -167,7 +167,7 @@
   },
   "devDependencies": {
     "@blitz/eslint-plugin": "0.1.0",
-    "@cloudflare/workers-types": "^4.20241127.0",
+    "@cloudflare/workers-types": "^4.20250327.0",
     "@electron/notarize": "^2.5.0",
     "@iconify-json/ph": "^1.2.1",
     "@iconify/types": "^2.0.0",
@@ -214,7 +214,7 @@
     "vite-plugin-optimize-css-modules": "^1.1.0",
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^2.1.7",
-    "wrangler": "^4.5.1"
+    "wrangler": "^4.6.0"
   },
   "resolutions": {
     "@typescript-eslint/utils": "^8.0.0-alpha.30"

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { signOut } from '~/lib/supabase';
 import { toast } from 'react-toastify';
+import { useStore } from '@nanostores/react';
+import { profileStore } from '~/lib/stores/profile';
 import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 
 interface UserProfileProps {
@@ -11,6 +13,7 @@ interface UserProfileProps {
 export function UserProfile({ user }: UserProfileProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const profile = useStore(profileStore);
 
   const handleSignOut = async () => {
     try {
@@ -47,9 +50,9 @@ export function UserProfile({ user }: UserProfileProps) {
 
   if (!user) return null;
 
-  // Get user avatar or first letter of email or name
-  const userAvatar = user.user_metadata?.avatar_url || null;
-  const userName = user.user_metadata?.name || user.email || 'User';
+  // Prioritize profile store avatar over user metadata
+  const userAvatar = profile.avatar || user.user_metadata?.avatar_url || null;
+  const userName = profile.username || user.user_metadata?.name || user.email || 'User';
   const userInitial = userName[0].toUpperCase();
   
   return (
