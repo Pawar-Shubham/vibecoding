@@ -14,8 +14,9 @@ import { useAuth } from './lib/hooks/useAuth';
 import { motion } from 'framer-motion';
 import { atom } from 'nanostores';
 
-// Lazy load the SocialMediaIcons component
+// Lazy load the components
 const SocialMediaIcons = lazy(() => import('./components/SocialMediaIcons').then(module => ({ default: module.SocialMediaIcons })));
+const DynamicFeedback = lazy(() => import('./components/feedback/DynamicFeedback').then(module => ({ default: module.DynamicFeedback })));
 
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
@@ -117,8 +118,7 @@ function LoadingScreen() {
   );
 }
 
-// Import feedback components
-import { DynamicFeedback } from './components/feedback/DynamicFeedback';
+// Components are now lazy loaded above
 
 export const links: LinksFunction = () => [
   {
@@ -297,7 +297,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Suspense>
         )}
       </ClientOnly>
-      <ClientOnly>{() => <DynamicFeedback />}</ClientOnly>
+      <ClientOnly>
+        {() => (
+          <Suspense fallback={null}>
+            <DynamicFeedback />
+          </Suspense>
+        )}
+      </ClientOnly>
       <ScrollRestoration />
       <Scripts />
     </>
