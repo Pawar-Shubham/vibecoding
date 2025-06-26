@@ -7,6 +7,10 @@
   border-radius: 8px;
 }
 
+.Toastify__toast-container--bottom-right {
+  bottom: 2rem !important; /* Move notifications up by 2rem (32px) from the bottom */
+}
+
 .Toastify__close-button {
   color: var(--bolt-elements-item-contentDefault);
   opacity: 1;

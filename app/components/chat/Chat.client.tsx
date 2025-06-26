@@ -468,6 +468,18 @@ export const ChatImpl = memo(
         return;
       }
 
+      // Track prompt count for feedback system
+      try {
+        if (typeof window !== 'undefined' && (window as any).incrementFeedbackPromptCount) {
+          console.log('💬 Tracking prompt for feedback system');
+          (window as any).incrementFeedbackPromptCount();
+        } else {
+          console.log('⚠️ Feedback tracking function not available yet');
+        }
+      } catch (error) {
+        console.error('Error tracking prompt for feedback:', error);
+      }
+
       // Only check authentication if this is not coming from a post-auth flow
       // The BaseChat component handles pre-auth prompt storage and modal triggering
       if (!isAuthenticated && !messageInput) {

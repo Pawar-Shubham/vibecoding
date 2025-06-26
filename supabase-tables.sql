@@ -187,4 +187,55 @@ EXECUTE FUNCTION update_modified_column();
 CREATE TRIGGER update_user_connections_updated_at
 BEFORE UPDATE ON user_connections
 FOR EACH ROW
+EXECUTE FUNCTION update_modified_column();
+
+-- Create feedback table to store user feedback
+CREATE TABLE IF NOT EXISTS feedback (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  feedback_type TEXT NOT NULL CHECK (feedback_type IN ('improvement', 'building')),
+  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+  message TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  
+  CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
+-- Create user_activity table to track user prompts for feedback triggers
+CREATE TABLE IF NOT EXISTS user_activity (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  prompt_count INTEGER DEFAULT 0,
+  last_prompt_date DATE DEFAULT CURRENT_DATE,
+  last_feedback_shown DATE,
+  feedback_shown_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  
+  CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  UNIQUE(user_id)
+);
+
+-- Enable Row Level Security on feedback
+ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
+
+-- Create policy for feedback
+CREATE POLICY "Users can manage their own feedback"
+  ON feedback
+  USING (auth.uid() = user_id OR user_id IS NULL)
+  WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
+
+-- Enable Row Level Security on user_activity
+ALTER TABLE user_activity ENABLE ROW LEVEL SECURITY;
+
+-- Create policy for user_activity
+CREATE POLICY "Users can manage their own activity"
+  ON user_activity
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Create triggers for updated_at timestamps
+CREATE TRIGGER update_user_activity_updated_at
+BEFORE UPDATE ON user_activity
+FOR EACH ROW
 EXECUTE FUNCTION update_modified_column(); 
