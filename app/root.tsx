@@ -115,7 +115,7 @@ function LoadingScreen() {
 }
 
 // Import feedback components
-import { SocialMediaIcons } from '../app/components/SocialMediaIcons';
+import { SocialMediaIcons } from '~/components/SocialMediaIcons.tsx';
 import { DynamicFeedback } from './components/feedback/DynamicFeedback';
 
 export const links: LinksFunction = () => [
