@@ -6,17 +6,13 @@ import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
-import React, { useEffect, useState, Suspense, lazy } from 'react';
+import React, { useEffect, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
 import { useAuth } from './lib/hooks/useAuth';
 import { motion } from 'framer-motion';
 import { atom } from 'nanostores';
-
-// Lazy load the components
-const SocialMediaIcons = lazy(() => import('./components/SocialMediaIcons').then(module => ({ default: module.SocialMediaIcons })));
-const DynamicFeedback = lazy(() => import('./components/feedback/DynamicFeedback').then(module => ({ default: module.DynamicFeedback })));
 
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
@@ -118,7 +114,32 @@ function LoadingScreen() {
   );
 }
 
-// Components are now lazy loaded above
+// Client-side component wrappers
+function ClientSocialMediaIcons() {
+  const [SocialMediaIcons, setSocialMediaIcons] = useState<React.ComponentType | null>(null);
+  
+  useEffect(() => {
+    import('./components/SocialMediaIcons').then(module => {
+      setSocialMediaIcons(() => module.SocialMediaIcons);
+    }).catch(console.error);
+  }, []);
+  
+  if (!SocialMediaIcons) return null;
+  return React.createElement(SocialMediaIcons);
+}
+
+function ClientDynamicFeedback() {
+  const [DynamicFeedback, setDynamicFeedback] = useState<React.ComponentType | null>(null);
+  
+  useEffect(() => {
+    import('./components/feedback/DynamicFeedback').then(module => {
+      setDynamicFeedback(() => module.DynamicFeedback);
+    }).catch(console.error);
+  }, []);
+  
+  if (!DynamicFeedback) return null;
+  return React.createElement(DynamicFeedback);
+}
 
 export const links: LinksFunction = () => [
   {
@@ -290,20 +311,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <>
       {(shouldShowNavigationLoading || shouldShowPageReloadLoading || shouldShowAppLoading) && <LoadingScreen />}
       <ClientOnly>{() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}</ClientOnly>
-      <ClientOnly>
-        {() => (
-          <Suspense fallback={null}>
-            <SocialMediaIcons />
-          </Suspense>
-        )}
-      </ClientOnly>
-      <ClientOnly>
-        {() => (
-          <Suspense fallback={null}>
-            <DynamicFeedback />
-          </Suspense>
-        )}
-      </ClientOnly>
+      <ClientOnly>{() => <ClientSocialMediaIcons />}</ClientOnly>
+      <ClientOnly>{() => <ClientDynamicFeedback />}</ClientOnly>
       <ScrollRestoration />
       <Scripts />
     </>
