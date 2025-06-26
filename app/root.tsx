@@ -114,32 +114,9 @@ function LoadingScreen() {
   );
 }
 
-// Client-side component wrappers
-function ClientSocialMediaIcons() {
-  const [SocialMediaIcons, setSocialMediaIcons] = useState<React.ComponentType | null>(null);
-  
-  useEffect(() => {
-    import('./components/SocialMediaIcons').then(module => {
-      setSocialMediaIcons(() => module.SocialMediaIcons);
-    }).catch(console.error);
-  }, []);
-  
-  if (!SocialMediaIcons) return null;
-  return React.createElement(SocialMediaIcons);
-}
-
-function ClientDynamicFeedback() {
-  const [DynamicFeedback, setDynamicFeedback] = useState<React.ComponentType | null>(null);
-  
-  useEffect(() => {
-    import('./components/feedback/DynamicFeedback').then(module => {
-      setDynamicFeedback(() => module.DynamicFeedback);
-    }).catch(console.error);
-  }, []);
-  
-  if (!DynamicFeedback) return null;
-  return React.createElement(DynamicFeedback);
-}
+// Import feedback components
+import { SocialMediaIcons } from './components/SocialMediaIcons';
+import { DynamicFeedback } from './components/feedback/DynamicFeedback';
 
 export const links: LinksFunction = () => [
   {
@@ -311,8 +288,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <>
       {(shouldShowNavigationLoading || shouldShowPageReloadLoading || shouldShowAppLoading) && <LoadingScreen />}
       <ClientOnly>{() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}</ClientOnly>
-      <ClientOnly>{() => <ClientSocialMediaIcons />}</ClientOnly>
-      <ClientOnly>{() => <ClientDynamicFeedback />}</ClientOnly>
+      <SocialMediaIcons />
+      <ClientOnly>{() => <DynamicFeedback />}</ClientOnly>
       <ScrollRestoration />
       <Scripts />
     </>
