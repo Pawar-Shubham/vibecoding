@@ -115,7 +115,7 @@ function LoadingScreen() {
 }
 
 // Import feedback components
-import { DynamicFeedback } from './components/feedback/DynamicFeedback';
+// Components are now dynamically imported to avoid SSR module resolution issues
 
 export const links: LinksFunction = () => [
   {
@@ -297,7 +297,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
           );
         }}
       </ClientOnly>
-      <ClientOnly>{() => <DynamicFeedback />}</ClientOnly>
+      <ClientOnly>
+        {() => {
+          const DynamicFeedback = React.lazy(() => import('./components/feedback/DynamicFeedback').then(module => ({ default: module.DynamicFeedback })));
+          return (
+            <React.Suspense fallback={null}>
+              <DynamicFeedback />
+            </React.Suspense>
+          );
+        }}
+      </ClientOnly>
       <ScrollRestoration />
       <Scripts />
     </>
