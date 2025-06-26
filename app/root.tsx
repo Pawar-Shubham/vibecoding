@@ -13,6 +13,7 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { useAuth } from './lib/hooks/useAuth';
 import { motion } from 'framer-motion';
 import { atom } from 'nanostores';
+import { logStore } from './lib/stores/logs';
 
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
@@ -312,8 +313,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
     </>
   );
 }
-
-import { logStore } from './lib/stores/logs';
 
 export default function App() {
   const theme = useStore(themeStore);
