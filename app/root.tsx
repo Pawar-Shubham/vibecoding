@@ -6,14 +6,16 @@ import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
 import { useAuth } from './lib/hooks/useAuth';
 import { motion } from 'framer-motion';
 import { atom } from 'nanostores';
-import { logStore } from './lib/stores/logs';
+
+// Lazy load the SocialMediaIcons component
+const SocialMediaIcons = lazy(() => import('./components/SocialMediaIcons').then(module => ({ default: module.SocialMediaIcons })));
 
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
@@ -116,7 +118,7 @@ function LoadingScreen() {
 }
 
 // Import feedback components
-// Components are now dynamically imported to avoid SSR module resolution issues
+import { DynamicFeedback } from './components/feedback/DynamicFeedback';
 
 export const links: LinksFunction = () => [
   {
@@ -289,30 +291,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {(shouldShowNavigationLoading || shouldShowPageReloadLoading || shouldShowAppLoading) && <LoadingScreen />}
       <ClientOnly>{() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}</ClientOnly>
       <ClientOnly>
-        {() => {
-          const SocialMediaIcons = React.lazy(() => import('./components/SocialMediaIcons').then(module => ({ default: module.SocialMediaIcons })));
-          return (
-            <React.Suspense fallback={null}>
-              <SocialMediaIcons />
-            </React.Suspense>
-          );
-        }}
+        {() => (
+          <Suspense fallback={null}>
+            <SocialMediaIcons />
+          </Suspense>
+        )}
       </ClientOnly>
-      <ClientOnly>
-        {() => {
-          const DynamicFeedback = React.lazy(() => import('./components/feedback/DynamicFeedback').then(module => ({ default: module.DynamicFeedback })));
-          return (
-            <React.Suspense fallback={null}>
-              <DynamicFeedback />
-            </React.Suspense>
-          );
-        }}
-      </ClientOnly>
+      <ClientOnly>{() => <DynamicFeedback />}</ClientOnly>
       <ScrollRestoration />
       <Scripts />
     </>
   );
 }
+
+import { logStore } from './lib/stores/logs';
 
 export default function App() {
   const theme = useStore(themeStore);
