@@ -115,7 +115,6 @@ function LoadingScreen() {
 }
 
 // Import feedback components
-import { SocialMediaIcons } from './components/SocialMediaIcons';
 import { DynamicFeedback } from './components/feedback/DynamicFeedback';
 
 export const links: LinksFunction = () => [
@@ -288,7 +287,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <>
       {(shouldShowNavigationLoading || shouldShowPageReloadLoading || shouldShowAppLoading) && <LoadingScreen />}
       <ClientOnly>{() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}</ClientOnly>
-      <SocialMediaIcons />
+      <ClientOnly>
+        {() => {
+          const SocialMediaIcons = React.lazy(() => import('./components/SocialMediaIcons').then(module => ({ default: module.SocialMediaIcons })));
+          return (
+            <React.Suspense fallback={null}>
+              <SocialMediaIcons />
+            </React.Suspense>
+          );
+        }}
+      </ClientOnly>
       <ClientOnly>{() => <DynamicFeedback />}</ClientOnly>
       <ScrollRestoration />
       <Scripts />
