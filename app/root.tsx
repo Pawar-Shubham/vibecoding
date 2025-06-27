@@ -11,6 +11,8 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
 import { useAuth } from './lib/hooks/useAuth';
+import { motion } from 'framer-motion';
+import { atom } from 'nanostores';
 
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
@@ -20,43 +22,101 @@ import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
 import 'virtual:uno.css';
 
-// Inline SocialMediaIcons component to avoid import issues
-function SocialMediaIcons() {
-  const location = useLocation();
-  const { started: chatStarted } = useStore(chatStore);
-  
-  // Hide icons if we're not on homepage or if chat has started
-  if (location.pathname !== '/' || chatStarted) {
-    return null;
-  }
-  
+// Inline navigation store to avoid import issues
+const navigationLoading = atom<boolean>(false);
+
+// Inline useMinimumLoadingTime hook to avoid import issues
+function useMinimumLoadingTime(isLoading: boolean, minimumMs: number = 1500) {
+  const [showLoading, setShowLoading] = useState(isLoading);
+  const [startTime, setStartTime] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (isLoading && !startTime) {
+      // Start loading - record the start time
+      setStartTime(Date.now());
+      setShowLoading(true);
+    } else if (!isLoading && startTime) {
+      // Loading finished - check if minimum time has passed
+      const elapsed = Date.now() - startTime;
+      const remaining = minimumMs - elapsed;
+
+      if (remaining > 0) {
+        // Need to wait longer
+        const timeout = setTimeout(() => {
+          setShowLoading(false);
+          setStartTime(null);
+        }, remaining);
+
+        return () => clearTimeout(timeout);
+      } else {
+        // Minimum time already passed
+        setShowLoading(false);
+        setStartTime(null);
+      }
+    } else if (!isLoading && !startTime) {
+      // Not loading and no start time
+      setShowLoading(false);
+    }
+  }, [isLoading, startTime, minimumMs]);
+
+  return showLoading;
+}
+
+// Inline LoadingScreen component to avoid import issues
+function LoadingScreen() {
   return (
-    <div className="fixed bottom-4 right-4 flex items-center gap-3 z-50">
-      <a
-        href="https://x.com/vibesxcoded"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-        title="Follow us on X (Twitter)"
+    <div className="fixed inset-0 bg-white dark:bg-gray-900 flex flex-col items-center justify-center z-50">
+      {/* Pulsating Logo */}
+      <motion.div
+        className="mb-8"
+        animate={{
+          scale: [1, 1.1, 1],
+          opacity: [0.8, 1, 0.8],
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
       >
-        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-        </svg>
-      </a>
-      <a
-        href="https://discord.gg/j3CPCgbc"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-        title="Join our Discord"
-      >
-        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-        </svg>
-      </a>
+        <img 
+          src="/logo-dark-styled.png" 
+          alt="VxC Logo" 
+          className="h-16 w-auto hidden dark:block"
+        />
+        <img 
+          src="/chat-logo-light-styled.png" 
+          alt="VxC Logo" 
+          className="h-16 w-auto dark:hidden block"
+        />
+      </motion.div>
+
+      {/* Three Dots Loading Animation */}
+      <div className="flex space-x-2">
+        {[0, 1, 2].map((index) => (
+          <motion.div
+            key={index}
+            className="w-3 h-3 bg-gray-600 dark:bg-gray-400 rounded-full"
+            animate={{
+              y: [0, -10, 0],
+              opacity: [0.5, 1, 0.5],
+            }}
+            transition={{
+              duration: 1.2,
+              repeat: Infinity,
+              delay: index * 0.2,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
+
+// Import feedback components
+import { SocialMediaIcons } from './components/SocialMediaIcons';
+import { DynamicFeedback } from './components/feedback/DynamicFeedback';
 
 export const links: LinksFunction = () => [
   {
@@ -115,14 +175,14 @@ export const Head = createHead(() => (
     <meta charSet="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
     <meta name="keywords" content="website coder, coding software, code editor, no code, ai for coding, best website builder, create a website for free, website builder for small business, web designer, website maker free, vibe code, building websites" />
-    <meta property="og:title" content="VxC - VibesXCoded AI Assistant" />
-    <meta property="og:description" content="Talk with VibesXCoded, an AI assistant to help you build your next project faster!" />
+    <meta property="og:title" content="VxC - VIBESxCODED" />
+    <meta property="og:description" content="Talk with VxC, an AI Full-Stack Developer to help you build your next project faster!" />
     <meta property="og:image" content="/logo-dark-styled.png" />
     <meta property="og:image:alt" content="VibesXCoded Logo" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="VxC - VibesXCoded AI Assistant" />
-    <meta name="twitter:description" content="Talk with VibesXCoded, an AI assistant to help you build your next project faster!" />
+    <meta name="twitter:title" content="VxC - VIBESxCODED" />
+    <meta name="twitter:description" content="Talk with VxC, an AI Full-Stack Developer to help you build your next project faster!" />
     <meta name="twitter:image" content="/logo-dark-styled.png" />
     <Meta />
     <Links />
@@ -160,10 +220,54 @@ export const Head = createHead(() => (
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const theme = useStore(themeStore);
+  const isNavigating = useStore(navigationLoading);
+  const shouldShowNavigationLoading = useMinimumLoadingTime(isNavigating, 1500);
+  const [isPageReloading, setIsPageReloading] = useState(false); // Start with loading off
+  const shouldShowPageReloadLoading = useMinimumLoadingTime(isPageReloading, 1500);
+  
+  // Global loading state for any type of loading
+  const [isAppLoading, setIsAppLoading] = useState(true);
+  const shouldShowAppLoading = useMinimumLoadingTime(isAppLoading, 1500);
 
   useEffect(() => {
     document.querySelector('html')?.setAttribute('data-theme', theme);
   }, [theme]);
+
+  // Handle page loading states - simplified to avoid getting stuck
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      setIsPageReloading(true);
+      setIsAppLoading(true);
+    };
+
+    const handleStartNavigationLoading = () => {
+      navigationLoading.set(true);
+    };
+
+    const handleStopNavigationLoading = () => {
+      navigationLoading.set(false);
+    };
+
+    // Listen for navigation loading events from components
+    window.addEventListener('start-navigation-loading', handleStartNavigationLoading);
+    window.addEventListener('stop-navigation-loading', handleStopNavigationLoading);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Turn off page reload loading after component mounts
+    setIsPageReloading(false);
+    
+    // Turn off app loading after a short delay to allow content to render
+    const timer = setTimeout(() => {
+      setIsAppLoading(false);
+    }, 100);
+
+    return () => {
+      window.removeEventListener('start-navigation-loading', handleStartNavigationLoading);
+      window.removeEventListener('stop-navigation-loading', handleStopNavigationLoading);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -182,8 +286,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      {(shouldShowNavigationLoading || shouldShowPageReloadLoading || shouldShowAppLoading) && <LoadingScreen />}
       <ClientOnly>{() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}</ClientOnly>
       <SocialMediaIcons />
+      <ClientOnly>{() => <DynamicFeedback />}</ClientOnly>
       <ScrollRestoration />
       <Scripts />
     </>

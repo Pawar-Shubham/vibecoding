@@ -64,7 +64,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             active
             disabled={isDeploying || !activePreview || isStreaming}
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="p-1.5 px-3 min-w-[40px] !bg-white dark:!bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-yellow-400 transition-all duration-200 flex items-center gap-2"
+            className="p-1.5 px-3 min-w-[40px] !bg-white dark:!bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-[#07F29C] transition-all duration-200 flex items-center gap-2"
           >
             <div className="i-ph:rocket-launch" />
             Deploy
@@ -110,7 +110,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
               chatStore.setKey('showChat', !showChat);
             }
           }}
-          className="p-1.5 px-3 min-w-[40px] !bg-white dark:!bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-yellow-400 transition-all duration-200 flex items-center justify-center"
+          className="p-1.5 px-3 min-w-[40px] !bg-white dark:!bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-[#07F29C] transition-all duration-200 flex items-center justify-center"
         >
           <div className="i-bolt:chat text-sm" />
         </Button>
@@ -123,7 +123,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             }
             workbenchStore.showWorkbench.set(!showWorkbench);
           }}
-          className="p-1.5 px-3 min-w-[40px] !bg-white dark:!bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-yellow-400 transition-all duration-200 flex items-center justify-center"
+          className="p-1.5 px-3 min-w-[40px] !bg-white dark:!bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-[#07F29C] transition-all duration-200 flex items-center justify-center"
         >
           <div className="i-ph:code-bold" />
         </Button>

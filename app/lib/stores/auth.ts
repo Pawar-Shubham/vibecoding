@@ -1,6 +1,7 @@
 import { atom } from 'nanostores';
 import { supabase, getCurrentUser, getSession } from '~/lib/supabase';
 import { logStore } from './logs';
+import { initializeProfile, clearProfile } from './profile';
 import type { SupabaseClient, AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 export interface AuthState {
@@ -50,6 +51,10 @@ export const initAuth = async () => {
               const user = await getCurrentUser();
               if (user) {
                 logStore.logAuth('session_restored_from_storage', true, { userId: user.id });
+                
+                // Initialize profile data
+                await initializeProfile(user.id, user.user_metadata);
+                
                 authStore.set({ 
                   user, 
                   session: refreshedSession, 
@@ -71,6 +76,10 @@ export const initAuth = async () => {
       const user = await getCurrentUser();
       if (user) {
         logStore.logAuth('session_restored', true, { userId: user.id });
+        
+        // Initialize profile data
+        await initializeProfile(user.id, user.user_metadata);
+        
         authStore.set({ 
           user, 
           session, 
@@ -129,6 +138,12 @@ export const setupAuthListener = () => {
           const user = await getCurrentUser();
           if (user) {
             logStore.logAuth(event.toLowerCase(), true, { userId: user.id });
+            
+            // Initialize profile data when user signs in
+            if (event === 'SIGNED_IN') {
+              await initializeProfile(user.id, user.user_metadata);
+            }
+            
             authStore.set({ 
               user, 
               session, 
@@ -143,6 +158,10 @@ export const setupAuthListener = () => {
 
         case 'SIGNED_OUT':
           logStore.logAuth('signout', true);
+          
+          // Clear profile data when signing out
+          clearProfile();
+          
           authStore.set({ 
             user: null, 
             session: null, 
@@ -157,6 +176,10 @@ export const setupAuthListener = () => {
 
         case 'USER_DELETED':
           logStore.logAuth('user_deleted', true);
+          
+          // Clear profile data when user is deleted
+          clearProfile();
+          
           await supabase.auth.signOut();
           authStore.set({ 
             user: null, 
@@ -171,6 +194,10 @@ export const setupAuthListener = () => {
           const updatedUser = await getCurrentUser();
           if (updatedUser) {
             logStore.logAuth('user_updated', true, { userId: updatedUser.id });
+            
+            // Re-initialize profile data when user is updated
+            await initializeProfile(updatedUser.id, updatedUser.user_metadata);
+            
             authStore.set({ 
               user: updatedUser, 
               session, 

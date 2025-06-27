@@ -101,6 +101,7 @@
     "@types/mongodb": "^4.0.7",
     "@types/react-beautiful-dnd": "^13.1.8",
     "@types/uuid": "^10.0.0",
+    "@types/youtube-player": "^5.5.11",
     "@uiw/codemirror-theme-vscode": "^4.23.6",
     "@unocss/reset": "^0.61.9",
     "@webcontainer/api": "1.6.1-internal.1",
@@ -150,6 +151,7 @@
     "react-resizable-panels": "^2.1.7",
     "react-toastify": "^10.0.6",
     "react-window": "^1.8.11",
+    "react-youtube": "^10.1.0",
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.0",
@@ -167,7 +169,7 @@
   },
   "devDependencies": {
     "@blitz/eslint-plugin": "0.1.0",
-    "@cloudflare/workers-types": "^4.20241127.0",
+    "@cloudflare/workers-types": "^4.20250327.0",
     "@electron/notarize": "^2.5.0",
     "@iconify-json/ph": "^1.2.1",
     "@iconify/types": "^2.0.0",
@@ -214,7 +216,7 @@
     "vite-plugin-optimize-css-modules": "^1.1.0",
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^2.1.7",
-    "wrangler": "^4.5.1"
+    "wrangler": "^4.6.0"
   },
   "resolutions": {
     "@typescript-eslint/utils": "^8.0.0-alpha.30"

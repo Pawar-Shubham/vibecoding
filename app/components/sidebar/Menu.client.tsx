@@ -21,6 +21,10 @@ import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 import { sidebarStore } from '~/lib/stores/sidebar';
 import { chatStore } from '~/lib/stores/chat';
 import { streamingState } from '~/lib/stores/streaming';
+// Use window events to communicate with root navigation loading
+const startNavigationLoading = () => {
+  window.dispatchEvent(new CustomEvent('start-navigation-loading'));
+};
 
 const menuVariants = {
   closed: {
@@ -408,7 +412,14 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
             <span className="i-ph:sidebar-simple w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
 
-          <a href="/" className="text-2xl font-semibold text-accent flex items-center">
+          <a 
+            href="/" 
+            className="text-2xl font-semibold text-accent flex items-center"
+            onClick={() => {
+              // Show loading animation immediately when clicking sidebar logo
+              startNavigationLoading();
+            }}
+          >
             {!chat.started ? (
               <>
                 <img src="/logo-light-styled.png" alt="logo" className="w-[70px] sm:w-[90px] inline-block dark:hidden" />
@@ -452,6 +463,12 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
                     return;
                   }
                 }
+                
+                // Close the sidebar before navigating
+                sidebarStore.set(false);
+                
+                // Show loading animation immediately
+                startNavigationLoading();
                 
                 // Navigate to home to create a new chat
                 window.location.href = '/';
@@ -574,11 +591,11 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
           {/* User Profile */}
           <div className="p-3">
             <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-100 dark:bg-[#1a1a1a]">
-              {user?.user_metadata?.avatar_url ? (
+              {(profile.avatar || user?.user_metadata?.avatar_url) ? (
                 <div className="flex items-center justify-center w-8 h-8 overflow-hidden rounded-full shrink-0 border border-gray-200 dark:border-gray-700 shadow-sm">
                   <img
-                    src={user.user_metadata.avatar_url}
-                    alt={user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
+                    src={profile.avatar || user.user_metadata.avatar_url}
+                    alt={profile.username || user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
                     className="w-full h-full rounded-full object-cover"
                     loading="eager"
                     decoding="sync"
@@ -587,7 +604,7 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
                       e.currentTarget.style.display = 'none';
                       e.currentTarget.parentElement!.innerHTML = `
                         <div class="w-full h-full flex items-center justify-center rounded-full bg-accent-600 text-white font-medium">
-                          ${(user.user_metadata?.name?.[0] || user.email?.[0] || 'U').toUpperCase()}
+                          ${(profile.username?.[0] || user.user_metadata?.name?.[0] || user.email?.[0] || 'U').toUpperCase()}
                         </div>
                       `;
                     }}
@@ -595,12 +612,12 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
                 </div>
               ) : (
                 <div className="flex items-center justify-center w-8 h-8 rounded-full shrink-0 bg-accent-600 text-white font-medium shadow-sm">
-                  {(user.user_metadata?.name?.[0] || user.email?.[0] || 'U').toUpperCase()}
+                  {(profile.username?.[0] || user.user_metadata?.name?.[0] || user.email?.[0] || 'U').toUpperCase()}
                 </div>
               )}
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                  {user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
+                  {profile.username || user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-500 truncate">{user.email}</div>
               </div>

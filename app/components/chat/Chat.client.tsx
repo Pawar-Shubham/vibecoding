@@ -20,7 +20,7 @@ import Cookies from 'js-cookie';
 import { debounce } from '~/utils/debounce';
 import { useSettings } from '~/lib/hooks/useSettings';
 import type { ProviderInfo } from '~/types/model';
-import { useSearchParams } from '@remix-run/react';
+import { useSearchParams, useLocation } from '@remix-run/react';
 import { createSampler } from '~/utils/sampler';
 import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
 import { logStore } from '~/lib/stores/logs';
@@ -29,6 +29,11 @@ import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { AuthModal } from '../auth/AuthModal';
+// LoadingScreen and useMinimumLoadingTime temporarily disabled due to import issues
+// import { LoadingScreen } from '../ui/LoadingScreen';
+// import { useMinimumLoadingTime } from '~/lib/hooks/useMinimumLoadingTime';
+// Navigation loading functionality temporarily disabled due to import issues
+// import { stopNavigationLoading } from '~/lib/stores/navigation';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -42,21 +47,55 @@ export function Chat() {
 
   const { ready, initialMessages, storeMessageHistory, importChat, exportChat } = useChatHistory();
   const title = useStore(description);
+  const location = useLocation();
+  
   useEffect(() => {
     workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
   }, [initialMessages]);
 
+  // Stop navigation loading when chat is ready
+  useEffect(() => {
+    if (ready) {
+      // Use window event to communicate with root loading system
+      window.dispatchEvent(new CustomEvent('stop-navigation-loading'));
+    }
+  }, [ready]);
+
+  // Don't show local loading - let root.tsx handle all loading
+  // Just return null if not ready, so root loading screen stays visible
+  if (!ready) {
+    return null;
+  }
+  
+  // If we're on a chat URL but have no messages and ready is true, show a fallback
+  if (ready && location.pathname.startsWith('/chat/') && initialMessages.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <div className="text-center">
+          <p className="text-lg font-medium text-gray-900 dark:text-white">Chat not found</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            This chat may have been deleted or you may not have access to it.
+          </p>
+          <button
+            onClick={() => window.location.href = '/'}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Go to Homepage
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
-      {ready && (
-        <ChatImpl
-          description={title}
-          initialMessages={initialMessages}
-          exportChat={exportChat}
-          storeMessageHistory={storeMessageHistory}
-          importChat={importChat}
-        />
-      )}
+      <ChatImpl
+        description={title}
+        initialMessages={initialMessages}
+        exportChat={exportChat}
+        storeMessageHistory={storeMessageHistory}
+        importChat={importChat}
+      />
       <ToastContainer
         closeButton={({ closeToast }) => {
           return (
@@ -250,9 +289,16 @@ export const ChatImpl = memo(
         setChatStarted(false);
         chatStore.setKey('started', false);
         setMessages([]);
-        // Reset UI to show intro
-        animate('#intro', { opacity: 1, flex: 0, y: 0 }, { duration: 0.2 });
-        animate('#examples', { opacity: 1, display: 'flex', y: 0 }, { duration: 0.2 });
+        // Reset UI to show intro - check if elements exist first
+        const introElement = document.querySelector('#intro');
+        const examplesElement = document.querySelector('#examples');
+        
+        if (introElement) {
+          animate('#intro', { opacity: 1, flex: 0, y: 0 }, { duration: 0.2 });
+        }
+        if (examplesElement) {
+          animate('#examples', { opacity: 1, display: 'flex', y: 0 }, { duration: 0.2 });
+        }
         // Clear workbench state
         workbenchStore.resetAllFileModifications();
         workbenchStore.setDocuments({});
@@ -297,6 +343,62 @@ export const ChatImpl = memo(
       });
     }, [messages, isLoading, parseMessages]);
 
+    // Handle browser navigation (back/forward) and ensure proper state management
+    useEffect(() => {
+      const handlePopState = (event: PopStateEvent) => {
+        const currentPath = window.location.pathname;
+        console.log('Navigation detected:', currentPath);
+        
+        // If navigating back to the homepage, reset chat state
+        if (currentPath === '/') {
+          console.log('Resetting chat state for homepage navigation');
+          setChatStarted(false);
+          chatStore.setKey('started', false);
+          // Reset messages if we have active messages
+          if (messages.length > 0) {
+            setMessages([]);
+          }
+          // Clear any ongoing operations
+          if (isLoading) {
+            stop();
+          }
+          // Clear input and cookies
+          setInput('');
+          Cookies.remove(PROMPT_COOKIE_KEY);
+          // Reset file uploads
+          setUploadedFiles([]);
+          setImageDataList([]);
+          // Clear workbench state
+          workbenchStore.resetAllFileModifications();
+          workbenchStore.setDocuments({});
+          workbenchStore.clearAlert();
+          workbenchStore.clearSupabaseAlert();
+          workbenchStore.clearDeployAlert();
+        }
+      };
+
+      // Listen for browser navigation events
+      window.addEventListener('popstate', handlePopState);
+
+      // Handle initial page load for chat URLs - detect reload scenarios
+      const currentPath = window.location.pathname;
+      if (currentPath.startsWith('/chat/') && initialMessages.length === 0) {
+        console.log('Chat URL detected on reload:', currentPath);
+        
+        // Extract chat ID from URL
+        const chatId = currentPath.split('/chat/')[1];
+        if (chatId) {
+          console.log('Attempting to load chat:', chatId);
+          // Don't redirect to homepage - let the useChatHistory hook handle the loading
+          // The chat should either load successfully or show an appropriate error
+        }
+      }
+
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }, [messages.length, isLoading, initialMessages.length]);
+
     const scrollTextArea = () => {
       const textarea = textareaRef.current;
 
@@ -336,10 +438,23 @@ export const ChatImpl = memo(
         return;
       }
 
-      await Promise.all([
-        animate('#examples', { opacity: 0, display: 'none', y: 0 }, { duration: 0.1 }),
-        animate('#intro', { opacity: 0, flex: 0, y: 0 }, { duration: 0.2, ease: cubicEasingFn }),
-      ]);
+      // Check if elements exist before animating to prevent framer-motion errors
+      const examplesElement = document.querySelector('#examples');
+      const introElement = document.querySelector('#intro');
+
+      const animations = [];
+      
+      if (examplesElement) {
+        animations.push(animate('#examples', { opacity: 0, display: 'none', y: 0 }, { duration: 0.1 }));
+      }
+      
+      if (introElement) {
+        animations.push(animate('#intro', { opacity: 0, flex: 0, y: 0 }, { duration: 0.2, ease: cubicEasingFn }));
+      }
+
+      if (animations.length > 0) {
+        await Promise.all(animations);
+      }
 
       chatStore.setKey('started', true);
 
@@ -351,6 +466,18 @@ export const ChatImpl = memo(
 
       if (!messageContent?.trim()) {
         return;
+      }
+
+      // Track prompt count for feedback system
+      try {
+        if (typeof window !== 'undefined' && (window as any).incrementFeedbackPromptCount) {
+          console.log('💬 Tracking prompt for feedback system');
+          (window as any).incrementFeedbackPromptCount();
+        } else {
+          console.log('⚠️ Feedback tracking function not available yet');
+        }
+      } catch (error) {
+        console.error('Error tracking prompt for feedback:', error);
       }
 
       // Only check authentication if this is not coming from a post-auth flow

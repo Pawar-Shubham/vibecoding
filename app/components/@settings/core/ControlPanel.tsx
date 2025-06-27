@@ -172,6 +172,7 @@ export function ControlPanel({ open, onClose }: ControlPanelProps) {
             onPointerDownOutside={onClose}
             className="relative z-control-panel-content"
           >
+            <DialogTitle className="sr-only">Settings Control Panel</DialogTitle>
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}

@@ -9,6 +9,11 @@ import { Link, useNavigate } from '@remix-run/react';
 import { useStore } from '@nanostores/react';
 import { streamingState } from '~/lib/stores/streaming';
 import { toast } from 'react-toastify';
+import { sidebarStore } from '~/lib/stores/sidebar';
+// Use window events to communicate with root navigation loading
+const startNavigationLoading = () => {
+  window.dispatchEvent(new CustomEvent('start-navigation-loading'));
+};
 
 interface HistoryItemProps {
   item: ChatHistoryItem;
@@ -65,7 +70,11 @@ export function HistoryItem({
         );
         
         if (confirmNavigation) {
+          // Show loading animation immediately
+          startNavigationLoading();
           navigate(`/chat/${item.urlId}`);
+          // Close the sidebar after navigation
+          sidebarStore.set(false);
         }
         return;
       }
@@ -78,6 +87,10 @@ export function HistoryItem({
       }
 
       // Let the normal navigation happen for other cases
+      // Show loading animation immediately
+      startNavigationLoading();
+      // Close the sidebar after navigation
+      sidebarStore.set(false);
     },
     [selectionMode, item.id, item.urlId, onToggleSelection, isStreaming, isActiveChat, navigate],
   );

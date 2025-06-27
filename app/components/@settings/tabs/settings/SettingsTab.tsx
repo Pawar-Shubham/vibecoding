@@ -1,9 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useStore } from '@nanostores/react';
 import { classNames } from '~/utils/classNames';
-import { profileStore, updateProfile } from '~/lib/stores/profile';
+import { profileStore, updateProfile, initializeProfile } from '~/lib/stores/profile';
 import { toast } from 'react-toastify';
-import { debounce } from '~/utils/debounce';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { motion } from 'framer-motion';
 import { useAuth } from '~/lib/hooks/useAuth';
@@ -17,26 +16,112 @@ interface Profile {
 
 export default function SettingsTab() {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<Profile>({
-    username: user?.user_metadata?.username || '',
-    email: user?.email || '',
-    bio: user?.user_metadata?.bio || '',
-    avatar: user?.user_metadata?.avatar_url,
-  });
+  const profile = useStore(profileStore);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
-  const handleProfileUpdate = useCallback((field: keyof Profile, value: string) => {
-    setProfile(prev => ({ ...prev, [field]: value }));
+  // Safety check: Don't render if no user is authenticated
+  if (!user?.id) {
+    return (
+      <div className="max-w-2xl mx-auto p-6 text-center">
+        <div className="text-gray-500 dark:text-gray-400">
+          Please sign in to access profile settings.
+        </div>
+      </div>
+    );
+  }
+
+  // Local form state
+  const [formData, setFormData] = useState<Profile>({
+    username: profile.username || '',
+    email: profile.email || user?.email || '',
+    bio: profile.bio || '',
+    avatar: profile.avatar || '',
+  });
+
+  // Track if form has changes
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Initialize profile if not loaded
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (user?.id && (!profile.userId || profile.userId !== user.id)) {
+        console.log('Profile not loaded for current user, initializing...');
+        setIsProfileLoading(true);
+        try {
+          await initializeProfile(user.id, user.user_metadata);
+        } catch (error) {
+          console.error('Error initializing profile:', error);
+        } finally {
+          setIsProfileLoading(false);
+        }
+      } else {
+        setIsProfileLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [user?.id, profile.userId]);
+
+  // Update local state when profile store changes (e.g., from avatar upload)
+  useEffect(() => {
+    if (!profile.userId || profile.userId === user?.id) {
+      const newFormData = {
+        username: profile.username || '',
+        email: profile.email || user?.email || '',
+        bio: profile.bio || '',
+        avatar: profile.avatar || '',
+      };
+      setFormData(newFormData);
+    }
+  }, [profile, user?.email, user?.id]);
+
+  // Check for changes
+  useEffect(() => {
+    const originalData = {
+      username: profile.username || '',
+      email: profile.email || user?.email || '',
+      bio: profile.bio || '',
+      avatar: profile.avatar || '',
+    };
+
+    const hasFormChanges = 
+      formData.username !== originalData.username ||
+      formData.email !== originalData.email ||
+      formData.bio !== originalData.bio;
+
+    setHasChanges(hasFormChanges);
+  }, [formData, profile, user?.email]);
+
+  const handleInputChange = useCallback((field: keyof Profile, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   }, []);
 
-  // Create debounced update functions
-  const debouncedUpdate = useCallback(
-    debounce((field: 'username' | 'bio' | 'email', value: string) => {
-      updateProfile({ [field]: value });
-      toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated`);
-    }, 1000),
-    [],
-  );
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!hasChanges || isSaving) return;
+
+    setIsSaving(true);
+    
+    try {
+      await updateProfile({
+        username: formData.username,
+        email: formData.email,
+        bio: formData.bio,
+        avatar: formData.avatar,
+      }, user?.id);
+      
+      toast.success('Account Information Updated');
+      setHasChanges(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update account information');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -51,11 +136,19 @@ export default function SettingsTab() {
       // Convert the file to base64
       const reader = new FileReader();
 
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        updateProfile({ avatar: base64String });
-        setIsUploading(false);
-        toast.success('Profile picture updated');
+      reader.onloadend = async () => {
+        try {
+          const base64String = reader.result as string;
+          // Update the form data and save avatar immediately
+          setFormData(prev => ({ ...prev, avatar: base64String }));
+          await updateProfile({ avatar: base64String }, user?.id);
+          setIsUploading(false);
+          toast.success('Profile picture updated');
+        } catch (error) {
+          console.error('Error updating avatar:', error);
+          setIsUploading(false);
+          toast.error('Failed to update profile picture');
+        }
       };
 
       reader.onerror = () => {
@@ -71,9 +164,21 @@ export default function SettingsTab() {
     }
   };
 
+  // Show loading state while profile is being loaded
+  if (isProfileLoading) {
+    return (
+      <div className="max-w-2xl mx-auto p-6">
+        <div className="flex items-center justify-center gap-3 text-gray-600 dark:text-gray-400">
+          <div className="i-ph:spinner-gap w-6 h-6 animate-spin" />
+          Loading profile...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Personal Information Section */}
         <div>
           {/* Avatar Upload */}
@@ -90,9 +195,9 @@ export default function SettingsTab() {
                 'hover:shadow-lg hover:shadow-[#07F29C]/10',
               )}
             >
-              {profile.avatar ? (
+              {formData.avatar ? (
                 <img
-                  src={profile.avatar}
+                  src={formData.avatar}
                   alt="Profile"
                   className={classNames(
                     'w-full h-full object-cover',
@@ -147,8 +252,8 @@ export default function SettingsTab() {
                 </div>
                 <input
                   type="text"
-                  value={profile.username}
-                  onChange={(e) => handleProfileUpdate('username', e.target.value)}
+                  value={formData.username}
+                  onChange={(e) => handleInputChange('username', e.target.value)}
                   className={classNames(
                     'w-full pl-11 pr-4 py-2.5 rounded-xl',
                     'bg-white dark:bg-gray-800/50',
@@ -172,8 +277,8 @@ export default function SettingsTab() {
                 </div>
                 <input
                   type="email"
-                  value={profile.email}
-                  onChange={(e) => handleProfileUpdate('email', e.target.value)}
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
                   className={classNames(
                     'w-full pl-11 pr-4 py-2.5 rounded-xl',
                     'bg-white dark:bg-gray-800/50',
@@ -197,8 +302,8 @@ export default function SettingsTab() {
                 <div className="i-ph:text-aa w-5 h-5 text-gray-400 dark:text-gray-500 transition-colors group-focus-within:text-[#07F29C]" />
               </div>
               <textarea
-                value={profile.bio}
-                onChange={(e) => handleProfileUpdate('bio', e.target.value)}
+                value={formData.bio}
+                onChange={(e) => handleInputChange('bio', e.target.value)}
                 className={classNames(
                   'w-full pl-11 pr-4 py-2.5 rounded-xl',
                   'bg-white dark:bg-gray-800/50',
@@ -215,42 +320,54 @@ export default function SettingsTab() {
             </div>
           </div>
 
-          {/* Theme Switch Section */}
-          <motion.div
-            className={classNames(
-              'group relative p-4 rounded-lg transition-all duration-200',
-              'bg-bolt-elements-background-depth-2',
-              'hover:bg-bolt-elements-background-depth-3',
-            )}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <motion.div
-                  className={classNames(
-                    'w-12 h-12 flex items-center justify-center rounded-xl',
-                    'bg-bolt-elements-background-depth-3',
-                    'text-[#F2E59F]',
+          {/* Submit Button */}
+          {hasChanges && (
+            <div className="mb-8">
+              <button
+                type="submit"
+                disabled={!hasChanges || isSaving}
+                className={classNames(
+                  'w-full py-2 px-4 rounded-md font-medium text-sm relative overflow-hidden',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                  'transition-all duration-300 ease-out',
+                  'focus:outline-none focus:ring-2 focus:ring-[#07F29C]/30',
+                )}
+                style={{
+                  background: 'linear-gradient(90deg, #F2E59F, #07F29C)',
+                }}
+              >
+                <div className="relative z-10 text-black">
+                  {isSaving ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="i-ph:spinner-gap w-5 h-5 animate-spin" />
+                      Saving...
+                    </div>
+                  ) : (
+                    'Save Changes'
                   )}
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                >
-                  <div className="i-ph:palette-fill w-7 h-7" />
-                </motion.div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-[#F2E59F] transition-colors">
-                      Theme
-                    </h4>
-                  </div>
-                  <p className="text-xs text-bolt-elements-textSecondary mt-0.5">
-                    Switch between light and dark mode
-                  </p>
                 </div>
-              </div>
-              <ThemeSwitch variant="switch" />
+                <div
+                  className="absolute inset-0 transition-opacity duration-500 ease-in-out opacity-0 hover:opacity-100"
+                  style={{
+                    background: 'linear-gradient(90deg, #07F29C, #F2E59F)',
+                  }}
+                />
+              </button>
             </div>
-          </motion.div>
+          )}
+
+          {/* Theme Switch Section */}
+          <div className="mb-8 p-6 bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">Theme</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Choose your preferred theme</p>
+              </div>
+              <ThemeSwitch />
+            </div>
+          </div>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
