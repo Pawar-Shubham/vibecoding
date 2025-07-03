@@ -238,7 +238,7 @@ export function ControlPanel({ open, onClose }: ControlPanelProps) {
                             "w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 transition-colors",
                             activeTab === tab
                               ? "bg-gray-200 dark:bg-[#2A2A2A] text-gray-900 dark:text-white"
-                              : "bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                              : "bg-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                           )}
                         >
                           {getTabIcon(tab)}
