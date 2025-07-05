@@ -6,6 +6,7 @@
 @use 'components/code.scss';
 @use 'components/editor.scss';
 @use 'components/toast.scss';
+@use 'components/music.scss';
 
 html,
 body {
@@ -118,18 +119,46 @@ html[data-theme='dark'] {
   scrollbar-color: var(--modern-scrollbar-thumb-backgroundHover) transparent; // Use hover color for thumb for consistency
 }
 
-// Dark mode variant
+// Dark mode variant - Updated to use dark grey instead of white
 .modern-scrollbar-dark {
   &::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(96, 96, 96, 0.4); // Dark grey instead of white
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.3);
+    background-color: rgba(96, 96, 96, 0.6); // Darker grey on hover
   }
 
   // Firefox support for dark mode
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: rgba(96, 96, 96, 0.4) transparent;
+}
+
+// New dark grey scrollbar variant specifically for sidebar
+.modern-scrollbar-dark-grey {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(64, 64, 64, 0.5); // Dark grey
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    background-clip: content-box;
+    transition: background-color 0.2s ease-in-out;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(64, 64, 64, 0.7); // Slightly darker on hover
+  }
+
+  // Firefox support
+  scrollbar-width: thin;
+  scrollbar-color: rgba(64, 64, 64, 0.5) transparent;
 }
 
 .modern-scrollbar-invert {

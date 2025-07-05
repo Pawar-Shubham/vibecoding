@@ -6,7 +6,7 @@ import { GitUrlImport } from '~/components/git/GitUrlImport.client';
 import { Header } from '~/components/header/Header';
 
 export const meta: MetaFunction = () => {
-  return [{ title: 'Bolt' }, { name: 'description', content: 'Talk with Bolt, an AI assistant from StackBlitz' }];
+  return [{ title: 'VxC' }, { name: 'description', content: 'Talk with VxC, an AI Full-Stack Developer to help you build your next project faster!' }];
 };
 
 export async function loader(args: LoaderFunctionArgs) {

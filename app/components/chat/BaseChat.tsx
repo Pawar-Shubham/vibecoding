@@ -43,6 +43,7 @@ import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
 import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
+import { YouTubePlayer } from '~/components/music';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -741,6 +742,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             )}
           </ClientOnly>
         </div>
+
+        {/* Music Player - positioned at bottom middle - only show on homepage (when no chat started) */}
+        {!chatStarted && (
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-10 w-full max-w-md px-4">
+            <ClientOnly>
+              {() => <YouTubePlayer />}
+            </ClientOnly>
+          </div>
+        )}
       </div>
     );
 

@@ -1,6 +1,7 @@
 import { motion, type Variants } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { ClientOnly } from 'remix-utils/client-only';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { Button } from '~/components/ui/Button';
@@ -21,6 +22,7 @@ import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 import { sidebarStore } from '~/lib/stores/sidebar';
 import { chatStore } from '~/lib/stores/chat';
 import { streamingState } from '~/lib/stores/streaming';
+import { YouTubePlayer } from '~/components/music';
 // Use window events to communicate with root navigation loading
 const startNavigationLoading = () => {
   window.dispatchEvent(new CustomEvent('start-navigation-loading'));
@@ -529,7 +531,7 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
         </div>
 
         {/* Chat List */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto modern-scrollbar-dark-grey">
           <div className="flex items-center justify-between text-sm px-5 py-2">
             <div className="font-medium text-gray-600 dark:text-gray-400">Your Chats</div>
           </div>
@@ -566,6 +568,13 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Music Player Section */}
+        <div className="border-t border-gray-200 dark:border-[#2a2a2a] p-3">
+          <ClientOnly>
+            {() => <YouTubePlayer compact={true} sidebarMode={true} />}
+          </ClientOnly>
         </div>
 
         {/* Footer */}
