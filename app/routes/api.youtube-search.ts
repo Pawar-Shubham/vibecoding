@@ -1,14 +1,8 @@
 import type { ActionFunctionArgs } from '@remix-run/cloudflare';
 import { json } from '@remix-run/cloudflare';
-import { google } from 'googleapis';
 
 const YOUTUBE_API_KEY = 'AIzaSyAL6oiTLhhj1LCpWA2oyU3WoL1IS3FQZkY';
-
-// Initialize YouTube API client
-const youtube = google.youtube({
-  version: 'v3',
-  auth: YOUTUBE_API_KEY
-});
+const YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3';
 
 // Helper function to parse ISO 8601 duration to seconds
 function parseDuration(duration: string): number {
@@ -36,18 +30,21 @@ export async function action({ request }: ActionFunctionArgs) {
 
     console.log('Searching YouTube for:', query);
 
-    // Search for videos
-    const searchResponse = await youtube.search.list({
-      part: ['snippet'],
-      q: query,
-      type: ['video'],
-      maxResults: 10,
-      order: 'relevance',
-      videoCategoryId: '10', // Music category
-      safeSearch: 'moderate'
-    });
+    // Search for videos using fetch
+    const searchUrl = new URL(`${YOUTUBE_API_BASE_URL}/search`);
+    searchUrl.searchParams.set('part', 'snippet');
+    searchUrl.searchParams.set('q', query);
+    searchUrl.searchParams.set('type', 'video');
+    searchUrl.searchParams.set('maxResults', '10');
+    searchUrl.searchParams.set('order', 'relevance');
+    searchUrl.searchParams.set('videoCategoryId', '10'); // Music category
+    searchUrl.searchParams.set('safeSearch', 'moderate');
+    searchUrl.searchParams.set('key', YOUTUBE_API_KEY);
 
-    if (!searchResponse.data.items || searchResponse.data.items.length === 0) {
+    const searchResponse = await fetch(searchUrl.toString());
+    const searchData = await searchResponse.json();
+
+    if (!searchData.items || searchData.items.length === 0) {
       return json({ 
         results: [],
         query,
@@ -56,20 +53,23 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     // Get video IDs for duration lookup
-    const videoIds = searchResponse.data.items
-      .map(item => item.id?.videoId)
-      .filter(Boolean) as string[];
+    const videoIds = searchData.items
+      .map((item: any) => item.id?.videoId)
+      .filter(Boolean);
 
-    // Get video details for duration
-    const detailsResponse = await youtube.videos.list({
-      part: ['contentDetails'],
-      id: videoIds
-    });
+    // Get video details for duration using fetch
+    const detailsUrl = new URL(`${YOUTUBE_API_BASE_URL}/videos`);
+    detailsUrl.searchParams.set('part', 'contentDetails');
+    detailsUrl.searchParams.set('id', videoIds.join(','));
+    detailsUrl.searchParams.set('key', YOUTUBE_API_KEY);
+
+    const detailsResponse = await fetch(detailsUrl.toString());
+    const detailsData = await detailsResponse.json();
 
     // Process results
-    const results = searchResponse.data.items.map((item, index) => {
+    const results = searchData.items.map((item: any, index: number) => {
       const videoId = item.id?.videoId;
-      const duration = detailsResponse.data.items?.[index]?.contentDetails?.duration;
+      const duration = detailsData.items?.[index]?.contentDetails?.duration;
       const durationInSeconds = duration ? parseDuration(duration) : 0;
 
       return {
@@ -81,8 +81,6 @@ export async function action({ request }: ActionFunctionArgs) {
                   item.snippet?.thumbnails?.default?.url || 
                   `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
         duration: durationInSeconds,
-        // Note: This is the YouTube video URL, not direct audio
-        // For audio-only playback, you'd need additional processing
         url: `https://www.youtube.com/watch?v=${videoId}`,
         youtubeId: videoId,
         publishedAt: item.snippet?.publishedAt,
@@ -96,7 +94,7 @@ export async function action({ request }: ActionFunctionArgs) {
       results,
       query,
       timestamp: new Date().toISOString(),
-      totalResults: searchResponse.data.pageInfo?.totalResults || 0
+      totalResults: searchData.pageInfo?.totalResults || 0
     });
 
   } catch (error) {
