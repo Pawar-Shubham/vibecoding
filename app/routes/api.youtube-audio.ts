@@ -14,162 +14,285 @@ interface AudioExtractionResult {
   debug?: any;
 }
 
-// Alternative approach for environments that don't support child_process
-async function extractAudioUrlFallback(youtubeUrl: string): Promise<AudioExtractionResult> {
+// Four-tier fallback system for audio extraction
+async function extractAudioUrlTier1(videoId: string): Promise<AudioExtractionResult> {
   try {
-    // Use a third-party API or service for YouTube audio extraction
-    // This is a placeholder - you would integrate with services like:
-    // - RapidAPI YouTube services
-    // - Custom microservice with yt-dlp
-    // - YouTube-DL web services
+    console.log('Tier 1: Trying yt1s.com API');
     
-    const videoId = youtubeUrl.split('v=')[1]?.split('&')[0];
+    const response = await fetch('https://yt1s.com/api/ajaxSearch/index', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Origin': 'https://yt1s.com',
+        'Referer': 'https://yt1s.com/',
+      },
+      body: `q=https://www.youtube.com/watch?v=${videoId}&vt=mp3`
+    });
+
+    if (!response.ok) {
+      throw new Error(`yt1s.com API failed: ${response.status}`);
+    }
+
+    const data = await response.json();
     
-    // For now, we'll return a demo response indicating the need for setup
-    return {
-      success: false,
-      error: 'YouTube audio extraction requires additional setup. Please configure yt-dlp or use a microservice.',
-      debug: { method: 'fallback', videoId }
-    };
+    if (data.status === 'ok' && data.links && data.links.mp3) {
+      const mp3Links = data.links.mp3;
+      const bestQuality = mp3Links['mp3128'] || mp3Links['mp3320'] || Object.values(mp3Links)[0];
+      
+      if (bestQuality && bestQuality.url) {
+        return {
+          success: true,
+          audioUrl: bestQuality.url,
+          title: data.title,
+          duration: data.t,
+          debug: { method: 'yt1s.com', tier: 1 }
+        };
+      }
+    }
+    
+    throw new Error('No audio URL found in yt1s.com response');
   } catch (error) {
+    console.log('Tier 1 failed:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Extraction failed',
-      debug: { method: 'fallback', error: error?.toString() }
+      error: error instanceof Error ? error.message : 'Tier 1 extraction failed',
+      debug: { method: 'yt1s.com', tier: 1, error: error?.toString() }
     };
   }
 }
 
-async function extractAudioUrl(youtubeUrl: string): Promise<AudioExtractionResult> {
+async function extractAudioUrlTier2(videoId: string): Promise<AudioExtractionResult> {
   try {
+    console.log('Tier 2: Trying y2mate.com API');
+    
+    // First, get the video info
+    const infoResponse = await fetch('https://www.y2mate.com/mates/analyzeV2/ajax', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Origin': 'https://www.y2mate.com',
+        'Referer': 'https://www.y2mate.com/',
+      },
+      body: `k_query=https://www.youtube.com/watch?v=${videoId}&k_page=home&hl=en&q_auto=0`
+    });
+
+    if (!infoResponse.ok) {
+      throw new Error(`y2mate.com info API failed: ${infoResponse.status}`);
+    }
+
+    const infoData = await infoResponse.json();
+    
+    if (infoData.status === 'ok' && infoData.links && infoData.links.mp3) {
+      const mp3Links = infoData.links.mp3;
+      const bestQuality = mp3Links['mp3128'] || mp3Links['mp3320'] || Object.values(mp3Links)[0];
+      
+      if (bestQuality && bestQuality.k) {
+        // Convert the video
+        const convertResponse = await fetch('https://www.y2mate.com/mates/convertV2/index', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Origin': 'https://www.y2mate.com',
+            'Referer': 'https://www.y2mate.com/',
+          },
+          body: `vid=${videoId}&k=${bestQuality.k}`
+        });
+
+        if (convertResponse.ok) {
+          const convertData = await convertResponse.json();
+          
+          if (convertData.status === 'ok' && convertData.dlink) {
+            return {
+              success: true,
+              audioUrl: convertData.dlink,
+              title: infoData.title,
+              duration: infoData.t,
+              debug: { method: 'y2mate.com', tier: 2 }
+            };
+          }
+        }
+      }
+    }
+    
+    throw new Error('No audio URL found in y2mate.com response');
+  } catch (error) {
+    console.log('Tier 2 failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Tier 2 extraction failed',
+      debug: { method: 'y2mate.com', tier: 2, error: error?.toString() }
+    };
+  }
+}
+
+async function extractAudioUrlTier3(videoId: string): Promise<AudioExtractionResult> {
+  try {
+    console.log('Tier 3: Trying YouTube internal API');
+    
+    // Get video info from YouTube's internal API
+    const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`YouTube page fetch failed: ${response.status}`);
+    }
+
+    const html = await response.text();
+    
+    // Extract player response from HTML
+    const playerResponseMatch = html.match(/var ytInitialPlayerResponse = ({.+?});/);
+    if (!playerResponseMatch) {
+      throw new Error('Could not find player response in YouTube HTML');
+    }
+
+    const playerResponse = JSON.parse(playerResponseMatch[1]);
+    const streamingData = playerResponse.streamingData;
+    
+    if (!streamingData) {
+      throw new Error('No streaming data found in player response');
+    }
+
+    // Look for audio-only formats
+    const audioFormats = streamingData.adaptiveFormats?.filter((format: any) => 
+      format.mimeType?.includes('audio/') && format.url
+    ) || [];
+
+    if (audioFormats.length > 0) {
+      // Prefer WebM audio formats, then MP4
+      const webmFormat = audioFormats.find((f: any) => f.mimeType.includes('audio/webm'));
+      const mp4Format = audioFormats.find((f: any) => f.mimeType.includes('audio/mp4'));
+      const bestFormat = webmFormat || mp4Format || audioFormats[0];
+
+      return {
+        success: true,
+        audioUrl: bestFormat.url,
+        title: playerResponse.videoDetails?.title,
+        duration: parseInt(playerResponse.videoDetails?.lengthSeconds || '0'),
+        debug: { method: 'youtube-internal', tier: 3, format: bestFormat.mimeType }
+      };
+    }
+
+    throw new Error('No audio formats found in streaming data');
+  } catch (error) {
+    console.log('Tier 3 failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Tier 3 extraction failed',
+      debug: { method: 'youtube-internal', tier: 3, error: error?.toString() }
+    };
+  }
+}
+
+async function extractAudioUrlTier4(videoId: string): Promise<AudioExtractionResult> {
+  try {
+    console.log('Tier 4: Trying local yt-dlp (fallback)');
+    
+    // This tier would use yt-dlp if available (for local development)
+    // In production (Cloudflare), this will always fail as expected
+    if (typeof process === 'undefined' || !process.versions?.node) {
+      throw new Error('yt-dlp not available in serverless environment');
+    }
+
     const { spawn } = await import('child_process');
     
     return new Promise((resolve) => {
-      console.log('Starting yt-dlp extraction for:', youtubeUrl);
-      
-      // Use simpler format selection that works with current YouTube formats
       const ytDlp = spawn('yt-dlp', [
         '--format', 'bestaudio',
         '--extract-audio',
         '--audio-format', 'mp3',
-        '--audio-quality', '0',
-        '--get-title',
-        '--get-duration',
         '--get-url',
         '--no-warnings',
-        '--no-playlist',
-        '--no-check-certificate',
-        '--prefer-free-formats',
-        '--force-generic-extractor', // Bypass format-specific extractors
-        '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        youtubeUrl
-      ], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        shell: false
-      });
+        `https://www.youtube.com/watch?v=${videoId}`
+      ]);
 
       let output = '';
       let error = '';
-      let hasResolved = false;
 
       ytDlp.stdout.on('data', (data) => {
-        const chunk = data.toString();
-        output += chunk;
-        console.log('yt-dlp stdout chunk:', chunk);
+        output += data.toString();
       });
 
       ytDlp.stderr.on('data', (data) => {
-        const chunk = data.toString();
-        error += chunk;
-        console.log('yt-dlp stderr chunk:', chunk);
+        error += data.toString();
       });
 
       ytDlp.on('close', (code) => {
-        if (hasResolved) return;
-        hasResolved = true;
-        
-        console.log('yt-dlp finished with code:', code);
-        console.log('Full output:', output);
-        console.log('Full error:', error);
-        
         if (code === 0 && output.trim()) {
-          const lines = output.trim().split('\n').filter(line => line.trim());
-          console.log('yt-dlp output lines:', lines);
-          
-          if (lines.length >= 3) {
-            const title = lines[0];
-            const audioUrl = lines[1]; 
-            const duration = lines[2];
-            
-            console.log('Parsed data:', { 
-              title, 
-              duration, 
-              audioUrl: audioUrl?.substring(0, 100) + '...',
-              urlValid: audioUrl && (audioUrl.startsWith('http') || audioUrl.startsWith('https'))
-            });
-            
-            if (audioUrl && (audioUrl.startsWith('http') || audioUrl.startsWith('https'))) {
-              resolve({
-                success: true,
-                audioUrl: audioUrl.trim(),
-                title: title?.trim(),
-                duration: parseDuration(duration),
-                debug: { lines, method: 'yt-dlp' }
-              });
-            } else {
-              console.error('Invalid URL extracted:', { audioUrl, lines });
-              resolve({
-                success: false,
-                error: `Invalid audio URL extracted. Got: ${audioUrl || 'undefined'}`,
-                debug: { lines, audioUrl, method: 'yt-dlp' }
-              });
-            }
-          } else {
-            resolve({
-              success: false,
-              error: `Insufficient output from yt-dlp. Expected 3 lines, got ${lines.length}`,
-              debug: { lines, output, method: 'yt-dlp' }
-            });
-          }
+          const audioUrl = output.trim().split('\n')[0];
+          resolve({
+            success: true,
+            audioUrl,
+            debug: { method: 'yt-dlp', tier: 4 }
+          });
         } else {
-          console.error('yt-dlp failed with code:', code, 'error:', error);
           resolve({
             success: false,
             error: error || `yt-dlp exited with code ${code}`,
-            debug: { code, error, output, method: 'yt-dlp' }
+            debug: { method: 'yt-dlp', tier: 4, code, error }
           });
         }
       });
 
       ytDlp.on('error', (err) => {
-        if (hasResolved) return;
-        hasResolved = true;
-        
-        console.error('yt-dlp spawn error:', err);
         resolve({
           success: false,
-          error: 'yt-dlp not available or failed to start. Please ensure yt-dlp is installed.',
-          debug: { spawnError: err.toString(), method: 'yt-dlp' }
+          error: 'yt-dlp not available or failed to start',
+          debug: { method: 'yt-dlp', tier: 4, spawnError: err.toString() }
         });
       });
-
-      // Timeout after 30 seconds
-      setTimeout(() => {
-        if (hasResolved) return;
-        hasResolved = true;
-        
-        ytDlp.kill();
-        resolve({
-          success: false,
-          error: 'Audio extraction timed out',
-          debug: { timeout: true, method: 'yt-dlp' }
-        });
-      }, 30000);
     });
-  } catch (importError) {
-    console.log('child_process not available, using fallback method');
-    return extractAudioUrlFallback(youtubeUrl);
+  } catch (error) {
+    console.log('Tier 4 failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Tier 4 extraction failed',
+      debug: { method: 'yt-dlp', tier: 4, error: error?.toString() }
+    };
   }
+}
+
+async function extractAudioUrl(youtubeUrl: string): Promise<AudioExtractionResult> {
+  const videoId = youtubeUrl.split('v=')[1]?.split('&')[0];
+  
+  if (!videoId) {
+    return {
+      success: false,
+      error: 'Invalid YouTube URL',
+      debug: { url: youtubeUrl }
+    };
+  }
+
+  // Try each tier in sequence
+  const tiers = [
+    extractAudioUrlTier1,
+    extractAudioUrlTier2,
+    extractAudioUrlTier3,
+    extractAudioUrlTier4
+  ];
+
+  for (let i = 0; i < tiers.length; i++) {
+    try {
+      const result = await tiers[i](videoId);
+      if (result.success) {
+        console.log(`Successfully extracted audio using tier ${i + 1}`);
+        return result;
+      }
+    } catch (error) {
+      console.log(`Tier ${i + 1} failed:`, error);
+    }
+  }
+
+  return {
+    success: false,
+    error: 'All extraction methods failed',
+    debug: { videoId, allTiersFailed: true }
+  };
 }
 
 function parseDuration(durationStr: string): number {
@@ -249,15 +372,15 @@ export async function action({ request }: ActionFunctionArgs) {
       return json({
         success: true,
         audioUrl: cached.url,
-        proxiedUrl: `/api/youtube-audio?proxy=true&videoId=${videoId}`, // Alternative proxy URL
+        proxiedUrl: `/api/youtube-audio?proxy=true&videoId=${videoId}`,
         cached: true,
         videoId
       });
     }
 
-    console.log('Extracting audio URL for:', fullUrl);
+    console.log('Extracting audio URL using four-tier fallback system for:', fullUrl);
 
-    // Extract audio URL using yt-dlp
+    // Extract audio URL using four-tier fallback system
     const result = await extractAudioUrl(fullUrl);
 
     if (result.success && result.audioUrl) {
@@ -271,7 +394,7 @@ export async function action({ request }: ActionFunctionArgs) {
       return json({
         success: true,
         audioUrl: result.audioUrl,
-        proxiedUrl: `/api/youtube-audio?proxy=true&videoId=${videoId}`, // Alternative proxy URL
+        proxiedUrl: `/api/youtube-audio?proxy=true&videoId=${videoId}`,
         title: result.title,
         duration: result.duration,
         videoId,
