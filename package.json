@@ -122,7 +122,6 @@
     "electron-updater": "^6.3.9",
     "file-saver": "^2.0.5",
     "framer-motion": "^11.12.0",
-    "googleapis": "^150.0.1",
     "hls.js": "^1.6.6",
     "ignore": "^6.0.2",
     "isbot": "^4.4.0",
