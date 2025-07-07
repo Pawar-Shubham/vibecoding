@@ -1,4 +1,3 @@
-# Development stage named bolt-ai-development
 FROM node:20.18.0 AS bolt-ai-development
 
 ENV NODE_OPTIONS="--max-old-space-size=4096"
@@ -16,6 +15,6 @@ COPY . .
 ENV RUNNING_IN_DOCKER=true \
     VITE_LOG_LEVEL=debug
 
-EXPOSE 5173
+EXPOSE 3000
 
 CMD ["pnpm", "run", "deploy", "--host", "0.0.0.0"]
