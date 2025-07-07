@@ -20,7 +20,7 @@ import globalStyles from './styles/index.scss?url';
 import authModalStyles from './styles/auth-modal.css?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
-import 'virtual:uno.css';
+import 'virtual:uno.css'; 
 
 // Inline navigation store to avoid import issues
 const navigationLoading = atom<boolean>(false);

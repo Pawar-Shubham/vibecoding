@@ -161,6 +161,25 @@ export async function getTemplates(templateName: string, title?: string) {
   // exclude    .bolt
   filteredFiles = filteredFiles.filter((x) => x.path.startsWith('.bolt') == false);
 
+  // Replace "Bolt.new" with "VxC" in HTML files
+  filteredFiles = filteredFiles.map((file) => {
+    if (file.name.endsWith('.html') || file.path.endsWith('.html')) {
+      const updatedContent = file.content
+        .replace(/Bolt\.new/g, 'VxC')
+        .replace(/Bolt new/g, 'VxC')
+        .replace(/bolt\.new/g, 'VxC')
+        .replace(/bolt new/g, 'VxC')
+        .replace(/BOLT\.NEW/g, 'VxC')
+        .replace(/BOLT NEW/g, 'VxC');
+      
+      return {
+        ...file,
+        content: updatedContent
+      };
+    }
+    return file;
+  });
+
   // check for ignore file in .bolt folder
   const templateIgnoreFile = files.find((x) => x.path.startsWith('.bolt') && x.name == 'ignore');
 
@@ -182,7 +201,7 @@ export async function getTemplates(templateName: string, title?: string) {
   }
 
   const assistantMessage = `
-Bolt is initializing your project with the required files using the ${template.name} template.
+VxC is initializing your project with the required files using the ${template.name} template.
 <boltArtifact id="imported-files" title="${title || 'Create initial files'}" type="bundled">
 ${filesToImport.files
   .map(
