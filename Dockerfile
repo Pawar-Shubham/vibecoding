@@ -4,6 +4,8 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y curl wget git
+
 RUN git config --global --add safe.directory /app
 
 COPY package.json pnpm-lock.yaml ./
@@ -13,7 +15,6 @@ RUN npm install -g pnpm && \
     CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
 
 COPY . .
-
 
 EXPOSE 3000
 
