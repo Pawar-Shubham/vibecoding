@@ -1,11 +1,10 @@
-
 FROM node:20.18.0 AS bolt-ai-development
 
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 WORKDIR /app
 
-
+# Fix Git ownership warning
 RUN git config --global --add safe.directory /app
 
 COPY package.json pnpm-lock.yaml ./
@@ -16,10 +15,11 @@ RUN npm install -g pnpm && \
 
 COPY . .
 
+# Force Vite to use port 5173
 ENV RUNNING_IN_DOCKER=true \
-    VITE_LOG_LEVEL=debug
+    VITE_LOG_LEVEL=debug \
+    VITE_PORT=5173
 
 EXPOSE 5173
 
 CMD ["pnpm", "run", "deploy", "--port", "5173", "--host", "0.0.0.0"]
-
