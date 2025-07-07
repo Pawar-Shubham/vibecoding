@@ -36,5 +36,5 @@ services:
       - .:/app:cached
       - /app/node_modules
     ports:
-      - '5173:5173'
+      - '3000:3000'
     command: pnpm run dev --host 0.0.0.0
