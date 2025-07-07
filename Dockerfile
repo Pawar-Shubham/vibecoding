@@ -18,4 +18,4 @@ ENV RUNNING_IN_DOCKER=true \
 
 EXPOSE 5173
 
-CMD ["pnpm", "run", "dev", "--host", "0.0.0.0"]
+CMD ["pnpm", "run", "deploy", "--host", "0.0.0.0"]
