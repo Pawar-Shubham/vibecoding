@@ -4,7 +4,7 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y curl wget git
+RUN apt-get update && apt-get install -y iputils-ping dnsutils curl wget git
 
 RUN git config --global --add safe.directory /app
 
