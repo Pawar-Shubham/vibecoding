@@ -2,25 +2,25 @@
  * @ts-nocheck
  * Preventing TS checks with files presented in the video for a better presentation.
  */
-import type { JSONValue, Message } from 'ai';
-import React, { type RefCallback, useEffect, useState } from 'react';
-import { ClientOnly } from 'remix-utils/client-only';
-import { Menu } from '~/components/sidebar/Menu.client';
-import { IconButton } from '~/components/ui/IconButton';
-import { Workbench } from '~/components/workbench/Workbench.client';
-import { classNames } from '~/utils/classNames';
-import { PROVIDER_LIST } from '~/utils/constants';
-import { Messages } from './Messages.client';
-import { SendButton } from './SendButton.client';
-import { APIKeyManager, getApiKeysFromCookies } from './APIKeyManager';
-import Cookies from 'js-cookie';
-import * as Tooltip from '@radix-ui/react-tooltip';
+import type { JSONValue, Message } from "ai";
+import React, { type RefCallback, useEffect, useState } from "react";
+import { ClientOnly } from "remix-utils/client-only";
+import { Menu } from "~/components/sidebar/Menu.client";
+import { IconButton } from "~/components/ui/IconButton";
+import { Workbench } from "~/components/workbench/Workbench.client";
+import { classNames } from "~/utils/classNames";
+import { PROVIDER_LIST } from "~/utils/constants";
+import { Messages } from "./Messages.client";
+import { SendButton } from "./SendButton.client";
+import { APIKeyManager, getApiKeysFromCookies } from "./APIKeyManager";
+import Cookies from "js-cookie";
+import * as Tooltip from "@radix-ui/react-tooltip";
 
-import styles from './BaseChat.module.scss';
-import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportChatButton';
-import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
-import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
-import GitCloneButton from './GitCloneButton';
+import styles from "./BaseChat.module.scss";
+import { ExportChatButton } from "~/components/chat/chatExportAndImport/ExportChatButton";
+import { ImportButtons } from "~/components/chat/chatExportAndImport/ImportButtons";
+import { ExamplePrompts } from "~/components/chat/ExamplePrompts";
+import GitCloneButton from "./GitCloneButton";
 
 import FilePreview from './FilePreview';
 import { ModelSelector } from '~/components/chat/ModelSelector';
@@ -99,7 +99,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       provider,
       setProvider,
       providerList,
-      input = '',
+      input = "",
       enhancingPrompt,
       handleInputChange,
       enhancePrompt,
@@ -122,17 +122,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       actionRunner,
       auth,
     },
-    ref,
+    ref
   ) => {
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
-    const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
+    const [apiKeys, setApiKeys] = useState<Record<string, string>>(
+      getApiKeysFromCookies()
+    );
     const [modelList, setModelList] = useState<ModelInfo[]>([]);
-    const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(true);
+    const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] =
+      useState(true);
     const [isListening, setIsListening] = useState(false);
-    const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-    const [transcript, setTranscript] = useState('');
-    const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
-    const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
+    const [recognition, setRecognition] = useState<SpeechRecognition | null>(
+      null
+    );
+    const [transcript, setTranscript] = useState("");
+    const [isModelLoading, setIsModelLoading] = useState<string | undefined>(
+      "all"
+    );
+    const [progressAnnotations, setProgressAnnotations] = useState<
+      ProgressAnnotation[]
+    >([]);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
 
@@ -145,7 +154,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     useEffect(() => {
       if (data) {
         const progressList = data.filter(
-          (x) => typeof x === 'object' && (x as any).type === 'progress',
+          (x) => typeof x === "object" && (x as any).type === "progress"
         ) as ProgressAnnotation[];
         setProgressAnnotations(progressList);
       }
@@ -159,8 +168,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [isStreaming, onStreamingChange]);
 
     useEffect(() => {
-      if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (
+        typeof window !== "undefined" &&
+        ("SpeechRecognition" in window || "webkitSpeechRecognition" in window)
+      ) {
+        const SpeechRecognition =
+          window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
@@ -169,7 +182,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           const transcript = Array.from(event.results)
             .map((result) => result[0])
             .map((result) => result.transcript)
-            .join('');
+            .join("");
 
           setTranscript(transcript);
 
@@ -182,7 +195,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         };
 
         recognition.onerror = (event) => {
-          console.error('Speech recognition error:', event.error);
+          console.error("Speech recognition error:", event.error);
           setIsListening(false);
         };
 
@@ -191,26 +204,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, []);
 
     useEffect(() => {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         let parsedApiKeys: Record<string, string> | undefined = {};
 
         try {
           parsedApiKeys = getApiKeysFromCookies();
           setApiKeys(parsedApiKeys);
         } catch (error) {
-          console.error('Error loading API keys from cookies:', error);
-          Cookies.remove('apiKeys');
+          console.error("Error loading API keys from cookies:", error);
+          Cookies.remove("apiKeys");
         }
 
-        setIsModelLoading('all');
-        fetch('/api/models')
+        setIsModelLoading("all");
+        fetch("/api/models")
           .then((response) => response.json())
           .then((data) => {
             const typedData = data as { modelList: ModelInfo[] };
             setModelList(typedData.modelList);
           })
           .catch((error) => {
-            console.error('Error fetching model list:', error);
+            console.error("Error fetching model list:", error);
           })
           .finally(() => {
             setIsModelLoading(undefined);
@@ -221,23 +234,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const onApiKeysChange = async (providerName: string, apiKey: string) => {
       const newApiKeys = { ...apiKeys, [providerName]: apiKey };
       setApiKeys(newApiKeys);
-      Cookies.set('apiKeys', JSON.stringify(newApiKeys));
+      Cookies.set("apiKeys", JSON.stringify(newApiKeys));
 
       setIsModelLoading(providerName);
 
       let providerModels: ModelInfo[] = [];
 
       try {
-        const response = await fetch(`/api/models/${encodeURIComponent(providerName)}`);
+        const response = await fetch(
+          `/api/models/${encodeURIComponent(providerName)}`
+        );
         const data = await response.json();
         providerModels = (data as { modelList: ModelInfo[] }).modelList;
       } catch (error) {
-        console.error('Error loading dynamic models for:', providerName, error);
+        console.error("Error loading dynamic models for:", providerName, error);
       }
 
       // Only update models for the specific provider
       setModelList((prevModels) => {
-        const otherModels = prevModels.filter((model) => model.provider !== providerName);
+        const otherModels = prevModels.filter(
+          (model) => model.provider !== providerName
+        );
         return [...otherModels, ...providerModels];
       });
       setIsModelLoading(undefined);
@@ -262,9 +279,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         const finalInput = messageInput || input;
         if (!auth) {
           // Store the prompt text in a cookie
-          Cookies.set('pending_prompt', finalInput);
+          Cookies.set("pending_prompt", finalInput);
           // Show auth modal
-          const event = new CustomEvent('open-auth-modal');
+          const event = new CustomEvent("open-auth-modal");
           window.dispatchEvent(event);
           return;
         }
@@ -278,13 +295,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         if (recognition) {
           recognition.abort(); // Stop current recognition
-          setTranscript(''); // Clear transcript
+          setTranscript(""); // Clear transcript
           setIsListening(false);
 
           // Clear the input by triggering handleInputChange with empty value
           if (handleInputChange) {
             const syntheticEvent = {
-              target: { value: '' },
+              target: { value: "" },
             } as React.ChangeEvent<HTMLTextAreaElement>;
             handleInputChange(syntheticEvent);
           }
@@ -293,9 +310,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     };
 
     const handleFileUpload = () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
 
       input.onchange = async (e) => {
         const file = (e.target as HTMLInputElement).files?.[0];
@@ -323,7 +340,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       for (const item of items) {
-        if (item.type.startsWith('image/')) {
+        if (item.type.startsWith("image/")) {
           e.preventDefault();
 
           const file = item.getAsFile();
@@ -347,32 +364,38 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const baseChat = (
       <div
         ref={ref}
-        className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden')}
+        className={classNames(
+          styles.BaseChat,
+          "relative flex h-full w-full overflow-hidden"
+        )}
         data-chat-visible={showChat}
       >
         <div className="fixed inset-0 w-screen h-screen pointer-events-none overflow-hidden -z-[1]">
-          <div 
+          <div
             className="absolute rounded-[50%] blur-[150px] mix-blend-soft-light"
             style={{
-              width: '800px',
-              height: '800px',
-              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, rgba(7, 242, 156, 0.06) 60%, rgba(242, 229, 159, 0.04) 100%)',
-              animation: 'roamOrb1 30s infinite ease-in-out'
+              width: "800px",
+              height: "800px",
+              background:
+                "radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, rgba(7, 242, 156, 0.06) 60%, rgba(242, 229, 159, 0.04) 100%)",
+              animation: "roamOrb1 30s infinite ease-in-out",
             }}
           />
-          <div 
+          <div
             className="absolute rounded-[50%] blur-[150px] mix-blend-soft-light"
             style={{
-              width: '900px',
-              height: '900px',
-              background: 'radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, rgba(56, 189, 248, 0.08) 40%, rgba(7, 242, 156, 0.05) 100%)',
-              animation: 'roamOrb2 35s infinite ease-in-out'
+              width: "900px",
+              height: "900px",
+              background:
+                "radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, rgba(56, 189, 248, 0.08) 40%, rgba(7, 242, 156, 0.05) 100%)",
+              animation: "roamOrb2 35s infinite ease-in-out",
             }}
           />
         </div>
 
-        <style dangerouslySetInnerHTML={{
-          __html: `
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
             @keyframes roamOrb1 {
               0%, 100% { 
                 transform: translate(-10vw, -10vh) scale(0.95);
@@ -409,26 +432,54 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 filter: blur(150px) contrast(1.2) saturate(1.1);
               }
             }
-          `
-        }} />
+          `,
+          }}
+        />
 
         <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
-          <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
+          <div
+            className={classNames(
+              styles.Chat,
+              "flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full"
+            )}
+          >
             {!chatStarted && (
-              <div id="intro" className="mt-[8vh] lg:mt-[13.5vh] w-full max-w-3xl mx-auto text-center px-4 lg:px-0 mb-4">
+              <div
+                id="intro"
+                className="mt-[8vh] lg:mt-[13.5vh] w-full max-w-3xl mx-auto text-center px-4 lg:px-0 mb-4"
+              >
                 <h1 className="text-2xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-1 lg:mb-2 animate-fade-in flex items-center justify-center gap-2">
-                  <span className="text-2xl lg:text-5xl flex items-center gap-0">Build better with <img src="/logo-dark-styled.png" alt="logo" className="h-[40px] lg:h-[75px] w-auto hidden dark:inline-block" />
-                  <img src="/chat-logo-light-styled.png" alt="logo" className="h-[40px] lg:h-[75px] w-auto dark:hidden inline-block" /></span>
+                  <span className="text-2xl lg:text-5xl flex items-center gap-0">
+                    Build better with{" "}
+                    <img
+                      src="/logo-dark-styled.png"
+                      alt="logo"
+                      className="h-[40px] lg:h-[75px] w-auto hidden dark:inline-block"
+                    />
+                    <img
+                      src="/chat-logo-light-styled.png"
+                      alt="logo"
+                      className="h-[40px] lg:h-[75px] w-auto dark:hidden inline-block"
+                    />
+                  </span>
                 </h1>
-                <p className="mb-0 text-bolt-elements-textSecondary animate-fade-in animation-delay-200" style={{ fontSize: '1.3rem', lineHeight: '1.2', marginBottom: '0.5rem' }}>
-                  innovation begins with your <span className="text-black dark:text-white">vibe</span>.
+                <p
+                  className="mb-0 text-bolt-elements-textSecondary animate-fade-in animation-delay-200"
+                  style={{
+                    fontSize: "1.3rem",
+                    lineHeight: "1.2",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  innovation begins with your{" "}
+                  <span className="text-black dark:text-white">vibe</span>.
                 </p>
                 <ClientOnly>{() => <Menu isLandingPage={true} />}</ClientOnly>
               </div>
             )}
             <StickToBottom
-              className={classNames('pt-2 px-2 sm:px-6 relative', {
-                'h-full flex flex-col': chatStarted,
+              className={classNames("pt-2 px-2 sm:px-6 relative", {
+                "h-full flex flex-col": chatStarted,
               })}
               resize="smooth"
               initial="smooth"
@@ -447,9 +498,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </ClientOnly>
               </StickToBottom.Content>
               <div
-                className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
-                  'sticky bottom-2': chatStarted,
-                })}
+                className={classNames(
+                  "my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6",
+                  {
+                    "sticky bottom-2": chatStarted,
+                  }
+                )}
               >
                 <div className="flex flex-col gap-2">
                   {deployAlert && (
@@ -484,35 +538,43 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   )}
                 </div>
                 <ScrollToBottom />
-                {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
+                {progressAnnotations && (
+                  <ProgressCompilation data={progressAnnotations} />
+                )}
                 <div
                   className={classNames(
                     styles.MaterialPrompt,
-                    'relative w-full max-w-chat mx-auto z-prompt'
+                    "relative w-full max-w-chat mx-auto z-prompt"
                   )}
                 >
                   <div className="bg-white dark:bg-gray-900 rounded-lg p-3 shadow-lg">
                     <div>
                       <ClientOnly>
                         {() => (
-                          <div className={isModelSettingsCollapsed ? 'hidden' : ''}>
+                          <div
+                            className={isModelSettingsCollapsed ? "hidden" : ""}
+                          >
                             <ModelSelector
-                              key={provider?.name + ':' + modelList.length}
+                              key={provider?.name + ":" + modelList.length}
                               model={model}
                               setModel={setModel}
                               modelList={modelList}
                               provider={provider}
                               setProvider={setProvider}
-                              providerList={providerList || (PROVIDER_LIST as ProviderInfo[])}
+                              providerList={
+                                providerList ||
+                                (PROVIDER_LIST as ProviderInfo[])
+                              }
                               apiKeys={apiKeys}
                               modelLoading={isModelLoading}
                             />
                             {(providerList || []).length > 0 &&
                               provider &&
-                              (!LOCAL_PROVIDERS.includes(provider.name) || 'OpenAILike') && (
+                              (!LOCAL_PROVIDERS.includes(provider.name) ||
+                                "OpenAILike") && (
                                 <APIKeyManager
                                   provider={provider}
-                                  apiKey={apiKeys[provider.name] || ''}
+                                  apiKey={apiKeys[provider.name] || ""}
                                   setApiKey={(key) => {
                                     onApiKeysChange(provider.name, key);
                                   }}
@@ -526,8 +588,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       files={uploadedFiles}
                       imageDataList={imageDataList}
                       onRemove={(index) => {
-                        setUploadedFiles?.(uploadedFiles.filter((_, i) => i !== index));
-                        setImageDataList?.(imageDataList.filter((_, i) => i !== index));
+                        setUploadedFiles?.(
+                          uploadedFiles.filter((_, i) => i !== index)
+                        );
+                        setImageDataList?.(
+                          imageDataList.filter((_, i) => i !== index)
+                        );
                       }}
                     />
                     <ClientOnly>
@@ -544,40 +610,45 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       <textarea
                         ref={textareaRef}
                         className={classNames(
-                          'w-full pl-4 pt-4 pr-4 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm'
+                          "w-full pl-4 pt-4 pr-4 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm"
                         )}
                         onDragEnter={(e) => {
                           e.preventDefault();
-                          e.currentTarget.style.border = '2px solid #1488fc';
+                          e.currentTarget.style.border = "2px solid #1488fc";
                         }}
                         onDragOver={(e) => {
                           e.preventDefault();
-                          e.currentTarget.style.border = '2px solid #1488fc';
+                          e.currentTarget.style.border = "2px solid #1488fc";
                         }}
                         onDragLeave={(e) => {
                           e.preventDefault();
-                          e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
+                          e.currentTarget.style.border =
+                            "1px solid var(--bolt-elements-borderColor)";
                         }}
                         onDrop={(e) => {
                           e.preventDefault();
-                          e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
+                          e.currentTarget.style.border =
+                            "1px solid var(--bolt-elements-borderColor)";
 
                           const files = Array.from(e.dataTransfer.files);
                           files.forEach((file) => {
-                            if (file.type.startsWith('image/')) {
+                            if (file.type.startsWith("image/")) {
                               const reader = new FileReader();
 
                               reader.onload = (e) => {
                                 const base64Image = e.target?.result as string;
                                 setUploadedFiles?.([...uploadedFiles, file]);
-                                setImageDataList?.([...imageDataList, base64Image]);
+                                setImageDataList?.([
+                                  ...imageDataList,
+                                  base64Image,
+                                ]);
                               };
                               reader.readAsDataURL(file);
                             }
                           });
                         }}
                         onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
+                          if (event.key === "Enter") {
                             if (event.shiftKey) {
                               return;
                             }
@@ -614,30 +685,43 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           {chatStarted && <SupabaseConnection />}
                           {input.length > 3 ? (
                             <div className="text-xs text-bolt-elements-textTertiary">
-                              Use <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Shift</kbd>{' '}
-                              + <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Return</kbd>{' '}
+                              Use{" "}
+                              <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">
+                                Shift
+                              </kbd>{" "}
+                              +{" "}
+                              <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">
+                                Return
+                              </kbd>{" "}
                               a new line
                             </div>
                           ) : null}
                         </div>
-                        
-                        <div className="flex gap-1 items-center ml-auto">
-                          <IconButton title="Upload file" className="transition-all" onClick={() => handleFileUpload()}>
-                            <div className="i-ph:paperclip text-xl"></div>
+
+                        <div className="flex gap-1 sm:gap-2 items-center ml-auto">
+                          <IconButton
+                            title="Upload file"
+                            className="transition-all p-2 sm:p-2.5 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center"
+                            onClick={() => handleFileUpload()}
+                          >
+                            <div className="i-ph:paperclip text-lg sm:text-xl flex-shrink-0"></div>
                           </IconButton>
                           <IconButton
                             title="Enhance prompt"
                             disabled={input.length === 0 || enhancingPrompt}
-                            className={classNames('transition-all', enhancingPrompt ? 'opacity-100' : '')}
+                            className={classNames(
+                              "transition-all p-2 sm:p-2.5 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center",
+                              enhancingPrompt ? "opacity-100" : ""
+                            )}
                             onClick={() => {
                               enhancePrompt?.();
-                              toast.success('Prompt enhanced!');
+                              toast.success("Prompt enhanced!");
                             }}
                           >
                             {enhancingPrompt ? (
-                              <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
+                              <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-lg sm:text-xl animate-spin flex-shrink-0"></div>
                             ) : (
-                              <div className="i-bolt:stars text-xl"></div>
+                              <div className="i-bolt:stars text-lg sm:text-xl flex-shrink-0"></div>
                             )}
                           </IconButton>
 
@@ -647,22 +731,42 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                             onStop={stopListening}
                             disabled={isStreaming}
                           />
-                          {chatStarted && <ClientOnly>{() => <ExportChatButton exportChat={exportChat} />}</ClientOnly>}
+                          {chatStarted && (
+                            <ClientOnly>
+                              {() => (
+                                <ExportChatButton exportChat={exportChat} />
+                              )}
+                            </ClientOnly>
+                          )}
                           <IconButton
                             title="Model Settings"
-                            className={classNames('transition-all flex items-center gap-1', {
-                              'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
-                                isModelSettingsCollapsed,
-                              'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault':
-                                !isModelSettingsCollapsed,
-                            })}
-                            onClick={() => setIsModelSettingsCollapsed(!isModelSettingsCollapsed)}
-                            disabled={!providerList || providerList.length === 0}
+                            className={classNames(
+                              "transition-all p-2 sm:p-2.5 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center gap-0.5 sm:gap-1",
+                              {
+                                "bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent":
+                                  isModelSettingsCollapsed,
+                                "bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault":
+                                  !isModelSettingsCollapsed,
+                              }
+                            )}
+                            onClick={() =>
+                              setIsModelSettingsCollapsed(
+                                !isModelSettingsCollapsed
+                              )
+                            }
+                            disabled={
+                              !providerList || providerList.length === 0
+                            }
                           >
-                            <div className={`i-ph:caret-${isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
+                            <div
+                              className={`i-ph:caret-${isModelSettingsCollapsed ? "right" : "down"} text-sm sm:text-lg flex-shrink-0`}
+                            />
                           </IconButton>
                         </div>
-                        <ExpoQrModal open={qrModalOpen} onClose={() => setQrModalOpen(false)} />
+                        <ExpoQrModal
+                          open={qrModalOpen}
+                          onClose={() => setQrModalOpen(false)}
+                        />
                       </div>
                     </div>
                   </div>
@@ -670,10 +774,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <div className="flex justify-center mt-0 mb-2 w-full max-w-chat mx-auto">
                   <button
                     className={classNames(
-                      'px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md relative overflow-hidden flex items-center justify-center gap-1 sm:gap-2',
-                      'disabled:opacity-50 disabled:cursor-not-allowed',
-                      {'opacity-80': !input.length && !uploadedFiles.length},
-                      {'w-full': chatStarted}
+                      "px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md relative overflow-hidden flex items-center justify-center gap-1 sm:gap-2",
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
+                      { "opacity-80": !input.length && !uploadedFiles.length },
+                      { "w-full": chatStarted }
                     )}
                     onClick={(event) => {
                       if (isStreaming) {
@@ -687,11 +791,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     }}
                     disabled={!providerList || providerList.length === 0}
                     style={{
-                      background: 'linear-gradient(90deg, #F2E59F, #07F29C)',
+                      background: "linear-gradient(90deg, #F2E59F, #07F29C)",
                     }}
                   >
                     <span className="relative z-10 text-black">
-                      {isStreaming ? 'Stop' : 'Generate'}
+                      {isStreaming ? "Stop" : "Generate"}
                     </span>
                     <div className="relative z-10">
                       {isStreaming ? (
@@ -703,7 +807,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <div
                       className="absolute inset-0 transition-opacity duration-500 ease-in-out opacity-0 hover:opacity-100"
                       style={{
-                        background: 'linear-gradient(90deg, #07F29C, #F2E59F)',
+                        background: "linear-gradient(90deg, #07F29C, #F2E59F)",
                       }}
                     />
                   </button>
@@ -755,7 +859,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     return <Tooltip.Provider delayDuration={200}>{baseChat}</Tooltip.Provider>;
-  },
+  }
 );
 
 function ScrollToBottom() {
@@ -797,6 +901,16 @@ function ScrollToBottom() {
       <stop offset="100%" stopColor="#07F29C" stopOpacity="0%" />
     </linearGradient>
   </defs>
-  <rect className={classNames(styles.PromptEffectLine)} pathLength="100" strokeLinecap="round" />
-  <rect className={classNames(styles.PromptShine)} x="48" y="24" width="70" height="1" />
-</svg>
+  <rect
+    className={classNames(styles.PromptEffectLine)}
+    pathLength="100"
+    strokeLinecap="round"
+  />
+  <rect
+    className={classNames(styles.PromptShine)}
+    x="48"
+    y="24"
+    width="70"
+    height="1"
+  />
+</svg>;

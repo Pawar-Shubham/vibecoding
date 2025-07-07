@@ -80,38 +80,6 @@ export default defineConfig((config) => {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },
     build: {
-      rollupOptions: {
-        output: {
-          manualChunks(id) {
-            // Split vendor chunks
-            if (id.includes('node_modules')) {
-              // Group major frameworks together
-              if (id.includes('react') || id.includes('@remix-run')) {
-                return 'vendor-react';
-              }
-              if (id.includes('@radix-ui')) {
-                return 'vendor-radix';
-              }
-              if (id.includes('@codemirror')) {
-                return 'vendor-codemirror';
-              }
-              // Other node_modules go to vendors chunk
-              return 'vendors';
-            }
-            
-            // Split app code into logical chunks
-            if (id.includes('/components/')) {
-              return 'components';
-            }
-            if (id.includes('/lib/')) {
-              return 'lib';
-            }
-            if (id.includes('/utils/')) {
-              return 'utils';
-            }
-          }
-        }
-      },
       sourcemap: config.mode === 'development',
       modulePreload: {
         polyfill: false
