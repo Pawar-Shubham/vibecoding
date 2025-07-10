@@ -3,10 +3,11 @@
  * Preventing TS checks with files presented in the video for a better presentation.
  */
 import type { JSONValue, Message } from "ai";
-import React, { type RefCallback, useEffect, useState, lazy, Suspense } from "react";
+import React, { type RefCallback, useEffect, useState } from "react";
 import { ClientOnly } from "remix-utils/client-only";
 import { Menu } from "~/components/sidebar/Menu.client";
 import { IconButton } from "~/components/ui/IconButton";
+import { Workbench } from "~/components/workbench/Workbench.client";
 import { classNames } from "~/utils/classNames";
 import { PROVIDER_LIST } from "~/utils/constants";
 import { Messages } from "./Messages.client";
@@ -49,9 +50,6 @@ import { useNavigate } from '@remix-run/react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useSettingsStore } from '~/lib/stores/settings';
 import { streamingState } from '~/lib/stores/streaming';
-
-// Lazy load the heavy Workbench component
-const Workbench = lazy(() => import("~/components/workbench/Workbench.client").then(module => ({ default: module.Workbench })));
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -846,13 +844,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           </div>
           <ClientOnly>
             {() => (
-              <Suspense fallback={<div>Loading Workbench...</div>}>
-                <Workbench
-                  actionRunner={actionRunner ?? ({} as ActionRunner)}
-                  chatStarted={chatStarted}
-                  isStreaming={isStreaming}
-                />
-              </Suspense>
+              <Workbench
+                actionRunner={actionRunner ?? ({} as ActionRunner)}
+                chatStarted={chatStarted}
+                isStreaming={isStreaming}
+              />
             )}
           </ClientOnly>
         </div>

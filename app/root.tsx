@@ -6,13 +6,14 @@ import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
-import React, { useEffect, useState, lazy, Suspense } from 'react';
+import React, { useEffect, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
 import { useAuth } from './lib/hooks/useAuth';
 import { motion } from 'framer-motion';
 import { atom } from 'nanostores';
+
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
@@ -21,15 +22,11 @@ import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
 import 'virtual:uno.css'; 
 
-// Lazy load heavy non-critical components
-const SocialMediaIcons = lazy(() => import('./components/SocialMediaIcons').then(module => ({ default: module.SocialMediaIcons })));
-const DynamicFeedback = lazy(() => import('./components/feedback/DynamicFeedback').then(module => ({ default: module.DynamicFeedback })));
-
 // Inline navigation store to avoid import issues
 const navigationLoading = atom<boolean>(false);
 
 // Inline useMinimumLoadingTime hook to avoid import issues
-function useMinimumLoadingTime(isLoading: boolean, minimumMs: number = 500) {
+function useMinimumLoadingTime(isLoading: boolean, minimumMs: number = 1500) {
   const [showLoading, setShowLoading] = useState(isLoading);
   const [startTime, setStartTime] = useState<number | null>(null);
 
@@ -86,13 +83,11 @@ function LoadingScreen() {
           src="/logo-dark-styled.png" 
           alt="VxC Logo" 
           className="h-16 w-auto hidden dark:block"
-          loading="eager"
         />
         <img 
           src="/chat-logo-light-styled.png" 
           alt="VxC Logo" 
           className="h-16 w-auto dark:hidden block"
-          loading="eager"
         />
       </motion.div>
 
@@ -118,6 +113,10 @@ function LoadingScreen() {
     </div>
   );
 }
+
+// Import feedback components
+import { SocialMediaIcons } from './components/SocialMediaIcons';
+import { DynamicFeedback } from './components/feedback/DynamicFeedback';
 
 export const links: LinksFunction = () => [
   {
@@ -152,13 +151,8 @@ export const links: LinksFunction = () => [
     crossOrigin: 'anonymous',
   },
   {
-    rel: 'preload',
-    href: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600&display=swap',
-    as: 'style',
-  },
-  {
     rel: 'stylesheet',
-    href: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600&display=swap',
+    href: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap',
   },
 ];
 
@@ -192,10 +186,6 @@ export const Head = createHead(() => (
     <meta name="twitter:image" content="/logo-dark-styled.png" />
     <Meta />
     <Links />
-    
-    {/* Preload critical assets */}
-    <link rel="preload" href="/logo-dark-styled.png" as="image" />
-    <link rel="preload" href="/chat-logo-light-styled.png" as="image" />
     
     {/* Microsoft Clarity */}
     <script
@@ -231,13 +221,13 @@ export const Head = createHead(() => (
 export function Layout({ children }: { children: React.ReactNode }) {
   const theme = useStore(themeStore);
   const isNavigating = useStore(navigationLoading);
-  const shouldShowNavigationLoading = useMinimumLoadingTime(isNavigating, 500);
+  const shouldShowNavigationLoading = useMinimumLoadingTime(isNavigating, 1500);
   const [isPageReloading, setIsPageReloading] = useState(false); // Start with loading off
-  const shouldShowPageReloadLoading = useMinimumLoadingTime(isPageReloading, 500);
+  const shouldShowPageReloadLoading = useMinimumLoadingTime(isPageReloading, 1500);
   
   // Global loading state for any type of loading
   const [isAppLoading, setIsAppLoading] = useState(true);
-  const shouldShowAppLoading = useMinimumLoadingTime(isAppLoading, 500);
+  const shouldShowAppLoading = useMinimumLoadingTime(isAppLoading, 1500);
 
   useEffect(() => {
     document.querySelector('html')?.setAttribute('data-theme', theme);
@@ -298,14 +288,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <>
       {(shouldShowNavigationLoading || shouldShowPageReloadLoading || shouldShowAppLoading) && <LoadingScreen />}
       <ClientOnly>{() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}</ClientOnly>
-      <Suspense fallback={null}>
-        <SocialMediaIcons />
-      </Suspense>
-      <ClientOnly>{() => 
-        <Suspense fallback={null}>
-          <DynamicFeedback />
-        </Suspense>
-      }</ClientOnly>
+      <SocialMediaIcons />
+      <ClientOnly>{() => <DynamicFeedback />}</ClientOnly>
       <ScrollRestoration />
       <Scripts />
     </>

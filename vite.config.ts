@@ -88,92 +88,8 @@ export default defineConfig((config) => {
       emptyOutDir: true,
       cssCodeSplit: true,
       reportCompressedSize: false,
-      chunkSizeWarningLimit: 2000,
-      target: 'esnext',
-      rollupOptions: {
-        output: {
-          // Manual chunk splitting for better caching and loading performance
-          manualChunks: (id) => {
-            // Skip manual chunking for SSR builds
-            if (process.env.BUILD_TARGET === 'ssr') {
-              return undefined;
-            }
-            
-            // Only chunk the most stable, independent libraries to avoid circular dependencies
-            
-            // Core React (most stable)
-            if (id.includes('node_modules/react/') && !id.includes('node_modules/react-')) {
-              return 'vendor-react-core';
-            }
-            if (id.includes('node_modules/react-dom/')) {
-              return 'vendor-react-dom';
-            }
-            
-            // CodeMirror (self-contained)
-            if (id.includes('@codemirror/') || id.includes('@lezer/')) {
-              return 'vendor-codemirror';
-            }
-            
-            // Radix UI (self-contained)
-            if (id.includes('@radix-ui/')) {
-              return 'vendor-radix';
-            }
-            
-            // Framer Motion (self-contained)
-            if (id.includes('framer-motion')) {
-              return 'vendor-framer';
-            }
-            
-            // Terminal (self-contained)
-            if (id.includes('@xterm/')) {
-              return 'vendor-xterm';
-            }
-            
-            // WebContainer (self-contained)
-            if (id.includes('@webcontainer/api')) {
-              return 'vendor-webcontainer';
-            }
-            
-            // AI SDK (self-contained)
-            if (id.includes('node_modules/ai/') || id.includes('@ai-sdk/')) {
-              return 'vendor-ai';
-            }
-            
-            // Shiki (large but self-contained)
-            if (id.includes('shiki')) {
-              return 'vendor-shiki';
-            }
-            
-            // Everything else goes into the main chunk to avoid dependency issues
-            return undefined;
-          },
-          // Optimize chunk file names for better caching
-          chunkFileNames: (chunkInfo) => {
-            // Use content hash for vendor chunks for better caching
-            if (chunkInfo.name?.startsWith('vendor-')) {
-              return `assets/vendor/[name]-[hash].js`;
-            }
-            return `assets/[name]-[hash].js`;
-          },
-          // Optimize entry file names
-          entryFileNames: `assets/[name]-[hash].js`,
-          // Optimize asset file names
-          assetFileNames: (assetInfo) => {
-            const info = assetInfo.name?.split('.') ?? [];
-            const ext = info[info.length - 1];
-            if (/\.(css)$/.test(assetInfo.name ?? '')) {
-              return `assets/css/[name]-[hash].${ext}`;
-            }
-            if (/\.(png|jpe?g|svg|gif|tiff|bmp|ico)$/i.test(assetInfo.name ?? '')) {
-              return `assets/images/[name]-[hash].${ext}`;
-            }
-            if (/\.(woff2?|eot|ttf|otf)$/i.test(assetInfo.name ?? '')) {
-              return `assets/fonts/[name]-[hash].${ext}`;
-            }
-            return `assets/[name]-[hash].${ext}`;
-          }
-        }
-      }
+      chunkSizeWarningLimit: 1000,
+      target: 'esnext'
     },
     esbuild: {
       treeShaking: true,
@@ -193,11 +109,7 @@ export default defineConfig((config) => {
         '@radix-ui/react-dropdown-menu',
         '@codemirror/state',
         '@codemirror/view',
-        '@codemirror/commands',
-        'framer-motion',
-        'ai',
-        '@nanostores/react',
-        'nanostores'
+        '@codemirror/commands'
       ],
       exclude: ['node_modules/*.mjs']
     },
