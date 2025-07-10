@@ -184,7 +184,7 @@ export function ControlPanel({ open, onClose }: ControlPanelProps) {
             aria-describedby={undefined}
             onEscapeKeyDown={onClose}
             onPointerDownOutside={onClose}
-            className="relative z-control-panel-content w-full h-full max-w-7xl max-h-[95vh]"
+            className="relative z-control-panel-content w-full h-full max-w-7xl max-h-[85vh]"
           >
             <DialogTitle className="sr-only">
               Settings Control Panel

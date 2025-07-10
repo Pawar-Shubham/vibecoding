@@ -1,12 +1,12 @@
 @use 'variables.scss';
-@use 'z-index.scss';
 @use 'animations.scss';
-@use 'components/terminal.scss';
-@use 'components/resize-handle.scss';
+@use 'z-index.scss';
+
+// Component styles
 @use 'components/code.scss';
 @use 'components/editor.scss';
+@use 'components/terminal.scss';
 @use 'components/toast.scss';
-@use 'components/music.scss';
 
 html,
 body {

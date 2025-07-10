@@ -1,7 +1,7 @@
 .Toastify__toast {
   --at-apply: shadow-md;
 
-  background-color: theme('colors.gray.900') !important;
+  background-color: var(--bolt-elements-bg-depth-3) !important;
   color: var(--bolt-elements-textPrimary);
   border: 1px solid var(--bolt-elements-borderColor);
   border-radius: 8px;
@@ -23,6 +23,7 @@
 
 /* Light theme overrides */
 :root[data-theme='light'] .Toastify__toast {
-  background-color: theme('colors.gray.900') !important;
-  color: theme('colors.white');
+  background-color: var(--bolt-elements-bg-depth-1) !important;
+  color: var(--bolt-elements-textPrimary);
+  border: 1px solid var(--bolt-elements-borderColor);
 }

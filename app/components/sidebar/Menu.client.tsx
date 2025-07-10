@@ -22,7 +22,6 @@ import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 import { sidebarStore } from '~/lib/stores/sidebar';
 import { chatStore } from '~/lib/stores/chat';
 import { streamingState } from '~/lib/stores/streaming';
-import { YouTubePlayer } from '~/components/music';
 // Use window events to communicate with root navigation loading
 const startNavigationLoading = () => {
   window.dispatchEvent(new CustomEvent('start-navigation-loading'));
@@ -568,13 +567,6 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Music Player Section */}
-        <div className="border-t border-gray-200 dark:border-[#2a2a2a] p-3">
-          <ClientOnly>
-            {() => <YouTubePlayer compact={true} sidebarMode={true} />}
-          </ClientOnly>
         </div>
 
         {/* Footer */}
