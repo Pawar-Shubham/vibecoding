@@ -1,21 +1,34 @@
-# Development stage named bolt-ai-development
 FROM node:20.18.0 AS bolt-ai-development
 
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
+RUN apt-get update && apt-get install -y iputils-ping dnsutils curl wget git
 
+RUN git config --global --add safe.directory /app
+
+
+COPY package.json pnpm-lock.yaml ./
 RUN npm install -g pnpm && \
     pnpm config set node-linker hoisted && \
     CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
 
+
 COPY . .
+RUN pnpm run build
 
-ENV RUNNING_IN_DOCKER=true \
-    VITE_LOG_LEVEL=debug
 
-EXPOSE 5173
+FROM node:20.18.0-alpine
 
-CMD ["pnpm", "run", "deploy", "--host", "0.0.0.0"]
+WORKDIR /app
+
+RUN npm install -g pnpm
+
+
+COPY --from=builder /app ./
+
+EXPOSE 3000
+
+
+CMD ["pnpm", "run", "start", "--port", "3000", "--host", "0.0.0.0"]
