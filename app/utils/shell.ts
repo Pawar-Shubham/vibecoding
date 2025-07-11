@@ -181,8 +181,17 @@ export class BoltShell {
     // Handle terminal input
     terminal.onData((data) => {
       if (isInteractive) {
-        // Track current line for proxy command detection
-        if (data.charCodeAt(0) === 13 || data.charCodeAt(0) === 10) { // Enter key
+        // Special handling for command history (up/down arrow) and pasted content
+        const charCode = data.charCodeAt(0);
+        
+        // Handle up/down arrow keys (27 91 65 for up, 27 91 66 for down)
+        if (data === '\x1b[A' || data === '\x1b[B') {
+          input.write(data);
+          return;
+        }
+        
+        // Handle enter key
+        if (charCode === 13 || charCode === 10) { // Enter key
           const line = this.#currentLine.trim();
           
           if (line) {
@@ -208,16 +217,19 @@ export class BoltShell {
           this.#currentLine = '';
           this.#isProxyCommand = false;
           input.write(data);
-        } else if (data.charCodeAt(0) === 3) { // Ctrl+C
+        } else if (charCode === 3) { // Ctrl+C
           this.#currentLine = '';
           this.#isProxyCommand = false;
           input.write(data);
-        } else if (data.charCodeAt(0) === 127 || data.charCodeAt(0) === 8) { // Backspace
-          this.#currentLine = this.#currentLine.slice(0, -1);
-          input.write(data); // Always write backspace
+        } else if (charCode === 127 || charCode === 8) { // Backspace
+          if (this.#currentLine.length > 0) {
+            this.#currentLine = this.#currentLine.slice(0, -1);
+            input.write(data);
+          }
         } else {
+          // Handle pasted content (multiple characters at once)
           this.#currentLine += data;
-          input.write(data); // Always write character input
+          input.write(data);
         }
 
         // Update proxy command status after any input
