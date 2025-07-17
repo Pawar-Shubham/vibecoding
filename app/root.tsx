@@ -117,7 +117,6 @@ function LoadingScreen() {
 // Import feedback components
 import { SocialMediaIcons } from './components/SocialMediaIcons';
 import { DynamicFeedback } from './components/feedback/DynamicFeedback';
-import SpotifyMiniPlayer from './components/music/SpotifyMiniPlayer';
 
 export const links: LinksFunction = () => [
   {
@@ -291,7 +290,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <ClientOnly>{() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}</ClientOnly>
       <SocialMediaIcons />
       <ClientOnly>{() => <DynamicFeedback />}</ClientOnly>
-      <ClientOnly>{() => <SpotifyMiniPlayer />}</ClientOnly>
       <ScrollRestoration />
       <Scripts />
     </>
