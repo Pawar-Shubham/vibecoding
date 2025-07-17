@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { classNames } from '~/utils/classNames';
 import { useAuth } from '~/lib/hooks/useAuth';
+import SpotifyWebPlayback from './SpotifyWebPlayback';
 import type { 
   SpotifyTrack, 
   SpotifyPlaybackState, 
@@ -14,7 +15,7 @@ interface SpotifyMiniPlayerProps {
   className?: string;
 }
 
-function SpotifyMiniPlayer({ className }: SpotifyMiniPlayerProps) {
+export default function SpotifyMiniPlayer({ className }: SpotifyMiniPlayerProps) {
   const { user, isAuthenticated } = useAuth();
   const [playerState, setPlayerState] = useState<MiniPlayerState>({
     isExpanded: false,
@@ -28,15 +29,12 @@ function SpotifyMiniPlayer({ className }: SpotifyMiniPlayerProps) {
     expandedView: null,
   });
   
-  const [selectedPlaylist, setSelectedPlaylist] = useState<SimplifiedPlaylist | null>(null);
-  const [playlistTracks, setPlaylistTracks] = useState<any[]>([]);
-  const [isLoadingTracks, setIsLoadingTracks] = useState(false);
-  
   const [playlists, setPlaylists] = useState<SimplifiedPlaylist[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
-  const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
   // Check for Spotify connection on mount and handle URL params
@@ -72,7 +70,7 @@ function SpotifyMiniPlayer({ className }: SpotifyMiniPlayerProps) {
     if (isConnected && user?.id) {
       const interval = setInterval(() => {
         updatePlaybackState();
-      }, 3000); // Update every 3 seconds
+      }, 5000); // Update every 5 seconds
 
       return () => clearInterval(interval);
     }
@@ -186,11 +184,6 @@ function SpotifyMiniPlayer({ className }: SpotifyMiniPlayerProps) {
           isShuffleOn: playbackState.shuffle_state,
           repeatMode: playbackState.repeat_state,
         }));
-        
-        // Update active device ID
-        if (playbackState.device?.id) {
-          setActiveDeviceId(playbackState.device.id);
-        }
       }
     } catch (error) {
       console.error('Error updating playback state:', error);
@@ -258,7 +251,6 @@ function SpotifyMiniPlayer({ className }: SpotifyMiniPlayerProps) {
         body: JSON.stringify({
           action,
           userId: user.id,
-          deviceId: activeDeviceId, // Use active device ID
           ...params,
         }),
       });
@@ -267,12 +259,11 @@ function SpotifyMiniPlayer({ className }: SpotifyMiniPlayerProps) {
         // Update state optimistically for better UX
         setTimeout(() => updatePlaybackState(), 500);
       } else {
-          const errorData = await response.json() as { error?: string };
-          throw new Error(errorData.error || `Failed to ${action}`);
+        toast.error(`Failed to ${action}`);
       }
     } catch (error) {
       console.error(`Error ${action}:`, error);
-      toast.error(error instanceof Error ? error.message : `Failed to ${action}`);
+      toast.error(`Failed to ${action}`);
     }
   };
 
@@ -308,10 +299,7 @@ function SpotifyMiniPlayer({ className }: SpotifyMiniPlayerProps) {
     setPlayerState(prev => ({ ...prev, progress: positionMs }));
   };
 
-  const loadPlaylistTracks = async (playlist: SimplifiedPlaylist) => {
-    if (!user?.id) return;
-
-    setIsLoadingTracks(true);
+  const playPlaylist = async (playlist: SimplifiedPlaylist) => {
     try {
       // Get token from localStorage
       const savedConnection = localStorage.getItem('spotify_connection');
@@ -320,37 +308,11 @@ function SpotifyMiniPlayer({ className }: SpotifyMiniPlayerProps) {
       }
 
       const { token } = JSON.parse(savedConnection);
-      const response = await fetch(`/api/spotify?action=playlist-tracks&userId=${user.id}&playlistId=${playlist.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
 
-      if (!response.ok) {
-        throw new Error(`Failed to load playlist tracks: ${response.status}`);
+      if (!isPlayerReady || !deviceId) {
+        toast.info('Web player is initializing, please try again in a moment...');
+        return;
       }
-
-      const data = await response.json() as { tracks: any[] };
-      setPlaylistTracks(data.tracks || []);
-      setSelectedPlaylist(playlist);
-      setPlayerState(prev => ({ ...prev, expandedView: 'tracks' }));
-    } catch (error) {
-      console.error('Error loading playlist tracks:', error);
-      toast.error('Failed to load playlist tracks');
-    } finally {
-      setIsLoadingTracks(false);
-    }
-  };
-
-  const playTrack = async (trackUri: string) => {
-    try {
-      // Get token from localStorage
-      const savedConnection = localStorage.getItem('spotify_connection');
-      if (!savedConnection) {
-        throw new Error('No Spotify connection found');
-      }
-
-      const { token } = JSON.parse(savedConnection);
 
       const response = await fetch('/api/spotify', {
         method: 'POST',
@@ -359,30 +321,28 @@ function SpotifyMiniPlayer({ className }: SpotifyMiniPlayerProps) {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          action: 'play-track',
+          action: 'play-playlist',
           userId: user?.id,
-          trackUri: trackUri,
-          deviceId: activeDeviceId,
+          playlistUri: playlist.uri,
+          deviceId, // Use our web player device ID
         }),
       });
 
       if (!response.ok) {
         const data = await response.json() as { error?: string };
-        throw new Error(data.error || 'Failed to play track');
+        throw new Error(data.error || 'Failed to play playlist');
       }
 
       // Close the expanded view and update state
       setPlayerState(prev => ({ ...prev, isExpanded: false, expandedView: null }));
-      setSelectedPlaylist(null);
-      setPlaylistTracks([]);
       
       // Update playback state after a short delay
       setTimeout(() => updatePlaybackState(), 1000);
       
-      toast.success('Track started playing');
+      toast.success(`Playing ${playlist.name}`);
     } catch (error) {
-      console.error('Error playing track:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to play track');
+      console.error('Error playing playlist:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to play playlist');
     }
   };
 
@@ -421,458 +381,437 @@ function SpotifyMiniPlayer({ className }: SpotifyMiniPlayerProps) {
     setShowAuthPrompt(false);
   };
 
+  // Get token for web player
+  const getToken = () => {
+    const savedConnection = localStorage.getItem('spotify_connection');
+    if (!savedConnection) return null;
+    try {
+      const { token } = JSON.parse(savedConnection);
+      return token;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  // Handle web player ready
+  const handlePlayerReady = async (deviceId: string) => {
+    console.log('Web player ready with device ID:', deviceId);
+    
+    try {
+      // Get token from localStorage
+      const savedConnection = localStorage.getItem('spotify_connection');
+      if (!savedConnection) {
+        throw new Error('No Spotify connection found');
+      }
+
+      const { token } = JSON.parse(savedConnection);
+
+      // Transfer playback to our web player
+      const response = await fetch('https://api.spotify.com/v1/me/player', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          device_ids: [deviceId],
+          play: false,
+        }),
+      });
+
+      if (!response.ok && response.status !== 204) {
+        throw new Error('Failed to transfer playback');
+      }
+
+      // Set device ID and player ready state
+      setDeviceId(deviceId);
+      setIsPlayerReady(true);
+      toast.success('Web player ready');
+
+      // Load playlists immediately
+      loadPlaylists();
+    } catch (error) {
+      console.error('Error setting up web player:', error);
+      setIsPlayerReady(false);
+      setDeviceId(null);
+      toast.error('Failed to initialize web player. Please try refreshing the page.');
+    }
+  };
+
+  // Handle web player errors
+  const handlePlayerError = (error: Error) => {
+    console.error('Web player error:', error);
+    setIsPlayerReady(false);
+    setDeviceId(null);
+    
+    // Check if it's a premium account error
+    if (error.message.toLowerCase().includes('premium')) {
+      toast.error('Spotify Premium is required for playback. Please upgrade your account.');
+    } else if (error.message.includes('initialization')) {
+      toast.error('Failed to initialize player. Please refresh the page.');
+    } else if (error.message.includes('authentication')) {
+      toast.error('Authentication failed. Please reconnect to Spotify.');
+    } else {
+      toast.error(error.message);
+    }
+  };
+
+  // Handle web player state changes
+  const handlePlayerStateChange = (state: any) => {
+    if (!state) return;
+
+    const track = state.track_window.current_track;
+    if (!track) {
+      setPlayerState(prev => ({
+        ...prev,
+        isPlaying: !state.paused,
+        currentTrack: null,
+        progress: state.position,
+        duration: state.duration,
+      }));
+      return;
+    }
+
+    // Convert track to SpotifyTrack format
+    const spotifyTrack: SpotifyTrack = {
+      id: track.id,
+      name: track.name,
+      artists: track.artists.map((artist: any) => ({
+        id: artist.id,
+        name: artist.name,
+        type: 'artist',
+        uri: artist.uri,
+        external_urls: { spotify: '' },
+        href: '',
+      })),
+      album: {
+        id: track.album.id,
+        name: track.album.name,
+        images: track.album.images.map((image: any) => ({
+          url: image.url,
+          height: image.height || null,
+          width: image.width || null,
+        })),
+        type: 'album',
+        uri: track.album.uri,
+        album_type: 'album',
+        artists: [],
+        available_markets: [],
+        external_urls: { spotify: '' },
+        href: '',
+        release_date: '',
+        release_date_precision: 'day',
+        total_tracks: 0,
+      },
+      available_markets: [],
+      disc_number: 1,
+      duration_ms: state.duration,
+      explicit: false,
+      external_ids: {},
+      external_urls: { spotify: '' },
+      href: '',
+      is_local: false,
+      is_playable: true,
+      popularity: 0,
+      preview_url: null,
+      track_number: 1,
+      type: 'track',
+      uri: track.uri,
+    };
+
+    setPlayerState(prev => ({
+      ...prev,
+      isPlaying: !state.paused,
+      currentTrack: spotifyTrack,
+      progress: state.position,
+      duration: state.duration,
+    }));
+  };
+
   return (
     <>
+      {/* Web Playback SDK Component */}
+      {isConnected && (
+        <SpotifyWebPlayback
+          token={getToken() || ''}
+          onReady={handlePlayerReady}
+          onError={handlePlayerError}
+          onStateChange={handlePlayerStateChange}
+        />
+      )}
       <motion.div
         className={classNames(
-          'bg-white/5 dark:bg-black/10 backdrop-blur-2xl',
-          'border border-white/20 dark:border-gray-700/30 rounded-2xl shadow-2xl',
-          'w-[500px]',
+          'fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50',
+          'bg-gradient-to-r from-gray-900 to-black',
+          'border border-gray-700 rounded-full shadow-2xl',
+          'backdrop-blur-md',
           className
         )}
-        style={{
-          position: 'fixed',
-          bottom: '24px',
-          left: 'calc(50% - 250px)',
-          zIndex: 50
-        }}
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.2 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       >
         <AnimatePresence mode="wait">
           {!playerState.isExpanded ? (
-            // Collapsed mini-player (modern pill shape)
+            // Collapsed mini-player (pill shape)
             <motion.div
               key="collapsed"
-              className="flex items-center gap-4 px-6 py-4 cursor-pointer"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={() => handleExpand('controls')}
+              className="flex items-center gap-3 px-4 py-3 min-w-80"
+              initial={{ height: 'auto' }}
+              animate={{ height: 'auto' }}
+              exit={{ height: 0 }}
             >
               {playerState.currentTrack ? (
                 <>
-                  {/* Album Art with glow effect */}
-                  <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 shadow-lg">
-                    {playerState.currentTrack.album?.images?.[0] ? (
+                  {/* Album Art */}
+                  <div className="w-10 h-10 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
+                    {playerState.currentTrack.album?.images?.[0] && (
                       <img
                         src={playerState.currentTrack.album.images[0].url}
                         alt={playerState.currentTrack.album.name}
                         className="w-full h-full object-cover"
                       />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-[#1DB954] to-[#1ed760] flex items-center justify-center">
-                        <div className="i-ph:music-note w-5 h-5 text-white" />
-                      </div>
                     )}
-                    {/* Subtle glow effect */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                   </div>
 
-                  {/* Track Info with better typography */}
+                  {/* Track Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="text-gray-900 dark:text-white text-sm font-semibold truncate">
+                    <div className="text-white text-sm font-medium truncate">
                       {playerState.currentTrack.name}
                     </div>
-                    <div className="text-gray-600 dark:text-gray-300 text-xs truncate">
+                    <div className="text-gray-400 text-xs truncate">
                       {playerState.currentTrack.artists?.map(artist => artist.name).join(', ')}
                     </div>
                   </div>
 
-                  {/* Playback Controls */}
-                  <div className="flex items-center gap-2">
-                                        {/* Previous Button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        skipPrevious();
-                      }}
-                      className="w-7 h-7 bg-white/8 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-900 dark:text-white hover:bg-white/15 transition-all duration-200 hover:scale-105 border border-white/15"
-                    >
-                      <div className="i-ph:skip-back-fill w-3 h-3" />
-                    </button>
-
                   {/* Play/Pause Button */}
                   <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        togglePlay();
-                      }}
-                      className="w-8 h-8 bg-white/15 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-900 dark:text-white hover:bg-white/25 transition-all duration-200 hover:scale-105 border border-white/25"
+                    onClick={togglePlay}
+                    className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-black hover:scale-105 transition-transform"
                   >
                     <div className={classNames(
                       'w-4 h-4',
                       playerState.isPlaying ? 'i-ph:pause-fill' : 'i-ph:play-fill'
                     )} />
                   </button>
-
-                    {/* Next Button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        skipNext();
-                      }}
-                      className="w-7 h-7 bg-white/8 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-900 dark:text-white hover:bg-white/15 transition-all duration-200 hover:scale-105 border border-white/15"
-                    >
-                      <div className="i-ph:skip-forward-fill w-3 h-3" />
-                    </button>
-                  </div>
                 </>
               ) : (
                 <>
-                  {/* No track playing - modern design */}
-                  <div className="w-10 h-10 bg-gradient-to-br from-[#1DB954] to-[#1ed760] rounded-lg flex items-center justify-center shadow-lg">
+                  {/* No track playing */}
+                  <div className="w-10 h-10 bg-[#1DB954] rounded-lg flex items-center justify-center">
                     <div className="i-ph:music-note w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1">
-                    <div className="text-gray-900 dark:text-white text-sm font-semibold">
+                    <div className="text-white text-sm font-medium">
                       {isConnected ? 'No music playing' : 'Connect Spotify'}
                     </div>
-                    <div className="text-gray-600 dark:text-gray-300 text-xs">
+                    <div className="text-gray-400 text-xs">
                       {isConnected ? 'Start playing music' : 'Access your music library'}
                     </div>
                   </div>
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      isConnected ? handleExpand('playlists') : handleAuthPrompt();
-                    }}
-                    className="w-8 h-8 bg-white/15 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-900 dark:text-white hover:bg-white/25 transition-all duration-200 hover:scale-105 border border-white/25"
+                    onClick={() => isConnected ? handleExpand('playlists') : handleAuthPrompt()}
+                    className="w-8 h-8 bg-[#1DB954] rounded-full flex items-center justify-center text-white hover:scale-105 transition-transform"
                   >
                     <div className="i-ph:play-fill w-4 h-4" />
                   </button>
                 </>
               )}
 
-              {/* Playlist button */}
+              {/* Expand buttons */}
+              <div className="flex items-center gap-1 ml-2">
                 <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleExpand('playlists');
-                }}
-                className="w-8 h-8 bg-white/8 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/15 transition-all duration-200 hover:scale-105 border border-white/15"
+                  onClick={() => handleExpand('playlists')}
+                  className="w-6 h-6 text-gray-400 hover:text-white transition-colors"
                   title="View Playlists"
                 >
                   <div className="i-ph:playlist w-4 h-4" />
                 </button>
-            </motion.div>
-          ) : (
-            // Expanded player with modern glassmorphism
-            <motion.div
-              key="expanded"
-              className="max-h-[400px] overflow-hidden bg-white/5 dark:bg-black/10 backdrop-blur-2xl border border-white/20 dark:border-gray-700/30 rounded-2xl"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-                            {/* Content with glass effect */}
-              <div className="p-6 bg-transparent">
-                {/* Header integrated into content */}
-                {playerState.expandedView !== 'tracks' && (
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-gray-900 dark:text-white font-semibold text-base">
-                      {playerState.expandedView === 'playlists' ? 'Your Playlists' : 'Now Playing'}
-                </h3>
-                    <div className="flex items-center gap-2">
-                      {playerState.expandedView === 'controls' && (
-                                            <button
-                      onClick={() => handleExpand('playlists')}
-                      className="w-6 h-6 bg-white/8 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/15 transition-all duration-200"
-                      title="View Playlists"
-                    >
-                      <div className="i-ph:playlist w-3 h-3" />
-                    </button>
-                      )}
-                      {playerState.expandedView === 'playlists' && (
-                        <button
-                          onClick={() => handleExpand('controls')}
-                          className="w-6 h-6 bg-white/8 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-300 hover:text-white hover:bg-white/15 transition-all duration-200"
-                          title="Now Playing"
-                        >
-                          <div className="i-ph:play-fill w-3 h-3" />
-                        </button>
-                      )}
                 <button
-                  onClick={() => setPlayerState(prev => ({ ...prev, isExpanded: false, expandedView: null }))}
-                      className="w-6 h-6 bg-white/8 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/15 transition-all duration-200"
+                  onClick={() => handleExpand('controls')}
+                  className="w-6 h-6 text-gray-400 hover:text-white transition-colors"
+                  title="Show Controls"
                 >
-                      <div className="i-ph:x w-3 h-3" />
+                  <div className="i-ph:sliders w-4 h-4" />
                 </button>
               </div>
-                  </div>
-                )}
+            </motion.div>
+          ) : (
+            // Expanded player
+            <motion.div
+              key="expanded"
+              className="w-96 max-h-96 overflow-hidden"
+              initial={{ height: 60, width: 320 }}
+              animate={{ height: 'auto', width: 384 }}
+              exit={{ height: 60, width: 320 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-700">
+                <h3 className="text-white font-medium">
+                  {playerState.expandedView === 'playlists' ? 'Your Playlists' : 'Playback Controls'}
+                </h3>
+                <button
+                  onClick={() => setPlayerState(prev => ({ ...prev, isExpanded: false, expandedView: null }))}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <div className="i-ph:x w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-4 max-h-80 overflow-y-auto">
                 {playerState.expandedView === 'playlists' ? (
-                  <div className="max-h-[320px] overflow-y-auto space-y-2 modern-scrollbar-dark-grey">
+                  <div className="space-y-2">
                     {isLoading ? (
-                      <div className="flex items-center justify-center py-12">
-                        <div className="i-ph:spinner-gap w-6 h-6 animate-spin text-[#1DB954]" />
+                      <div className="flex items-center justify-center py-8">
+                        <div className="i-ph:spinner-gap w-6 h-6 animate-spin text-white" />
                       </div>
                     ) : playlists.length > 0 ? (
                       playlists.map((playlist) => (
                         <button
                           key={playlist.id}
-                          onClick={() => loadPlaylistTracks(playlist)}
-                          className="flex items-center gap-4 p-4 w-full text-left hover:bg-white/15 rounded-lg transition-all duration-200 group bg-white/8 backdrop-blur-sm border border-white/15"
+                          onClick={() => playPlaylist(playlist)}
+                          className="flex items-center gap-3 p-3 w-full text-left hover:bg-gray-800 rounded-lg transition-colors"
                         >
-                          <div className="w-12 h-12 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0 shadow-lg">
-                            {playlist.images?.[0] ? (
+                          <div className="w-12 h-12 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
+                            {playlist.images?.[0] && (
                               <img
                                 src={playlist.images[0].url}
                                 alt={playlist.name}
                                 className="w-full h-full object-cover"
                               />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
-                                <div className="i-ph:playlist w-5 h-5 text-gray-400" />
-                              </div>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-gray-900 dark:text-white text-sm font-semibold truncate group-hover:text-[#1DB954] transition-colors">
+                            <div className="text-white text-sm font-medium truncate">
                               {playlist.name}
                             </div>
-                            <div className="text-gray-600 dark:text-gray-400 text-xs truncate">
+                            <div className="text-gray-400 text-xs truncate">
                               {playlist.tracks.total} tracks • {playlist.owner.display_name}
                             </div>
                           </div>
                         </button>
                       ))
                     ) : (
-                      <div className="text-center py-12">
-                        <div className="i-ph:playlist w-8 h-8 text-gray-500 mx-auto mb-3" />
+                      <div className="text-center py-8">
                         <div className="text-gray-400 text-sm">No playlists found</div>
                       </div>
                     )}
                   </div>
-                ) : playerState.expandedView === 'tracks' ? (
-                  // Tracks view
-                  <div className="space-y-4">
-                    {/* Header for tracks view */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => {
-                            setPlayerState(prev => ({ ...prev, expandedView: 'playlists' }));
-                            setSelectedPlaylist(null);
-                            setPlaylistTracks([]);
-                          }}
-                          className="w-6 h-6 bg-white/8 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-300 hover:text-white hover:bg-white/15 transition-all duration-200"
-                          title="Back to Playlists"
-                        >
-                          <div className="i-ph:arrow-left w-3 h-3" />
-                        </button>
-                        <div>
-                          <div className="text-gray-900 dark:text-white text-sm font-semibold truncate">
-                            {selectedPlaylist?.name}
-                          </div>
-                          <div className="text-gray-600 dark:text-gray-400 text-xs">
-                            {playlistTracks.length} tracks
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Tracks list */}
-                    <div className="max-h-[320px] overflow-y-auto space-y-2 modern-scrollbar-dark-grey pb-2">
-                      {isLoadingTracks ? (
-                        <div className="flex items-center justify-center py-8">
-                          <div className="i-ph:spinner-gap w-6 h-6 animate-spin text-[#1DB954]" />
-                        </div>
-                      ) : playlistTracks.length > 0 ? (
-                        playlistTracks.map((trackItem, index) => {
-                          const track = trackItem.track;
-                          if (!track) return null;
-                          
-                          return (
-                                                         <button
-                               key={track.id}
-                               onClick={() => playTrack(track.uri)}
-                               className="flex items-center gap-4 p-4 w-full text-left hover:bg-white/15 rounded-lg transition-all duration-200 group bg-white/8 backdrop-blur-sm border border-white/15"
-                             >
-                               <div className="w-12 h-12 bg-gray-800 rounded-lg overflow-hidden flex-shrink-0 shadow-lg">
-                                {track.album?.images?.[0] ? (
-                                  <img
-                                    src={track.album.images[0].url}
-                                    alt={track.album.name}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
-                                    <div className="i-ph:music-note w-4 h-4 text-gray-400" />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                                                <div className="text-gray-900 dark:text-white text-sm font-semibold truncate group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
-                                  {track.name}
-                                </div>
-                                <div className="text-gray-600 dark:text-gray-400 text-xs truncate">
-                                  {track.artists?.map((artist: any) => artist.name).join(', ')}
-                                </div>
-                              </div>
-                              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                <div className="i-ph:play-fill w-4 h-4 text-gray-900 dark:text-white" />
-                              </div>
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <div className="text-center py-8">
-                          <div className="i-ph:music-note w-8 h-8 text-gray-500 mx-auto mb-3" />
-                          <div className="text-gray-600 dark:text-gray-400 text-sm">No tracks found</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 ) : (
-                  // Playback controls with modern design
-                  <div className="space-y-3">
-                    {/* Current track info with large album art */}
+                  // Playback controls
+                  <div className="space-y-6">
+                    {/* Current track info */}
                     {playerState.currentTrack && (
-                      <div className="text-center">
-                        <div className="w-24 h-24 mx-auto mb-2 rounded-xl overflow-hidden shadow-lg">
-                          {playerState.currentTrack.album?.images?.[0] ? (
+                      <div className="flex items-center gap-3">
+                        <div className="w-16 h-16 bg-gray-800 rounded-lg overflow-hidden">
+                          {playerState.currentTrack.album?.images?.[0] && (
                             <img
                               src={playerState.currentTrack.album.images[0].url}
                               alt={playerState.currentTrack.album.name}
                               className="w-full h-full object-cover"
                             />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
-                              <div className="i-ph:music-note w-8 h-8 text-gray-400" />
-                            </div>
                           )}
                         </div>
-                        <div className="space-y-1">
-                          <div className="text-gray-900 dark:text-white text-base font-bold truncate">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white font-medium truncate">
                             {playerState.currentTrack.name}
                           </div>
-                          <div className="text-gray-600 dark:text-gray-300 text-sm truncate">
+                          <div className="text-gray-400 text-sm truncate">
                             {playerState.currentTrack.artists?.map(artist => artist.name).join(', ')}
                           </div>
                         </div>
                       </div>
                     )}
 
-                    {/* Progress bar with elegant white styling */}
-                    {playerState.currentTrack && (
-                      <div className="space-y-2">
-                        <div className="relative">
-                          <input
-                            type="range"
-                            min={0}
-                            max={playerState.duration}
-                            value={playerState.progress}
-                            onChange={(e) => seek(parseInt(e.target.value))}
-                            className="w-full h-2 bg-white/5 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-0"
-                            style={{
-                              background: `linear-gradient(to right, ${document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)'} 0%, ${document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)'} ${(playerState.progress / playerState.duration) * 100}%, ${document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'} ${(playerState.progress / playerState.duration) * 100}%, ${document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'} 100%)`,
-                              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)'
-                            }}
-                          />
-                          {/* Custom thumb styling */}
-                          <style>{`
-                            input[type="range"]::-webkit-slider-thumb {
-                              appearance: none;
-                              width: 16px;
-                              height: 16px;
-                              background: ${document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.95)'};
-                              border-radius: 50%;
-                              cursor: pointer;
-                              box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-                              border: 2px solid ${document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'};
-                              transition: all 0.2s ease;
-                            }
-                            input[type="range"]::-webkit-slider-thumb:hover {
-                              transform: scale(1.2);
-                              box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                            }
-                            input[type="range"]::-moz-range-thumb {
-                              width: 16px;
-                              height: 16px;
-                              background: ${document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.95)'};
-                              border-radius: 50%;
-                              cursor: pointer;
-                              border: 2px solid ${document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'};
-                              box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-                            }
-                          `}</style>
-                        </div>
-                        <div className="flex justify-between text-xs text-gray-700 dark:text-white/70 font-medium">
-                          <span>{formatTime(playerState.progress)}</span>
-                          <span>{formatTime(playerState.duration)}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Playback controls with modern buttons */}
-                    <div className="flex items-center justify-center gap-3">
+                    {/* Playback controls */}
+                    <div className="flex items-center justify-center gap-4">
                       <button
                         onClick={toggleShuffle}
                         className={classNames(
-                          'w-10 h-10 bg-white/8 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 border border-white/20',
-                          playerState.isShuffleOn ? 'text-[#1DB954] bg-[#1DB954]/15' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/15'
+                          'w-8 h-8 flex items-center justify-center transition-colors',
+                          playerState.isShuffleOn ? 'text-[#1DB954]' : 'text-gray-400 hover:text-white'
                         )}
                       >
-                        <div className="i-ph:shuffle w-5 h-5" />
+                        <div className="i-ph:shuffle w-4 h-4" />
                       </button>
+                      
                       <button
                         onClick={skipPrevious}
-                        className="w-10 h-10 bg-white/8 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-900 dark:text-white hover:bg-white/15 hover:scale-110 transition-all duration-200 border border-white/20"
+                        className="w-8 h-8 text-white hover:scale-105 transition-transform"
                       >
                         <div className="i-ph:skip-back-fill w-6 h-6" />
                       </button>
+                      
                       <button
                         onClick={togglePlay}
-                        className="w-12 h-12 bg-white/15 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-900 dark:text-white hover:bg-white/25 hover:scale-110 transition-all duration-200 border border-white/25 shadow-lg"
+                        className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black hover:scale-105 transition-transform"
                       >
                         <div className={classNames(
                           'w-6 h-6',
                           playerState.isPlaying ? 'i-ph:pause-fill' : 'i-ph:play-fill'
                         )} />
                       </button>
+                      
                       <button
                         onClick={skipNext}
-                        className="w-10 h-10 bg-white/8 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-900 dark:text-white hover:bg-white/15 hover:scale-110 transition-all duration-200 border border-white/20"
+                        className="w-8 h-8 text-white hover:scale-105 transition-transform"
                       >
                         <div className="i-ph:skip-forward-fill w-6 h-6" />
                       </button>
+                      
                       <button
                         onClick={toggleRepeat}
                         className={classNames(
-                          'w-10 h-10 bg-white/8 backdrop-blur-sm rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 border border-white/20',
-                          playerState.repeatMode !== 'off' ? 'text-[#1DB954] bg-[#1DB954]/15' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/15'
+                          'w-8 h-8 flex items-center justify-center transition-colors',
+                          playerState.repeatMode !== 'off' ? 'text-[#1DB954]' : 'text-gray-400 hover:text-white'
                         )}
                       >
                         <div className={classNames(
-                          'w-5 h-5',
+                          'w-4 h-4',
                           playerState.repeatMode === 'track' ? 'i-ph:repeat-once' : 'i-ph:repeat'
                         )} />
                       </button>
                     </div>
 
-                    {/* Volume control with elegant white styling */}
+                    {/* Progress bar */}
+                    {playerState.currentTrack && (
                       <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <div className="i-ph:speaker-simple-low w-4 h-4 text-gray-600 dark:text-white/60" />
-                        <div className="flex-1 relative">
+                        <input
+                          type="range"
+                          min={0}
+                          max={playerState.duration}
+                          value={playerState.progress}
+                          onChange={(e) => seek(parseInt(e.target.value))}
+                          className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                          style={{
+                            background: `linear-gradient(to right, #1DB954 0%, #1DB954 ${(playerState.progress / playerState.duration) * 100}%, #374151 ${(playerState.progress / playerState.duration) * 100}%, #374151 100%)`
+                          }}
+                        />
+                        <div className="flex justify-between text-xs text-gray-400">
+                          <span>{formatTime(playerState.progress)}</span>
+                          <span>{formatTime(playerState.duration)}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Volume control */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="i-ph:speaker-simple-low w-4 h-4 text-gray-400" />
                         <input
                           type="range"
                           min={0}
                           max={100}
                           value={playerState.volume}
                           onChange={(e) => setVolume(parseInt(e.target.value))}
-                            className="w-full h-2 bg-white/5 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-0"
+                          className="flex-1 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
                           style={{
-                              background: `linear-gradient(to right, ${document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)'} 0%, ${document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.8)'} ${playerState.volume}%, ${document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'} ${playerState.volume}%, ${document.documentElement.classList.contains('dark') ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'} 100%)`,
-                              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)'
+                            background: `linear-gradient(to right, #1DB954 0%, #1DB954 ${playerState.volume}%, #374151 ${playerState.volume}%, #374151 100%)`
                           }}
                         />
-                        </div>
-                        <div className="i-ph:speaker-simple-high w-4 h-4 text-gray-600 dark:text-white/60" />
+                        <div className="i-ph:speaker-simple-high w-4 h-4 text-gray-400" />
                       </div>
                     </div>
                   </div>
@@ -883,33 +822,31 @@ function SpotifyMiniPlayer({ className }: SpotifyMiniPlayerProps) {
         </AnimatePresence>
       </motion.div>
 
-      {/* Auth prompt modal with glassmorphism */}
+      {/* Auth prompt modal */}
       <AnimatePresence>
         {showAuthPrompt && (
           <motion.div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60]"
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
             onClick={() => setShowAuthPrompt(false)}
           >
             <motion.div
-              className="bg-white/10 dark:bg-gray-900/80 backdrop-blur-xl p-6 rounded-2xl max-w-sm mx-4 border border-white/20 dark:border-gray-700/50"
+              className="bg-white dark:bg-gray-900 p-6 rounded-lg max-w-md mx-4"
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-[#1DB954] to-[#1ed760] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <div className="w-16 h-16 bg-[#1DB954] rounded-full flex items-center justify-center mx-auto mb-4">
                   <div className="i-ph:music-note w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-lg font-bold text-white mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                   Connect Spotify
                 </h3>
-                <p className="text-gray-300 mb-6 leading-relaxed text-sm">
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
                   {isAuthenticated 
                     ? 'Connect your Spotify account in settings to control music playback.'
                     : 'Sign in to your account first, then connect Spotify to enable music controls.'
@@ -918,13 +855,13 @@ function SpotifyMiniPlayer({ className }: SpotifyMiniPlayerProps) {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowAuthPrompt(false)}
-                    className="flex-1 px-4 py-2 border border-white/20 text-white rounded-lg hover:bg-white/10 transition-all duration-200"
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleAuthPrompt}
-                    className="flex-1 px-4 py-2 bg-gradient-to-r from-[#1DB954] to-[#1ed760] text-white rounded-lg hover:scale-105 transition-all duration-200 shadow-lg"
+                    className="flex-1 px-4 py-2 bg-[#1DB954] text-white rounded-lg hover:bg-[#1ed760] transition-colors"
                   >
                     {isAuthenticated ? 'Go to Settings' : 'Sign In'}
                   </button>
@@ -937,5 +874,3 @@ function SpotifyMiniPlayer({ className }: SpotifyMiniPlayerProps) {
     </>
   );
 } 
-
-export default SpotifyMiniPlayer; 
