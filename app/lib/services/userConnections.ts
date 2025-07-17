@@ -1,7 +1,7 @@
 import { supabase } from '~/lib/supabase';
 import { logStore } from '~/lib/stores/logs';
 
-export type ConnectionProvider = 'github' | 'netlify' | 'vercel' | 'supabase';
+export type ConnectionProvider = 'github' | 'netlify' | 'vercel' | 'supabase' | 'spotify';
 
 export interface UserConnection {
   id: string;

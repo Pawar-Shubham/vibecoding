@@ -3,6 +3,7 @@ import React, { Suspense } from 'react';
 import { classNames } from '~/utils/classNames';
 import GitHubConnection from './GithubConnection';
 import NetlifyConnection from './NetlifyConnection';
+import SpotifyConnection from './SpotifyConnection';
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -38,6 +39,7 @@ export default function ConnectionsTab() {
       <div className="grid grid-cols-1 gap-6">
         <GitHubConnection />
         <NetlifyConnection />
+        <SpotifyConnection />
       </div>
 
       {/* Additional help text */}
