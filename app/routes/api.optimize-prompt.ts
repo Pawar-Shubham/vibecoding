@@ -22,19 +22,16 @@ export async function action({ request, context }: ActionFunctionArgs & { contex
         mimeType: string;
         source: string;
       }>;
+      apiKey?: string;
     };
-    const { userMessage, conversationHistory, images } = body;
+    const { userMessage, conversationHistory, images, apiKey } = body;
 
     if (!userMessage) {
       return json({ error: 'User message is required' }, { status: 400 });
     }
 
-    // Get API key from environment variables
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || context.env?.GOOGLE_GENERATIVE_AI_API_KEY;
-    
     if (!apiKey) {
-      logger.error('Gemini API key not found in environment variables');
-      return json({ error: 'Gemini API key not configured. Please set GOOGLE_GENERATIVE_AI_API_KEY in your environment variables.' }, { status: 500 });
+      return json({ error: 'Google Gemini API key is required' }, { status: 400 });
     }
 
     logger.info('Optimizing prompt with conversation history:', conversationHistory.length, 'messages', 'and', images?.length || 0, 'images');

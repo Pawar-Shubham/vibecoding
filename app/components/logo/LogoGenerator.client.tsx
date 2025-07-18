@@ -210,6 +210,7 @@ export function LogoGenerator() {
           userMessage: currentPrompt,
           conversationHistory: conversationHistory,
           images: imagesToSend,
+          apiKey: geminiApiKey,
         }),
       });
 
@@ -224,6 +225,14 @@ export function LogoGenerator() {
         if (optimizeResponse.status === 503) {
           throw new Error(
             "Gemini is currently overloaded. Please wait a moment and try again."
+          );
+        }
+        if (
+          optimizeResponse.status === 400 &&
+          optimizeData.error?.includes("API key")
+        ) {
+          throw new Error(
+            "Invalid Google Gemini API key. Please check your API key in the settings above."
           );
         }
         throw new Error(optimizeData.error || "Failed to optimize prompt");
@@ -264,6 +273,11 @@ export function LogoGenerator() {
       };
 
       if (!response.ok) {
+        if (response.status === 400 && data.error?.includes("API key")) {
+          throw new Error(
+            "Invalid Google Gemini API key. Please check your API key in the settings above."
+          );
+        }
         throw new Error(data.error || "Failed to generate logo");
       }
 
@@ -302,9 +316,14 @@ export function LogoGenerator() {
         } else if (error.message.includes("rate limit")) {
           chatErrorMessage =
             "Too many requests. Please wait a few seconds before trying again. ⚡";
-        } else if (error.message.includes("API key")) {
+        } else if (
+          error.message.includes("API key") ||
+          error.message.includes("Invalid")
+        ) {
           chatErrorMessage =
-            "There's an issue with the API key configuration. Please check your settings. 🔑";
+            "Please check your Google Gemini API key above. Make sure it's valid and has the necessary permissions. 🔑" +
+            " " +
+            error.message;
         } else if (
           error.message.includes("network") ||
           error.message.includes("fetch")
