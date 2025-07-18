@@ -634,8 +634,8 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                     </h3>
 
                     <div className="relative">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#07F29C]">
-                        <span className="i-ph:github-logo w-5 h-5" />
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+                        <span className="i-ph:github-logo w-5 h-5 block" />
                       </div>
                       <Input
                         type="text"
@@ -644,9 +644,11 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                         onChange={(e) => setCustomUrl(e.target.value)}
                         className={classNames(
                           'w-full pl-10 py-3',
-                          'border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
-                          'dark:bg-gray-800',
-                          'focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent'
+                          'border border-gray-300 dark:border-gray-600',
+                          'bg-white dark:bg-gray-800',
+                          'text-gray-900 dark:text-white',
+                          'placeholder-gray-500 dark:placeholder-gray-400',
+                          'focus:ring-2 focus:ring-[#07F29C]/30 focus:border-[#07F29C]'
                         )}
                       />
                     </div>
@@ -707,8 +709,8 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                         <div className="flex gap-2">
                           <div className="flex-1">
                             <div className="relative">
-                              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#07F29C]">
-                                <span className="i-ph:magnifying-glass w-5 h-5" />
+                              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+                                <span className="i-ph:magnifying-glass w-5 h-5 block" />
                               </div>
                               <input
                                 type="text"
@@ -718,7 +720,9 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                                 className={classNames(
                                   'w-full pl-10 py-3',
                                   'border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
-                                  'dark:bg-gray-800',
+                                  'bg-white dark:bg-gray-800',
+                                  'text-gray-900 dark:text-white',
+                                  'placeholder-gray-500 dark:placeholder-gray-400',
                                   'focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent'
                                 )}
                               />
@@ -726,12 +730,12 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                           </div>
                           <motion.button
                             onClick={() => setFilters({})}
-                            className="px-3 py-2 rounded-lg bg-white dark:bg-bolt-elements-background-depth-4 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-sm"
+                            className="px-3 py-2 rounded-lg bg-white dark:bg-bolt-elements-background-depth-4 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-sm"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             title="Clear filters"
                           >
-                            <span className="i-ph:funnel-simple w-4 h-4" />
+                            <span className="i-ph:x-circle w-4 h-4 block" />
                           </motion.button>
                         </div>
 
@@ -802,7 +806,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                           <div className="grid grid-cols-3 gap-2">
                             <div className="relative col-span-3 md:col-span-1">
                               <div className="absolute left-2 top-1/2 -translate-y-1/2 text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark">
-                                <span className="i-ph:code w-3.5 h-3.5" />
+                                <span className="i-ph:code w-3.5 h-3.5 block" />
                               </div>
                               <input
                                 type="text"
@@ -820,7 +824,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                             </div>
                             <div className="relative">
                               <div className="absolute left-2 top-1/2 -translate-y-1/2 text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark">
-                                <span className="i-ph:star w-3.5 h-3.5" />
+                                <span className="i-ph:star w-3.5 h-3.5 block" />
                               </div>
                               <input
                                 type="number"
@@ -838,7 +842,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                             </div>
                             <div className="relative">
                               <div className="absolute left-2 top-1/2 -translate-y-1/2 text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark">
-                                <span className="i-ph:git-fork w-3.5 h-3.5" />
+                                <span className="i-ph:git-fork w-3.5 h-3.5 block" />
                               </div>
                               <input
                                 type="number"

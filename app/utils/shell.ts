@@ -90,6 +90,10 @@ export class BoltShell {
     this._watchExpoUrlInBackground(expoUrlStream);
 
     await this.waitTillOscCode('interactive');
+    
+    // Display welcome message
+    this._displayWelcomeMessage();
+    
     this.#initialized?.();
   }
 
@@ -177,6 +181,39 @@ export class BoltShell {
 
   get process() {
     return this.#process;
+  }
+
+  private _displayWelcomeMessage() {
+    if (!this.#terminal) return;
+
+    const welcomeMessage = `
+\x1b[1;36m╔══════════════════════════════════════════════════════════════╗\x1b[0m
+\x1b[1;36m║                         VxC Terminal!                        ║\x1b[0m
+\x1b[1;36m╚══════════════════════════════════════════════════════════════╝\x1b[0m
+
+\x1b[1;33m🎉  Hello there! Welcome to the VxC Development Environment.\x1b[0m
+
+\x1b[1;32m📋  Quick Start Commands:\x1b[0m
+  • \x1b[1;34mnpm install\x1b[0m     - Install project dependencies
+  • \x1b[1;34mnpm run dev\x1b[0m     - Start development server
+  • \x1b[1;34mnpm run build\x1b[0m   - Build for production (Deployment Requirement)
+
+\x1b[1;32m🔧  Useful Commands:\x1b[0m
+  • \x1b[1;34mls\x1b[0m              - List files and directories
+  • \x1b[1;34mcd <directory>\x1b[0m  - Change directory
+  • \x1b[1;34mcat <file>\x1b[0m      - View file contents
+  • \x1b[1;34mnano <file>\x1b[0m     - Edit file in terminal
+  • \x1b[1;34mclear\x1b[0m           - Clear terminal screen
+
+\x1b[1;32m💡  Tips:\x1b[0m
+  • Use \x1b[1;34mCtrl+C\x1b[0m to cancel running commands
+  • Use \x1b[1;34mCtrl+L\x1b[0m to clear screen
+
+\x1b[1;35m Ready to Create! 🚀\x1b[0m
+
+`;
+    
+    this.#terminal.write(welcomeMessage);
   }
 
   async executeCommand(sessionId: string, command: string, abort?: () => void): Promise<ExecutionResult> {

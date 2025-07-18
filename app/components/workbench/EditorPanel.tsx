@@ -134,7 +134,7 @@ export const EditorPanel = memo(
                   </PanelHeader>
 
                   <Tabs.Content value="files" className="flex-1 overflow-hidden">
-                    <div className="h-full bg-white dark:bg-[#1a1a1a]">
+                    <div className="h-full bg-white dark:bg-[#1a1a1a] overflow-y-auto modern-scrollbar">
                       <FileTree
                         files={files}
                         hideRoot
@@ -149,7 +149,7 @@ export const EditorPanel = memo(
 
                   <Tabs.Content value="search" className="flex-1 overflow-hidden">
                     <div className="h-full bg-white dark:bg-[#1a1a1a]">
-                      <Search onFileSelect={onFileSelect} />
+                      <Search />
                     </div>
                   </Tabs.Content>
 

@@ -103,19 +103,6 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       </div>
       <div className="flex border border-gray-300 dark:border-bolt-elements-borderColor rounded-md overflow-hidden shadow-sm">
         <Button
-          active={showChat}
-          disabled={!canHideChat || isSmallViewport}
-          onClick={() => {
-            if (canHideChat) {
-              chatStore.setKey('showChat', !showChat);
-            }
-          }}
-          className="p-1.5 px-3 min-w-[40px] !bg-white dark:!bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-[#07F29C] transition-all duration-200 flex items-center justify-center"
-        >
-          <div className="i-bolt:chat text-sm" />
-        </Button>
-        <div className="w-[1px] bg-gray-300 dark:bg-bolt-elements-borderColor" />
-        <Button
           active={showWorkbench}
           onClick={() => {
             if (showWorkbench && !showChat) {
@@ -124,6 +111,21 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             workbenchStore.showWorkbench.set(!showWorkbench);
           }}
           className="p-1.5 px-3 min-w-[40px] !bg-white dark:!bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-[#07F29C] transition-all duration-200 flex items-center justify-center"
+          title="Toggle Code View"
+        >
+          <div className="i-bolt:chat text-sm" />
+        </Button>
+        <div className="w-[1px] bg-gray-300 dark:bg-bolt-elements-borderColor" />
+        <Button
+          active={showChat}
+          disabled={!canHideChat || isSmallViewport}
+          onClick={() => {
+            if (canHideChat) {
+              chatStore.setKey('showChat', !showChat);
+            }
+          }}
+          className="p-1.5 px-3 min-w-[40px] !bg-white dark:!bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-[#07F29C] transition-all duration-200 flex items-center justify-center"
+          title="Toggle Chat View"
         >
           <div className="i-ph:code-bold" />
         </Button>
@@ -138,9 +140,10 @@ interface ButtonProps {
   children?: any;
   onClick?: VoidFunction;
   className?: string;
+  title?: string;
 }
 
-function Button({ active = false, disabled = false, children, onClick, className }: ButtonProps) {
+function Button({ active = false, disabled = false, children, onClick, className, title }: ButtonProps) {
   return (
     <button
       className={classNames(
@@ -155,6 +158,7 @@ function Button({ active = false, disabled = false, children, onClick, className
         className,
       )}
       onClick={onClick}
+      title={title}
     >
       {children}
     </button>
