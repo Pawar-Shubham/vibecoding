@@ -15,16 +15,15 @@ export async function action({ request, context }: ActionFunctionArgs & { contex
       userMessage: string; 
       conversationHistory: Array<{
         type: 'user' | 'assistant', 
-        content: string,
-        logo?: {
-          imageData: string;
-          description: string;
-          mimeType: string;
-        }
+        content: string
       }>; 
-      currentImage?: string;
+      images?: Array<{
+        imageData: string;
+        mimeType: string;
+        source: string;
+      }>;
     };
-    const { userMessage, conversationHistory, currentImage } = body;
+    const { userMessage, conversationHistory, images } = body;
 
     if (!userMessage) {
       return json({ error: 'User message is required' }, { status: 400 });
@@ -38,24 +37,30 @@ export async function action({ request, context }: ActionFunctionArgs & { contex
       return json({ error: 'Gemini API key not configured. Please set GOOGLE_GENERATIVE_AI_API_KEY in your environment variables.' }, { status: 500 });
     }
 
-    logger.info('Optimizing prompt with conversation history:', conversationHistory.length, 'messages');
+    logger.info('Optimizing prompt with conversation history:', conversationHistory.length, 'messages', 'and', images?.length || 0, 'images');
 
-    // Build context from conversation history including image context
+    // Build context from conversation history
     let contextPrompt = '';
     if (conversationHistory.length > 0) {
       contextPrompt = `Previous conversation context:\n`;
       conversationHistory.forEach((msg, index) => {
         contextPrompt += `${index + 1}. ${msg.type === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n`;
-        if (msg.logo) {
-          contextPrompt += `   [Generated logo: ${msg.logo.description}]\n`;
-        }
       });
       contextPrompt += `\nLatest user request: ${userMessage}\n\n`;
     }
 
+    // Add image context information
+    if (images && images.length > 0) {
+      contextPrompt += `Images provided:\n`;
+      images.forEach((image, index) => {
+        contextPrompt += `${index + 1}. ${image.source}\n`;
+      });
+      contextPrompt += `\n`;
+    }
+
     const systemPrompt = `You are a prompt optimization expert for logo generation using Gemini AI. Your job is to:
 
-1. Analyze the conversation history (including previous logo generations) and the latest user request
+1. Analyze the conversation history and any provided images along with the latest user request
 2. Create a consolidated, optimized prompt command specifically for Gemini to generate logos
 3. ALWAYS prioritize the LATEST changes over previous ones and automatically remove conflicting commands
 4. Combine all requirements into a single, clear, detailed prompt for logo creation
@@ -63,10 +68,15 @@ export async function action({ request, context }: ActionFunctionArgs & { contex
 6. Be specific and descriptive for better logo generation results
 
 CRITICAL CONTEXT:
-- The same image data you're seeing (if any) is also being sent to the Gemini image generation model
-- The image generation model will use this current image as a reference for iterative improvements
-- Your optimized prompt will be combined with the current image to generate the next iteration
-- Focus on describing changes, improvements, or new elements that should be applied to the existing image
+- You are seeing images from multiple sources with clear labels:
+  * "user-reference: [filename]" - Reference materials uploaded/pasted by user (inspiration, style guides, existing logos to reference)
+  * "current-logo" - The most recent logo iteration that the user wants to modify
+  * "previous-logo" - The logo from before the current one, showing design evolution
+- The same image data you're seeing is also being sent to the Gemini image generation model
+- The image generation model will use these images as references for creating the next iteration
+- Your optimized prompt will be combined with these images to generate the next iteration
+- Focus on describing changes, improvements, or new elements based on the reference images and current logo state
+- Consider the design evolution from previous → current → requested changes
 
 CRITICAL RULES for handling changes:
 - You should ONLY modify the text and create prompt commands for Gemini to create logos
@@ -78,7 +88,9 @@ CRITICAL RULES for handling changes:
 - Keep the company/brand name if specified
 - Make the prompt detailed but focused specifically for logo generation
 - Don't mention the conversation history in the output prompt
-- When there's a current image, focus on describing the desired changes or improvements to that image
+- When there are user reference images, incorporate relevant style elements that match the user's request
+- When there's a current logo, focus on describing the desired changes or improvements to that existing design
+- Use the previous logo to understand the design direction and maintain good elements while applying requested changes
 
 The output should be a clean, optimized prompt that Gemini can use to generate logos while persisting only the latest changes and removing any conflicting previous commands.
 
@@ -99,14 +111,18 @@ Output ONLY the optimized prompt for logo generation, nothing else.`;
       }
     };
 
-    // If there's a current image, add it to the request
-    if (currentImage) {
-      requestBody.contents[0].parts.unshift({
-        inline_data: {
-          mime_type: 'image/png',
-          data: currentImage
-        }
+    // Add all images to the request if available
+    if (images && images.length > 0) {
+      // Add images in order (user-uploaded first, then current logo)
+      images.forEach((image) => {
+        requestBody.contents[0].parts.unshift({
+          inline_data: {
+            mime_type: image.mimeType || 'image/png',
+            data: image.imageData
+          }
+        });
       });
+      logger.info(`Added ${images.length} images to optimization request`);
     }
 
     // Retry logic for handling overloaded model

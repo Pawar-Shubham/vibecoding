@@ -6,8 +6,16 @@ const logger = createScopedLogger('api.logo');
 
 export async function action({ request }: ActionFunctionArgs) {
   try {
-    const body = await request.json() as { prompt?: string; apiKey?: string; previousImage?: string };
-    const { prompt, apiKey, previousImage } = body;
+    const body = await request.json() as { 
+      prompt?: string; 
+      apiKey?: string; 
+      images?: Array<{
+        imageData: string;
+        mimeType: string;
+        source: string;
+      }>;
+    };
+    const { prompt, apiKey, images } = body;
 
     if (!prompt) {
       return json({ error: 'Prompt is required' }, { status: 400 });
@@ -18,27 +26,37 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     logger.info('Starting logo generation with prompt:', prompt.substring(0, 100) + '...');
-    if (previousImage) {
-      logger.info('Including previous image context');
+    if (images && images.length > 0) {
+      const sourceCounts = images.reduce((acc, img) => {
+        const sourceType = img.source.split(':')[0]; // Get the part before the colon
+        acc[sourceType] = (acc[sourceType] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      logger.info('Including images:', Object.entries(sourceCounts).map(([type, count]) => `${count} ${type}`).join(', '));
     }
 
     const ai = new GoogleGenAI({ apiKey });
 
-    // Build content array with text and optional previous image
+    // Build content array with text and optional images
     let contents: any = prompt;
     
-    if (previousImage) {
+    if (images && images.length > 0) {
       contents = [
         {
           text: prompt
-        },
-        {
-          inlineData: {
-            data: previousImage,
-            mimeType: "image/png"
-          }
         }
       ];
+
+      // Add all images to the content
+      images.forEach((image) => {
+        contents.push({
+          inlineData: {
+            data: image.imageData,
+            mimeType: image.mimeType
+          }
+        });
+      });
     }
 
     const response = await ai.models.generateContent({
