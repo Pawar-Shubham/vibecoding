@@ -40,7 +40,7 @@ const useUserConnections = () => {
         .eq('user_id', user.id)
         .eq('provider', provider)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         return undefined;

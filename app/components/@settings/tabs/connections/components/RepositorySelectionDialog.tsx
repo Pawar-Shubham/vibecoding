@@ -6,6 +6,8 @@ import { classNames } from '~/utils/classNames';
 import { getLocalStorage } from '~/lib/persistence';
 import { motion, AnimatePresence } from 'framer-motion';
 import Cookies from 'js-cookie';
+import { useAuth } from '~/lib/hooks/useAuth';
+import { supabase } from '~/lib/supabase';
 
 // Import UI components
 import { Input, SearchInput, Badge, FilterChip, EmptyState } from '~/components/ui';
@@ -53,6 +55,9 @@ interface RepositoryStats {
 }
 
 export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: RepositorySelectionDialogProps) {
+  const { user, isAuthenticated } = useAuth();
+  const [githubToken, setGithubToken] = useState<string | null>(null);
+  const [githubUser, setGithubUser] = useState<any>(null);
   const [selectedRepository, setSelectedRepository] = useState<GitHubRepoInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [repositories, setRepositories] = useState<GitHubRepoInfo[]>([]);
@@ -67,6 +72,50 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
   const [currentStats, setCurrentStats] = useState<RepositoryStats | null>(null);
   const [pendingGitUrl, setPendingGitUrl] = useState<string>('');
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+
+  // Fetch GitHub token from Supabase or localStorage on mount/open
+  useEffect(() => {
+    async function fetchGithubToken() {
+      if (isAuthenticated && user?.id) {
+        // Fetch from Supabase
+        const { data, error } = await supabase
+          .from('user_connections')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('provider', 'github')
+          .eq('is_active', true)
+          .maybeSingle();
+        if (data && data.token) {
+          let token = data.token;
+          try {
+            token = atob(token);
+          } catch {}
+          setGithubToken(token);
+          setGithubUser(data.user_data || null);
+          return;
+        }
+      }
+      // Fallback to localStorage
+      const connection = getLocalStorage('github_connection');
+      if (connection?.token) {
+        setGithubToken(connection.token);
+        setGithubUser(connection.user || null);
+      } else {
+        setGithubToken(null);
+        setGithubUser(null);
+      }
+    }
+    if (isOpen) {
+      fetchGithubToken();
+    }
+  }, [isOpen, isAuthenticated, user?.id]);
+
+  const isConnected = !!githubToken;
+
+  // If connected, set the token globally for all fetches in this dialog
+  // (No explicit global fetch override, but always use connection.token in headers)
+
+  // In fetchUserRepos, fetchBranches, verifyRepository, etc., always use connection.token if present
 
   // Handle GitHub auth dialog close and refresh repositories
   const handleAuthDialogClose = () => {
@@ -93,9 +142,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
   }, [isOpen, activeTab]);
 
   const fetchUserRepos = async () => {
-    const connection = getLocalStorage('github_connection');
-
-    if (!connection?.token) {
+    if (!githubToken) {
       return;
     }
 
@@ -105,7 +152,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
       const response = await fetch('https://api.github.com/user/repos?sort=updated&per_page=100&type=all', {
         headers: {
           Accept: 'application/vnd.github.v3+json',
-          Authorization: `Bearer ${connection.token}`,
+          Authorization: `Bearer ${githubToken}`,
         },
       });
 
@@ -184,11 +231,10 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
     setIsLoading(true);
 
     try {
-      const connection = getLocalStorage('github_connection');
-      const headers: HeadersInit = connection?.token
+      const headers: HeadersInit = githubToken
         ? {
             Accept: 'application/vnd.github.v3+json',
-            Authorization: `Bearer ${connection.token}`,
+            Authorization: `Bearer ${githubToken}`,
           }
         : {};
       const response = await fetch(`https://api.github.com/repos/${repo.full_name}/branches`, {
@@ -251,19 +297,14 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
         .split('/')
         .slice(-2);
 
-      // Try to get token from local storage first
-      const connection = getLocalStorage('github_connection');
-
-      // If no connection in local storage, check environment variables
+      // Use the already loaded connection
       let headers: HeadersInit = {};
-
-      if (connection?.token) {
+      if (githubToken) {
         headers = {
           Accept: 'application/vnd.github.v3+json',
-          Authorization: `Bearer ${connection.token}`,
+          Authorization: `Bearer ${githubToken}`,
         };
       } else if (import.meta.env.VITE_GITHUB_ACCESS_TOKEN) {
-        // Use token from environment variables
         headers = {
           Accept: 'application/vnd.github.v3+json',
           Authorization: `Bearer ${import.meta.env.VITE_GITHUB_ACCESS_TOKEN}`,
@@ -557,30 +598,32 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
             </div>
 
             {/* Auth Info Banner */}
-            <div className="p-4 border-b border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark flex items-center justify-between bg-gradient-to-r from-bolt-elements-background-depth-2 to-bolt-elements-background-depth-1 dark:from-bolt-elements-background-depth-3 dark:to-bolt-elements-background-depth-2">
-              <div className="flex items-center gap-2">
-                <span className="i-ph:info text-yellow-500" />
-                <span className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
-                  Need to access private repositories?
-                </span>
+            {!isConnected && (
+              <div className="p-4 border-b border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark flex items-center justify-between bg-gradient-to-r from-bolt-elements-background-depth-2 to-bolt-elements-background-depth-1 dark:from-bolt-elements-background-depth-3 dark:to-bolt-elements-background-depth-2">
+                <div className="flex items-center gap-2">
+                  <span className="i-ph:info text-yellow-500" />
+                  <span className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
+                    Need to access private repositories?
+                  </span>
+                </div>
+                <motion.button
+                  onClick={() => setShowAuthDialog(true)}
+                  className={classNames(
+                    'px-4 py-2 rounded-lg',
+                    'bg-[#07F29C] text-white',
+                    'hover:bg-[#07F29C]/90',
+                    'transition-all duration-200',
+                    'flex items-center gap-2',
+                    'text-sm'
+                  )}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span className="i-ph:github-logo w-4 h-4" />
+                  Connect GitHub Account
+                </motion.button>
               </div>
-              <motion.button
-                onClick={() => setShowAuthDialog(true)}
-                className={classNames(
-                  'px-4 py-2 rounded-lg',
-                  'bg-[#07F29C] text-white',
-                  'hover:bg-[#07F29C]/90',
-                  'transition-all duration-200',
-                  'flex items-center gap-2',
-                  'text-sm'
-                )}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="i-ph:github-logo w-4 h-4" />
-                Connect GitHub Account
-              </motion.button>
-            </div>
+            )}
 
             {/* Content */}
             <div className="p-5">
@@ -880,7 +923,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                     </div>
                   )}
 
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 modern-scrollbar-dark-grey">
                     {repositories.length === 0 ? (
                       <EmptyState
                         icon="i-ph:git-branch"

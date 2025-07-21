@@ -20,7 +20,7 @@ export function RepositoryList({ repos, isLoading, onSelect, activeTab }: Reposi
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-32">
-        <StatusIndicator status="loading" text="Loading repositories..." />
+        <StatusIndicator status="loading">Loading repositories...</StatusIndicator>
       </div>
     );
   }
@@ -28,7 +28,7 @@ export function RepositoryList({ repos, isLoading, onSelect, activeTab }: Reposi
   if (repos.length === 0) {
     return (
       <EmptyState
-        icon="i-ph:git-repository"
+        icon={activeTab === 'search' ? 'i-ph:magnifying-glass' : 'i-ph:git-repository'}
         title="No repositories found"
         description={
           activeTab === 'my-repos'
@@ -42,22 +42,29 @@ export function RepositoryList({ repos, isLoading, onSelect, activeTab }: Reposi
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 flex flex-col items-center">
       {repos.map((repo) => (
         <motion.button
           key={repo.full_name}
           type="button"
           onClick={() => onSelect(repo)}
           className={classNames(
-            'w-full p-3 text-left rounded-lg',
+            'text-left rounded-lg',
+            'py-5 px-4', // taller card
+            'max-w-[95%] w-[95%]', // make width fit better
+            'mx-auto',
             'bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3',
             'hover:bg-bolt-elements-background-depth-3 dark:hover:bg-bolt-elements-background-depth-4',
             'transition-colors group',
             'border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
-            'hover:border-[#07F29C]/30'
+            'hover:border-[#07F29C]/30',
+            'focus:outline-none',
+            'focus:ring-2 focus:ring-[#07F29C]/30',
+            'relative',
+            'overflow-hidden'
           )}
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
+          whileHover={{ scale: 1.01, x: 0 }}
+          whileTap={{ scale: 0.99, x: 0 }}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

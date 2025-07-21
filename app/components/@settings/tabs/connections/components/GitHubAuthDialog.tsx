@@ -12,41 +12,6 @@ interface GitHubAuthDialogProps {
 }
 
 export function GitHubAuthDialog({ isOpen, onClose }: GitHubAuthDialogProps) {
-  const [token, setToken] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!token.trim()) {
-      toast.error('Please enter a GitHub token');
-      return;
-    }
-
-    try {
-      const response = await fetch('https://api.github.com/user', {
-        headers: {
-          Accept: 'application/vnd.github.v3+json',
-          Authorization: `Bearer ${token.trim()}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to verify token: ${response.statusText}`);
-      }
-
-      const user = (await response.json()) as GitHubUserResponse;
-
-      // Save the connection info
-      Cookies.set('github_connection', JSON.stringify({ user, token: token.trim() }));
-
-      toast.success('Successfully connected to GitHub!');
-      onClose();
-    } catch (error) {
-      console.error('Error verifying GitHub token:', error);
-      toast.error('Failed to verify GitHub token. Please check your token and try again.');
-    }
-  };
-
   return (
     <Dialog.Root open={isOpen}>
       <Dialog.Portal>
@@ -82,55 +47,26 @@ export function GitHubAuthDialog({ isOpen, onClose }: GitHubAuthDialogProps) {
 
           {/* Content */}
           <div className="p-4 space-y-3">
-            <div className="bg-[#F9F9F9] dark:bg-[#252525] p-4 rounded-lg space-y-3">
-              <h3 className="text-base font-medium text-[#111111] dark:text-white">Connect with GitHub Token</h3>
-
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <div>
-                  <label className="block text-sm text-[#666666] dark:text-[#999999] mb-1">
-                    GitHub Personal Access Token
-                  </label>
-                  <input
-                    type="password"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                    className={classNames(
-                      'w-full px-3 py-1.5 rounded-lg',
-                      'border border-[#E5E5E5] dark:border-[#333333]',
-                      'bg-white dark:bg-[#1A1A1A]',
-                      'text-[#111111] dark:text-white',
-                      'placeholder-[#999999]',
-                      'text-sm',
-                      'focus:outline-none focus:ring-2 focus:ring-[#07F29C]/30 focus:border-[#07F29C]'
-                    )}
-                  />
-                  <div className="mt-1 text-xs text-[#666666] dark:text-[#999999]">
-                    Get your token at{' '}
-                    <a
-                      href="https://github.com/settings/tokens"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#07F29C] hover:underline"
-                    >
-                      github.com/settings/tokens
-                    </a>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className={classNames(
-                    'w-full px-4 py-2 rounded-lg',
-                    'bg-[#07F29C] text-white',
-                    'hover:bg-[#07F29C]/90',
-                    'transition-all duration-200',
-                    'text-sm font-medium'
-                  )}
-                >
-                  Connect GitHub Account
-                </button>
-              </form>
+            <div className="bg-[#F9F9F9] dark:bg-[#252525] p-4 rounded-lg space-y-3 flex flex-col items-center justify-center">
+              <h3 className="text-base font-medium text-[#111111] dark:text-white mb-2">Connect with GitHub in Settings</h3>
+              <p className="text-sm text-[#666666] dark:text-[#999999] mb-4 text-center">
+                To access private repositories, please connect your GitHub account in <b>Settings &gt; Connections</b>.<br />
+                Once connected, you can use your account here without entering your token again.
+              </p>
+              <button
+                onClick={() => {
+                  window.location.href = '/settings';
+                }}
+                className={classNames(
+                  'px-6 py-2 rounded-lg',
+                  'bg-[#07F29C] text-white',
+                  'hover:bg-[#07F29C]/90',
+                  'transition-all duration-200',
+                  'text-sm font-medium'
+                )}
+              >
+                Go to Settings &gt; Connections
+              </button>
             </div>
 
             <div className="mt-6 p-4 rounded-lg bg-[#1B1B1B] border border-bolt-elements-borderColor-dark">

@@ -25,7 +25,7 @@ const useUserConnections = () => {
         .eq('user_id', user.id)
         .eq('provider', provider)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         return undefined;
@@ -319,7 +319,7 @@ export default function GitHubConnection() {
       });
 
       // Fetch additional GitHub stats
-      fetchGitHubStats(token);
+      fetchGitHubStats(token, user);
     } catch (error) {
       console.error('Failed to fetch GitHub user:', error);
       logStore.logError(`GitHub authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`, {
@@ -332,7 +332,7 @@ export default function GitHubConnection() {
     }
   };
 
-  const fetchGitHubStats = async (token: string) => {
+  const fetchGitHubStats = async (token: string, user: GitHubUserResponse | null) => {
     setIsFetchingStats(true);
 
     try {
@@ -382,7 +382,7 @@ export default function GitHubConnection() {
       }
 
       // Calculate stats
-      const repoStats = calculateRepoStats(allRepos);
+      const repoStats = calculateRepoStats(allRepos, token, connection.tokenType);
 
       // Fetch recent activity
       const eventsResponse = await fetch(`https://api.github.com/users/${userData.login}/events?per_page=10`, {
@@ -429,12 +429,9 @@ export default function GitHubConnection() {
         organizations: [],
       };
 
-      // Get the current user first to ensure we have the latest value
-      const currentUser = connection.user;
-
-      // Update connection with stats
+      // Always use the latest user from the current state
       const updatedConnection: GitHubConnection = {
-        user: currentUser,
+        user,
         token,
         tokenType: connection.tokenType,
         stats,
@@ -462,7 +459,7 @@ export default function GitHubConnection() {
     }
   };
 
-  const calculateRepoStats = (repos: any[]) => {
+  const calculateRepoStats = (repos: any[], token: string, tokenType: 'classic' | 'fine-grained') => {
     const repoStats = {
       repos: repos.map((repo: any) => ({
         name: repo.name,
@@ -475,13 +472,17 @@ export default function GitHubConnection() {
         updated_at: repo.updated_at,
         languages_url: repo.languages_url,
       })),
-
       languages: {} as Record<string, number>,
       totalGists: 0,
     };
 
     repos.forEach((repo: any) => {
-      fetch(repo.languages_url)
+      fetch(repo.languages_url, {
+        headers: {
+          Authorization: `${tokenType === 'classic' ? 'token' : 'Bearer'} ${token}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      })
         .then((response) => response.json())
         .then((languages: any) => {
           const typedLanguages = languages as Record<string, number>;
@@ -489,7 +490,6 @@ export default function GitHubConnection() {
             if (!repoStats.languages[language]) {
               repoStats.languages[language] = 0;
             }
-
             repoStats.languages[language] += 1;
           });
         });
@@ -543,7 +543,7 @@ export default function GitHubConnection() {
               (!parsed.stats || !parsed.stats.repos || parsed.stats.repos.length === 0)
             ) {
               console.log('Fetching missing GitHub stats for saved connection');
-              await fetchGitHubStats(parsed.token);
+              await fetchGitHubStats(parsed.token, parsed.user);
             }
             
             setIsLoading(false);
@@ -594,7 +594,7 @@ export default function GitHubConnection() {
             (!parsed.stats || !parsed.stats.repos || parsed.stats.repos.length === 0)
           ) {
             console.log('Fetching missing GitHub stats for saved connection');
-            await fetchGitHubStats(parsed.token);
+            await fetchGitHubStats(parsed.token, parsed.user);
           }
         } catch (error) {
           console.error('Error parsing saved GitHub connection:', error);
@@ -690,6 +690,8 @@ export default function GitHubConnection() {
 
       // Attempt to fetch the user info which validates the token
       await fetchGithubUser(connection.token);
+      // Ensure user is set in state after connecting
+      setConnection((prev) => ({ ...prev, user: prev.user }));
 
       toast.success('Connected to GitHub successfully');
     } catch (error) {
@@ -902,7 +904,7 @@ export default function GitHubConnection() {
                   </Button>
                   <Button
                     onClick={() => {
-                      fetchGitHubStats(connection.token);
+                      fetchGitHubStats(connection.token, connection.user);
                       updateRateLimits(connection.token);
                     }}
                     disabled={isFetchingStats}
