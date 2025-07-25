@@ -22,6 +22,7 @@ import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
 import { EditorPanel } from './EditorPanel';
 import { Preview } from './Preview';
+import { Canvas } from './Canvas';
 import useViewport from '~/lib/hooks';
 import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/components/PushToGitHubDialog';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
@@ -51,6 +52,10 @@ const sliderOptions: SliderOptions<WorkbenchViewType> = {
   right: {
     value: 'preview',
     text: 'Preview',
+  },
+  fourth: {
+    value: 'canvas',
+    text: 'Visual Canvas',
   },
 };
 
@@ -487,8 +492,17 @@ export const Workbench = memo(
                   >
                     <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} actionRunner={actionRunner} />
                   </View>
-                  <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
+                  <View 
+                    initial={{ x: '100%' }} 
+                    animate={{ x: selectedView === 'preview' ? '0%' : selectedView === 'code' || selectedView === 'diff' ? '100%' : '-100%' }}
+                  >
                     <Preview />
+                  </View>
+                  <View 
+                    initial={{ x: '100%' }} 
+                    animate={{ x: selectedView === 'canvas' ? '0%' : selectedView === 'code' || selectedView === 'diff' || selectedView === 'preview' ? '100%' : '-100%' }}
+                  >
+                    <Canvas />
                   </View>
                 </div>
               </div>

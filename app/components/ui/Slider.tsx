@@ -8,6 +8,7 @@ export type SliderOptions<T> = {
   left: { value: T; text: string };
   middle?: { value: T; text: string };
   right: { value: T; text: string };
+  fourth?: { value: T; text: string };
 };
 
 interface SliderProps<T> {
@@ -18,8 +19,11 @@ interface SliderProps<T> {
 
 export const Slider = genericMemo(<T,>({ selected, options, setSelected }: SliderProps<T>) => {
   const hasMiddle = !!options.middle;
-  const isLeftSelected = hasMiddle ? selected === options.left.value : selected === options.left.value;
+  const hasFourth = !!options.fourth;
+  const isLeftSelected = selected === options.left.value;
   const isMiddleSelected = hasMiddle && options.middle ? selected === options.middle.value : false;
+  const isRightSelected = hasMiddle && hasFourth ? selected === options.right.value : !isLeftSelected && !isMiddleSelected;
+  const isFourthSelected = hasFourth && options.fourth ? selected === options.fourth.value : false;
 
   return (
     <div className="flex items-center flex-wrap shrink-0 gap-1 bg-bolt-elements-background-depth-1 overflow-hidden rounded-full p-1">
@@ -34,11 +38,17 @@ export const Slider = genericMemo(<T,>({ selected, options, setSelected }: Slide
       )}
 
       <SliderButton
-        selected={!isLeftSelected && !isMiddleSelected}
+        selected={isRightSelected}
         setSelected={() => setSelected?.(options.right.value)}
       >
         {options.right.text}
       </SliderButton>
+
+      {options.fourth && (
+        <SliderButton selected={isFourthSelected} setSelected={() => setSelected?.(options.fourth!.value)}>
+          {options.fourth.text}
+        </SliderButton>
+      )}
     </div>
   );
 });

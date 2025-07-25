@@ -104,6 +104,7 @@
   --bolt-terminal-brightWhite: #a5a5a5;
   --modern-scrollbar-thumb-background: rgba(100, 100, 100, 0.5);
   --modern-scrollbar-thumb-backgroundHover: rgba(74, 74, 74, 0.8);
+  --canvas-grid-color: rgba(0,0,0,0.04);
 }
 
 /* Color Tokens Dark Theme */
@@ -212,6 +213,7 @@
   --bolt-terminal-brightWhite: #f1f1f0;
   --modern-scrollbar-thumb-background: rgba(100, 100, 100, 0.3); // Example dark theme color (adjust as needed)
   --modern-scrollbar-thumb-backgroundHover: rgba(10, 10, 10, 0.8);
+  --canvas-grid-color: rgba(255,255,255,0.08);
 }
 
 /*

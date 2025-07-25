@@ -80,10 +80,12 @@ html[data-theme='dark'] {
   --secondary-color: rgba(220, 38, 38, var(--gradient-opacity));
   --accent-color: rgba(185, 28, 28, var(--gradient-opacity));
   --prompt-effect-color: #000000;
+  --canvas-textbox-color: #111;
 }
 
 :root[data-theme='dark'] {
   --prompt-effect-color: #ffffff;
+  --canvas-textbox-color: #fff;
 }
 
 .modern-scrollbar {
@@ -267,4 +269,56 @@ html[data-theme='dark'] {
     padding-bottom: env(safe-area-inset-bottom);
     padding-top: env(safe-area-inset-top);
   }
+}
+
+/* Toolbar button theme for light/dark mode */
+.toolbar-btn {
+  background: #f3f4f6;
+  color: #222;
+  transition: background 0.2s, color 0.2s;
+}
+.toolbar-btn:hover {
+  background: #e5e7eb !important;
+}
+html[data-theme='dark'] .toolbar-btn {
+  background: transparent;
+  color: #fff;
+}
+html[data-theme='dark'] .toolbar-btn:hover {
+  background: #23272f !important;
+}
+.toolbar-btn.active {
+  background: #e0edff;
+  color: #2563eb;
+  box-shadow: 0 0 0 2px #2563eb11;
+  border: none;
+}
+html[data-theme='dark'] .toolbar-btn.active {
+  background: #2563eb33;
+  color: #90b4e8;
+  box-shadow: 0 0 0 2px #2563eb33;
+  border: none;
+}
+
+/* Subtoolbar panel theme for light/dark mode */
+.subtoolbar-panel {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border: 1px solid #e5e7eb;
+}
+html[data-theme='dark'] .subtoolbar-panel {
+  background: #23272f;
+  border: 1px solid #2d323c;
+}
+
+/* Hide number input spinners for Chrome, Safari, Edge, Opera */
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Hide number input spinners for Firefox */
+.no-spinner {
+  -moz-appearance: textfield;
 }
