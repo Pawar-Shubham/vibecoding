@@ -14,12 +14,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: {
       getItem: (key) => {
         try {
-          // Check if we're in a browser environment
-          if (typeof window !== 'undefined' && window.localStorage) {
-            const item = localStorage.getItem(key);
-            return item ? JSON.parse(item) : null;
+          // Check if we're in the browser environment
+          if (typeof window === 'undefined') {
+            return null;
           }
-          return null;
+          const item = localStorage.getItem(key);
+          return item ? JSON.parse(item) : null;
         } catch (error) {
           console.error('Error reading auth storage:', error);
           return null;
@@ -27,20 +27,22 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       },
       setItem: (key, value) => {
         try {
-          // Check if we're in a browser environment
-          if (typeof window !== 'undefined' && window.localStorage) {
-            localStorage.setItem(key, JSON.stringify(value));
+          // Check if we're in the browser environment
+          if (typeof window === 'undefined') {
+            return;
           }
+          localStorage.setItem(key, JSON.stringify(value));
         } catch (error) {
           console.error('Error writing to auth storage:', error);
         }
       },
       removeItem: (key) => {
         try {
-          // Check if we're in a browser environment
-          if (typeof window !== 'undefined' && window.localStorage) {
-            localStorage.removeItem(key);
+          // Check if we're in the browser environment
+          if (typeof window === 'undefined') {
+            return;
           }
+          localStorage.removeItem(key);
         } catch (error) {
           console.error('Error removing from auth storage:', error);
         }
@@ -177,10 +179,10 @@ export const updatePassword = async (newPassword: string) => {
 export const signOut = async () => {
   try {
     // Clear any auth-related storage before signing out
-            if (typeof window !== 'undefined' && window.localStorage) {
-          localStorage.removeItem('bolt.auth.token');
-        }
-    sessionStorage.removeItem('bolt.auth.token');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('bolt.auth.token');
+      sessionStorage.removeItem('bolt.auth.token');
+    }
     
     const { error } = await supabase.auth.signOut();
     

@@ -160,7 +160,7 @@ const inlineThemeCode = stripIndents`
   setTutorialKitTheme();
 
   function setTutorialKitTheme() {
-    let theme = localStorage.getItem('bolt_theme');
+    let theme = typeof window !== 'undefined' ? localStorage.getItem('bolt_theme') : null;
 
     if (!theme) {
       theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
