@@ -22,7 +22,7 @@ import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
 import { EditorPanel } from './EditorPanel';
 import { Preview } from './Preview';
-import { Canvas } from './Canvas.client';
+import { Canvas } from './Canvas';
 import useViewport from '~/lib/hooks';
 import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/components/PushToGitHubDialog';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
@@ -282,6 +282,25 @@ const FileModifiedDropdown = memo(
   },
 );
 
+// Client-only Canvas wrapper to prevent SSR issues
+const ClientOnlyCanvas = () => {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  return <Canvas />;
+};
+
 export const Workbench = memo(
   ({ chatStarted, isStreaming, actionRunner, metadata, updateChatMestaData }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
@@ -502,7 +521,7 @@ export const Workbench = memo(
                     initial={{ x: '100%' }} 
                     animate={{ x: selectedView === 'canvas' ? '0%' : selectedView === 'code' || selectedView === 'diff' || selectedView === 'preview' ? '100%' : '-100%' }}
                   >
-                    <Canvas />
+                    <ClientOnlyCanvas />
                   </View>
                 </div>
               </div>
