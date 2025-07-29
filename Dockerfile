@@ -11,7 +11,10 @@ RUN git config --global --add safe.directory /app
 # Setup pnpm & install dependencies
 RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm config set node-linker hoisted && pnpm install --frozen-lockfile
+RUN npm install -g pnpm && \
+    pnpm config set node-linker hoisted && \
+    CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile && \
+    pnpm store prune
 
 # Run fixes for peer dependencies and ensure react-colorful is present
 RUN npm install --legacy-peer-deps \
