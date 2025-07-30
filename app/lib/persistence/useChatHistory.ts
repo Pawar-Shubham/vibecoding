@@ -51,7 +51,8 @@ export const description = atom<string | undefined>(undefined);
 export const chatMetadata = atom<IChatMetadata | undefined>(undefined);
 export function useChatHistory() {
   const navigate = useNavigate();
-  const { id: mixedId } = useLoaderData<{ id?: string }>();
+  const loaderData = useLoaderData<{ id?: string }>();
+  const { id: mixedId } = loaderData || {};
   const [searchParams] = useSearchParams();
   const { user, loading, initialized } = useAuth();
 

@@ -162,7 +162,7 @@ export async function getTemplates(templateName: string, title?: string) {
   filteredFiles = filteredFiles.filter((x) => x.path.startsWith('.bolt') == false);
 
   // Replace "Bolt.new" with "VxC" in HTML files
-  filteredFiles = filteredFiles.map((file) => {
+  filteredFiles = filteredFiles.map((file: { name: string; path: string; content: string }) => {
     if (file.name.endsWith('.html') || file.path.endsWith('.html')) {
       const updatedContent = file.content
         .replace(/Bolt\.new/g, 'VxC')
@@ -171,13 +171,109 @@ export async function getTemplates(templateName: string, title?: string) {
         .replace(/bolt new/g, 'VxC')
         .replace(/BOLT\.NEW/g, 'VxC')
         .replace(/BOLT NEW/g, 'VxC');
-      
       return {
         ...file,
         content: updatedContent
       };
+    } else if (file.name === 'vite.config.ts') {
+      // Only inject if plugins array is found
+      if (/plugins:\s*\[/.test(file.content)) {
+        const injectedScript =
+        '<script>' +
+        'document.addEventListener("DOMContentLoaded", function() {' +
+        'var previouslyHighlighted = null;' +
+        'var tagLabel = null;' +
+        'var highlightingEnabled = false;' +
+        'var hoverOverlay = document.createElement("div");' +
+        'hoverOverlay.style.position = "absolute";' +
+        'hoverOverlay.style.backgroundColor = "rgba(0, 123, 255, 0.2)";' +
+        'hoverOverlay.style.pointerEvents = "none";' +
+        'hoverOverlay.style.zIndex = "9998";' +
+        'hoverOverlay.style.display = "none";' +
+        'document.body.appendChild(hoverOverlay);' +
+      
+        'window.addEventListener("message", function(event) {' +
+          'if (event.data && typeof event.data.toggleHighlighter === "boolean") {' +
+            'highlightingEnabled = event.data.toggleHighlighter;' +
+            'if (!highlightingEnabled) {' +
+              'hoverOverlay.style.display = "none";' +
+              'if (previouslyHighlighted) previouslyHighlighted.style.outline = "";' +
+              'if (tagLabel) { tagLabel.remove(); tagLabel = null; }' +
+            '}' +
+          '}' +
+        '});' +
+      
+        'document.body.addEventListener("mousemove", function(e) {' +
+        'if (!highlightingEnabled) return;' +
+        'var el = e.target;' +
+        'if (!(el instanceof HTMLElement)) return;' +
+        'var rect = el.getBoundingClientRect();' +
+        'hoverOverlay.style.display = "block";' +
+        'hoverOverlay.style.top = (window.scrollY + rect.top) + "px";' +
+        'hoverOverlay.style.left = (window.scrollX + rect.left) + "px";' +
+        'hoverOverlay.style.width = rect.width + "px";' +
+        'hoverOverlay.style.height = rect.height + "px";' +
+        '});' +
+      
+        'document.body.addEventListener("mouseleave", function() {' +
+        'if (highlightingEnabled) hoverOverlay.style.display = "none";' +
+        '});' +
+      
+        'document.body.addEventListener("click", function(e) {' +
+        'if (!highlightingEnabled) return;' +
+        'e.preventDefault();' +
+        'e.stopPropagation();' +
+        'var target = e.target;' +
+        'if (!(target instanceof HTMLElement)) return;' +
+        'if (previouslyHighlighted) { previouslyHighlighted.style.outline = ""; }' +
+        'if (tagLabel) { tagLabel.remove(); }' +
+        'target.style.outline = "2px solid blue";' +
+        'previouslyHighlighted = target;' +
+      
+        'tagLabel = document.createElement("div");' +
+        'tagLabel.innerText = "<" + target.tagName.toLowerCase() + ">";' +
+        'tagLabel.style.position = "absolute";' +
+        'tagLabel.style.background = "blue";' +
+        'tagLabel.style.color = "white";' +
+        'tagLabel.style.padding = "2px 6px";' +
+        'tagLabel.style.fontSize = "12px";' +
+        'tagLabel.style.borderRadius = "4px";' +
+        'tagLabel.style.zIndex = "9999";' +
+        'var rect = target.getBoundingClientRect();' +
+        'tagLabel.style.top = (window.scrollY + rect.top - 20) + "px";' +
+        'tagLabel.style.left = (window.scrollX + rect.left) + "px";' +
+        'tagLabel.style.pointerEvents = "none";' +
+        'document.body.appendChild(tagLabel);' +
+      
+        'var html = target.outerHTML;' +
+        'navigator.clipboard.writeText(html).then(function() {' +
+        '  if (window.parent && window.parent !== window) {' +
+        '    window.parent.postMessage({' +
+        '      selectedTagName: target.tagName,' +
+        '      selectedOuterHTML: target.outerHTML' +
+        '    }, "*");' +
+        '  }' +
+        'console.log("Copied HTML to clipboard:", html);' +
+        '});' +
+        '}, true);' +
+        '});' +
+        '</script>';
+        '</script> </body>';
+        file.content = file.content.replace(
+          /plugins:\s*\[/,
+          `plugins: [
+  {
+    name: 'inject-highlighter-script',
+    transformIndexHtml(html) {
+      return html.replace('</body>', '${injectedScript}');
     }
-    return file;
+  },`
+        );
+      }
+      return file;
+    } else {
+      return file;
+    }
   });
 
   // check for ignore file in .bolt folder

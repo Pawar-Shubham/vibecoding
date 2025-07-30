@@ -3,7 +3,7 @@
  * Preventing TS checks with files presented in the video for a better presentation.
  */
 import type { JSONValue, Message } from "ai";
-import React, { type RefCallback, useEffect, useState } from "react";
+import React, { type RefCallback, useEffect, useState, useRef } from "react";
 import { ClientOnly } from "remix-utils/client-only";
 import { Menu } from "~/components/sidebar/Menu.client";
 import { IconButton } from "~/components/ui/IconButton";
@@ -43,13 +43,13 @@ import { ExpoQrModal } from "~/components/workbench/ExpoQrModal";
 import { expoUrlAtom } from "~/lib/stores/qrCodeStore";
 import { useStore } from "@nanostores/react";
 import { StickToBottom, useStickToBottomContext } from "~/lib/hooks";
-import { useStore as useChatStore } from '@nanostores/react';
-import { chatStore } from '~/lib/stores/chat';
-import { useAuth } from '~/lib/hooks/useAuth';
-import { useNavigate } from '@remix-run/react';
-import { useHotkeys } from 'react-hotkeys-hook';
-import { useSettingsStore } from '~/lib/stores/settings';
-import { streamingState } from '~/lib/stores/streaming';
+import { useStore as useChatStore } from "@nanostores/react";
+import { chatStore } from "~/lib/stores/chat";
+import { useAuth } from "~/lib/hooks/useAuth";
+import { useNavigate } from "@remix-run/react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useSettingsStore } from "~/lib/stores/settings";
+import { streamingState } from "~/lib/stores/streaming";
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -150,6 +150,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     >([]);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
+    const [clipboardPrepend, setClipboardPrepend] = useState<string | null>(
+      null
+    );
+    const [notchTag, setNotchTag] = useState<string | null>(null);
+    // Remove the notchTimeoutRef and timeout logic
 
     useEffect(() => {
       if (expoUrl) {
@@ -366,6 +371,71 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
       }
     };
+
+    useEffect(() => {
+      // Listen for messages from the preview iframe
+      const handleMessage = async (event: MessageEvent) => {
+        if (event.data && event.data.selectedTagName) {
+          // Read clipboard
+          let clipboardText = "";
+          try {
+            clipboardText = await navigator.clipboard.readText();
+          } catch {}
+          // Store clipboard text to prepend on next send
+          if (clipboardText) {
+            setClipboardPrepend(clipboardText);
+          }
+          // Show notch with tag name (persistent)
+          setNotchTag(event.data.selectedTagName);
+        }
+      };
+      window.addEventListener("message", handleMessage);
+      return () => window.removeEventListener("message", handleMessage);
+    }, []);
+
+    // Wrap the sendMessage handler to prepend clipboardPrepend
+    const handleSendMessageWithPrepend = (
+      event: React.UIEvent,
+      messageInput?: string
+    ) => {
+      let finalInput = messageInput || input;
+      if (clipboardPrepend) {
+        finalInput = clipboardPrepend + finalInput;
+        setClipboardPrepend(null); // Clear after use
+      }
+      setNotchTag(null); // Remove the notch after sending
+      console.log("Prompt sent:", finalInput);
+      if (sendMessage) {
+        sendMessage(event, finalInput);
+      }
+      // Dispatch event to turn off inspector toggle
+      window.dispatchEvent(new Event("prompt-sent"));
+    };
+
+    // useEffect(() => {
+    //   // Listen for messages from the preview iframe
+    //   const handleMessage = async (event: MessageEvent) => {
+    //     if (event.data && event.data.selectedTagName) {
+    //       // Read clipboard
+    //       let clipboardText = "";
+    //       try {
+    //         clipboardText = await navigator.clipboard.readText();
+    //       } catch {}
+    //       // Append clipboard text to current input
+    //       if (clipboardText && handleInputChange) {
+    //         const newValue = (input || "") + clipboardText;
+    //         console.log("Clipboard text received:", clipboardText);
+    //         console.log("New prompt input value:", newValue);
+    //         const syntheticEvent = {
+    //           target: { value: newValue },
+    //         } as React.ChangeEvent<HTMLTextAreaElement>;
+    //         handleInputChange(syntheticEvent);
+    //       }
+    //     }
+    //   };
+    //   window.addEventListener("message", handleMessage);
+    //   return () => window.removeEventListener("message", handleMessage);
+    // }, [input, handleInputChange]);
 
     const baseChat = (
       <div
@@ -613,10 +683,58 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       )}
                     </ClientOnly>
                     <div className="relative backdrop-blur">
+                      {/* Notch above prompt textarea */}
+                      {notchTag && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "-32px",
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            background:
+                              "var(--bolt-elements-borderColorActive, #6D28D9)",
+                            color: "#fff",
+                            padding: "4px 12px",
+                            borderRadius: "8px",
+                            fontWeight: 600,
+                            zIndex: 100,
+                            pointerEvents: "auto",
+                            fontSize: "14px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                          }}
+                        >
+                          {`<${notchTag.toLowerCase()}>`}
+                          <button
+                            onClick={() => {
+                              setNotchTag(null);
+                              setClipboardPrepend(null);
+                            }}
+                            style={{
+                              marginLeft: 8,
+                              background: "transparent",
+                              border: "none",
+                              color: "#fff",
+                              fontWeight: "bold",
+                              fontSize: "16px",
+                              cursor: "pointer",
+                              lineHeight: 1,
+                              padding: 0,
+                            }}
+                            title="Cancel"
+                            aria-label="Cancel"
+                            type="button"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )}
                       <textarea
                         ref={textareaRef}
                         className={classNames(
-                          "w-full pl-4 pt-4 pr-4 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm"
+                          "w-full pl-4 pt-4 pr-4 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm",
+                          notchTag ? "border-2" : ""
                         )}
                         onDragEnter={(e) => {
                           e.preventDefault();
@@ -671,7 +789,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                               return;
                             }
 
-                            handleSendMessage?.(event);
+                            handleSendMessageWithPrepend(event);
                           }
                         }}
                         value={input}
@@ -682,6 +800,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         style={{
                           minHeight: TEXTAREA_MIN_HEIGHT,
                           maxHeight: TEXTAREA_MAX_HEIGHT,
+                          borderColor: notchTag
+                            ? "var(--bolt-elements-borderColorActive, #6D28D9)"
+                            : undefined,
+                          borderRadius: "8px",
+                          borderStyle: notchTag ? "solid" : undefined,
                         }}
                         placeholder="How can VxC help you today?"
                         translate="no"
@@ -792,7 +915,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       }
 
                       if (input.length > 0 || uploadedFiles.length > 0) {
-                        handleSendMessage?.(event);
+                        handleSendMessageWithPrepend(event);
                       }
                     }}
                     disabled={!providerList || providerList.length === 0}

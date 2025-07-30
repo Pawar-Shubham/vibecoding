@@ -4,6 +4,54 @@ import { withResolvers } from './promises';
 import { atom } from 'nanostores';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 
+// Add supported proxy commands
+const PROXY_COMMANDS = new Set(['curl', 'fetch']);
+
+// Add type for proxy response
+interface ProxyResponse {
+  error?: string;
+  status?: number;
+  statusText?: string;
+  headers?: Record<string, string>;
+  data?: string;
+}
+
+// Helper to parse command string into command and args
+function parseCommand(commandStr: string): { command: string; args: string[] } {
+  const parts = commandStr.trim().split(/\s+/);
+  const result = {
+    command: parts[0],
+    args: parts.slice(1)
+  };
+  console.log('[Shell] Parsed command:', result);
+  return result;
+}
+
+// Helper to format proxy response for terminal
+function formatProxyResponse(response: ProxyResponse): string {
+  if (response.error) {
+    return `Error: ${response.error}\n`;
+  }
+
+  let output = '';
+  if (response.status) {
+    output += `HTTP/${response.status} ${response.statusText}\n`;
+  }
+  
+  if (response.headers) {
+    for (const [key, value] of Object.entries(response.headers)) {
+      output += `${key}: ${value}\n`;
+    }
+    output += '\n';
+  }
+  
+  if (response.data) {
+    output += response.data;
+  }
+  
+  return output;
+}
+
 export async function newShellProcess(webcontainer: WebContainer, terminal: ITerminal) {
   const args: string[] = [];
 
@@ -66,6 +114,8 @@ export class BoltShell {
   >();
   #outputStream: ReadableStreamDefaultReader<string> | undefined;
   #shellInputStream: WritableStreamDefaultWriter<string> | undefined;
+  #currentLine = '';
+  #isProxyCommand = false;
 
   constructor() {
     this.#readyPromise = new Promise((resolve) => {
@@ -132,9 +182,65 @@ export class BoltShell {
       }),
     );
 
+    // Handle terminal input
     terminal.onData((data) => {
       if (isInteractive) {
-        input.write(data);
+        // Special handling for command history (up/down arrow) and pasted content
+        const charCode = data.charCodeAt(0);
+        
+        // Handle up/down arrow keys (27 91 65 for up, 27 91 66 for down)
+        if (data === '\x1b[A' || data === '\x1b[B') {
+          input.write(data);
+          return;
+        }
+        
+        // Handle enter key
+        if (charCode === 13 || charCode === 10) { // Enter key
+          const line = this.#currentLine.trim();
+          
+          if (line) {
+            const { command: cmd, args } = parseCommand(line);
+            if (PROXY_COMMANDS.has(cmd)) {
+              // Clear the line from terminal buffer
+              const clearLine = '\b'.repeat(this.#currentLine.length) + ' '.repeat(this.#currentLine.length) + '\b'.repeat(this.#currentLine.length);
+              input.write(clearLine);
+              
+              // Handle proxy command
+              this.handleProxyCommand(cmd, args).catch(error => {
+                terminal.write(`\r\nError: ${error}\r\n$ `);
+              });
+              
+              // Reset state
+              this.#currentLine = '';
+              this.#isProxyCommand = false;
+              return;
+            }
+          }
+          
+          // Not a proxy command, pass to terminal
+          this.#currentLine = '';
+          this.#isProxyCommand = false;
+          input.write(data);
+        } else if (charCode === 3) { // Ctrl+C
+          this.#currentLine = '';
+          this.#isProxyCommand = false;
+          input.write(data);
+        } else if (charCode === 127 || charCode === 8) { // Backspace
+          if (this.#currentLine.length > 0) {
+            this.#currentLine = this.#currentLine.slice(0, -1);
+            input.write(data);
+          }
+        } else {
+          // Handle pasted content (multiple characters at once)
+          this.#currentLine += data;
+          input.write(data);
+        }
+
+        // Update proxy command status after any input
+        if (this.#currentLine) {
+          const { command: cmd } = parseCommand(this.#currentLine);
+          this.#isProxyCommand = PROXY_COMMANDS.has(cmd);
+        }
       }
     });
 
@@ -142,6 +248,29 @@ export class BoltShell {
 
     // Return all streams for use in init
     return { process, terminalStream: streamA, commandStream: streamC, expoUrlStream: streamD };
+  }
+
+  // Handle proxy commands directly
+  private async handleProxyCommand(cmd: string, args: string[]): Promise<void> {
+    if (!this.terminal) return;
+
+    try {
+      const proxyCommand = { command: cmd, args };
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      const proxyUrl = `${baseUrl}/api/proxy?command=${encodeURIComponent(JSON.stringify(proxyCommand))}`;
+      
+      const response = await fetch(proxyUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json() as ProxyResponse;
+      
+      // Write response to terminal
+      this.terminal.write('\r\n' + (result.data || '') + '\r\n$ ');
+    } catch (error) {
+      throw new Error(`Failed to execute proxy command: ${error}`);
+    }
   }
 
   // Dedicated background watcher for Expo URL
@@ -227,10 +356,39 @@ export class BoltShell {
       state.abort();
     }
 
-    /*
-     * interrupt the current execution
-     *  this.#shellInputStream?.write('\x03');
-     */
+    // Parse the command
+    const { command: cmd, args } = parseCommand(command);
+
+    // Check if this is a proxy command
+    if (PROXY_COMMANDS.has(cmd)) {
+      try {
+        const proxyCommand = {
+          command: cmd,
+          args
+        };
+        
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+        const proxyUrl = `${baseUrl}/api/proxy?command=${encodeURIComponent(JSON.stringify(proxyCommand))}`;
+        
+        const response = await fetch(proxyUrl);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json() as ProxyResponse;
+        return {
+          output: result.data || '',
+          exitCode: result.error ? 1 : 0
+        };
+      } catch (error) {
+        return {
+          output: `Error executing proxy command: ${error}\n`,
+          exitCode: 1
+        };
+      }
+    }
+
+    // Handle non-proxy commands as before
     this.terminal.input('\x03');
     await this.waitTillOscCode('prompt');
 
