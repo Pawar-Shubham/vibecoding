@@ -1,0 +1,15 @@
+# Block access to source files and directories
+/app/* /404 404
+*.tsx /404 404
+*.ts /404 404
+/components/* /404 404
+/lib/* /404 404
+/utils/* /404 404
+/types/* /404 404
+/stores/* /404 404
+/hooks/* /404 404
+/electron/* /404 404
+/scripts/* /404 404
+
+# Serve all other requests through Remix
+/* /index.html 200
