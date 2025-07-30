@@ -996,30 +996,6 @@ export const Canvas = memo(() => {
               newWidth = Math.max(MIN_SIZE, resizeState.startWidth - dx);
               newX = resizeState.startLeft + (resizeState.startWidth - newWidth);
               break;
-            case 'nw':
-              newWidth = Math.max(MIN_SIZE, resizeState.startWidth - dx);
-              newHeight = Math.max(MIN_SIZE, resizeState.startHeight - dy);
-              newX = resizeState.startLeft + (resizeState.startWidth - newWidth);
-              newY = resizeState.startTop + (resizeState.startHeight - newHeight);
-              break;
-            case 'ne':
-              newWidth = Math.max(MIN_SIZE, resizeState.startWidth + dx);
-              newHeight = Math.max(MIN_SIZE, resizeState.startHeight - dy);
-              newY = resizeState.startTop + (resizeState.startHeight - newHeight);
-              break;
-            case 'se':
-              newWidth = Math.max(MIN_SIZE, resizeState.startWidth + dx);
-              newHeight = Math.max(MIN_SIZE, resizeState.startHeight + dy);
-              break;
-            case 'sw':
-              newWidth = Math.max(MIN_SIZE, resizeState.startWidth - dx);
-              newHeight = Math.max(MIN_SIZE, resizeState.startHeight + dy);
-              newX = resizeState.startLeft + (resizeState.startWidth - newWidth);
-              break;
-            case 'w':
-              newWidth = Math.max(MIN_SIZE, resizeState.startWidth - dx);
-              newX = resizeState.startLeft + (resizeState.startWidth - newWidth);
-              break;
           }
           // If pen drawing, scale all points
           if (
