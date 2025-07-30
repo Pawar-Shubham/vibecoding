@@ -27,21 +27,35 @@ COPY . .
 RUN pnpm run build
 
 # Stage 2: Production runtime
-FROM node:20.18.0-alpine AS bolt-ai-production
+FROM node:20.18.0 AS bolt-ai-production
 WORKDIR /app
 
 # Install runtime pnpm
 RUN npm install -g pnpm
 
-# Copy node_modules from development stage to ensure all dependencies are available
-COPY --from=bolt-ai-development /app/node_modules ./node_modules
+# Copy package files and reinstall dependencies
+COPY --from=bolt-ai-development /app/package.json ./
+COPY --from=bolt-ai-development /app/pnpm-lock.yaml ./
+RUN npm install -g pnpm && \
+    pnpm config set node-linker hoisted && \
+    pnpm install --frozen-lockfile && \
+    npm install --legacy-peer-deps && \
+    npm install react-colorful@5.6.1 --legacy-peer-deps && \
+    npm install html2canvas@1.4.1 --legacy-peer-deps
 
 # Verify critical dependencies
-RUN ls -la node_modules/@google/ && \
+RUN echo "Checking node_modules contents..." && \
+    ls -la node_modules/ | grep -E "(react-colorful|@google|html2canvas)" && \
+    echo "Checking react-colorful specifically..." && \
+    ls -la node_modules/react-colorful/ 2>/dev/null || echo "react-colorful not found in node_modules" && \
+    echo "Checking html2canvas specifically..." && \
+    ls -la node_modules/html2canvas/ 2>/dev/null || echo "html2canvas not found in node_modules" && \
     echo "Verifying @google/genai installation..." && \
     node -e "try { require('@google/genai'); console.log('@google/genai module found'); } catch(e) { console.error('@google/genai module not found:', e.message); process.exit(1); }" && \
     echo "Verifying react-colorful installation..." && \
     node -e "try { require('react-colorful'); console.log('react-colorful module found'); } catch(e) { console.error('react-colorful module not found:', e.message); process.exit(1); }" && \
+    echo "Verifying html2canvas installation..." && \
+    node -e "try { require('html2canvas'); console.log('html2canvas module found'); } catch(e) { console.error('html2canvas module not found:', e.message); process.exit(1); }" && \
     echo "Node modules structure:" && ls -la node_modules/ | head -20
 
 # Copy build output and necessary files
