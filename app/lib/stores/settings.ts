@@ -79,7 +79,7 @@ const getInitialProviderSettings = (): ProviderSetting => {
   });
 
   // Only try to load from localStorage in the browser
-  if (isBrowser) {
+  if (isBrowser && typeof window !== 'undefined' && window.localStorage) {
     const savedSettings = localStorage.getItem(PROVIDER_SETTINGS_KEY);
 
     if (savedSettings) {
@@ -133,7 +133,9 @@ export const updateProviderSettings = (provider: string, settings: IProviderSett
   // Save to localStorage
   if (isBrowser) {
     try {
+      if (typeof window !== 'undefined' && window.localStorage) {
       localStorage.setItem(PROVIDER_SETTINGS_KEY, JSON.stringify(providersStore.get()));
+    }
     } catch (error) {
       console.error('Error saving provider settings:', error);
     }
@@ -159,7 +161,7 @@ const getInitialSettings = () => {
       return defaultValue;
     }
 
-    const stored = localStorage.getItem(key);
+    const stored = (typeof window !== 'undefined' && window.localStorage) ? localStorage.getItem(key) : null;
 
     if (stored === null) {
       return defaultValue;
@@ -177,7 +179,7 @@ const getInitialSettings = () => {
     autoSelectTemplate: getStoredBoolean(SETTINGS_KEYS.AUTO_SELECT_TEMPLATE, true),
     contextOptimization: getStoredBoolean(SETTINGS_KEYS.CONTEXT_OPTIMIZATION, true),
     eventLogs: getStoredBoolean(SETTINGS_KEYS.EVENT_LOGS, true),
-    promptId: isBrowser ? localStorage.getItem(SETTINGS_KEYS.PROMPT_ID) || 'default' : 'default',
+    promptId: (isBrowser && typeof window !== 'undefined' && window.localStorage) ? localStorage.getItem(SETTINGS_KEYS.PROMPT_ID) || 'default' : 'default',
     developerMode: getStoredBoolean(SETTINGS_KEYS.DEVELOPER_MODE, false),
   };
 };
@@ -194,12 +196,16 @@ export const promptStore = atom<string>(initialSettings.promptId);
 // Helper functions to update settings with persistence
 export const updateLatestBranch = (enabled: boolean) => {
   latestBranchStore.set(enabled);
-  localStorage.setItem(SETTINGS_KEYS.LATEST_BRANCH, JSON.stringify(enabled));
+      if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(SETTINGS_KEYS.LATEST_BRANCH, JSON.stringify(enabled));
+    }
 };
 
 export const updateAutoSelectTemplate = (enabled: boolean) => {
   autoSelectStarterTemplate.set(enabled);
-  localStorage.setItem(SETTINGS_KEYS.AUTO_SELECT_TEMPLATE, JSON.stringify(enabled));
+      if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(SETTINGS_KEYS.AUTO_SELECT_TEMPLATE, JSON.stringify(enabled));
+    }
 };
 
 export const updateContextOptimization = (enabled: boolean) => {

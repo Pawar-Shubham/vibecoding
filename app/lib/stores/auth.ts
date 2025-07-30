@@ -170,7 +170,9 @@ export const setupAuthListener = () => {
             error: null 
           });
           // Clear any auth-related cookies or local storage
-          localStorage.removeItem('supabase.auth.token');
+          if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem('supabase.auth.token');
+    }
           sessionStorage.removeItem('supabase.auth.token');
           break;
 

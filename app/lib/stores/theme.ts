@@ -15,7 +15,9 @@ export const themeStore = atom<Theme>(initStore());
 
 function initStore() {
   if (!import.meta.env.SSR) {
-    const persistedTheme = localStorage.getItem(kTheme) as Theme | undefined;
+    const persistedTheme = (typeof window !== 'undefined' && window.localStorage) 
+  ? localStorage.getItem(kTheme) as Theme | undefined
+  : undefined;
     const themeAttribute = document.querySelector('html')?.getAttribute('data-theme');
 
     return persistedTheme ?? (themeAttribute as Theme) ?? DEFAULT_THEME;
@@ -32,19 +34,23 @@ export function toggleTheme() {
   themeStore.set(newTheme);
 
   // Update localStorage
-  localStorage.setItem(kTheme, newTheme);
+  if (typeof window !== 'undefined' && window.localStorage) {
+    localStorage.setItem(kTheme, newTheme);
+  }
 
   // Update the HTML attribute
   document.querySelector('html')?.setAttribute('data-theme', newTheme);
 
   // Update user profile if it exists
   try {
-    const userProfile = localStorage.getItem('bolt_user_profile');
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const userProfile = localStorage.getItem('bolt_user_profile');
 
-    if (userProfile) {
-      const profile = JSON.parse(userProfile);
-      profile.theme = newTheme;
-      localStorage.setItem('bolt_user_profile', JSON.stringify(profile));
+      if (userProfile) {
+        const profile = JSON.parse(userProfile);
+        profile.theme = newTheme;
+        localStorage.setItem('bolt_user_profile', JSON.stringify(profile));
+      }
     }
   } catch (error) {
     console.error('Error updating user profile theme:', error);

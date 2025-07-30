@@ -177,7 +177,9 @@ export const updatePassword = async (newPassword: string) => {
 export const signOut = async () => {
   try {
     // Clear any auth-related storage before signing out
-    localStorage.removeItem('bolt.auth.token');
+            if (typeof window !== 'undefined' && window.localStorage) {
+          localStorage.removeItem('bolt.auth.token');
+        }
     sessionStorage.removeItem('bolt.auth.token');
     
     const { error } = await supabase.auth.signOut();
