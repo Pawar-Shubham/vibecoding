@@ -81,7 +81,7 @@ importers:
         specifier: ^6.35.0
         version: 6.36.5
       '@google/genai':
-        specifier: ^1.10.0
+        specifier: ^1.11.0
         version: 1.11.0(encoding@0.1.13)
       '@headlessui/react':
         specifier: ^2.2.0
