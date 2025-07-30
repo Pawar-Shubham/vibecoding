@@ -1,45 +1,38 @@
-# -----------------------
-# Stage 1: Base & Deps
-# -----------------------
-FROM node:20-slim AS base
-ENV NODE_ENV=production
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
+### Stage: Development / Build ###
+FROM node:20.18.0 AS builder
 
-RUN corepack enable
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 WORKDIR /app
 
-# Only copy lockfile first for cache optimization
-COPY pnpm-lock.yaml package.json ./
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm fetch --frozen-lockfile
+RUN apt-get update && apt-get install -y iputils-ping dnsutils curl wget git
+RUN git config --global --add safe.directory /app
 
-# Install production dependencies only
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prod
-
-# -----------------------
-# Stage 2: Build
-# -----------------------
-FROM base AS build
-WORKDIR /app
-
-# Install dev dependencies and build
-COPY . .
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+# Install pnpm and dependencies using lockfile
+COPY package.json pnpm-lock.yaml ./
+RUN npm install -g pnpm && \
+    pnpm config set node-linker hoisted && \
     pnpm install --frozen-lockfile
+
+# Copy full project and build
+COPY . .
 RUN pnpm run build
 
-# -----------------------
-# Stage 3: Final Runtime
-# -----------------------
-FROM node:20-alpine AS runtime
+### Stage: Runtime ###
+FROM node:20.18.0-alpine AS runtime
+
 WORKDIR /app
 
-COPY --from=build /app/build /app/build
-COPY --from=base /app/node_modules /app/node_modules
-COPY package.json ./
+RUN npm install -g pnpm
+
+# Copy only production dependencies (optional optimization)
+COPY --from=builder /app/node_modules /app/node_modules
+
+# Copy build outputs
+COPY --from=builder /app/build /app/build
+
+ENV NODE_ENV=production
 
 EXPOSE 3000
-CMD ["node", "./build/index.js"]
+
+CMD ["pnpm", "run", "start", "--port", "3000", "--host", "0.0.0.0"]
