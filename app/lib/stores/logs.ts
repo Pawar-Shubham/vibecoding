@@ -84,7 +84,7 @@ class LogStore {
       return;
     }
 
-          const savedReadLogs = (typeof window !== 'undefined' && window.localStorage) ? localStorage.getItem('bolt_read_logs') : null;
+    const savedReadLogs = localStorage.getItem('bolt_read_logs');
 
     if (savedReadLogs) {
       try {
@@ -106,7 +106,7 @@ class LogStore {
       return;
     }
 
-          if (typeof window !== 'undefined' && window.localStorage) {\n        localStorage.setItem('bolt_read_logs', JSON.stringify(Array.from(this._readLogs)));\n      }
+    localStorage.setItem('bolt_read_logs', JSON.stringify(Array.from(this._readLogs)));
   }
 
   private _generateId(): string {
