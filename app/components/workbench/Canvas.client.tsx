@@ -13,10 +13,15 @@ import { PanelHeaderButton } from "~/components/ui/PanelHeaderButton";
 import { classNames } from "~/utils/classNames";
 import { toast } from "react-toastify";
 // Dynamic import for react-colorful to avoid SSR issues
-let HexColorPicker: any = null;
-let html2canvas: any = null;
+let HexColorPicker: any;
 
-// Modules will be loaded when component mounts via useEffect
+try {
+  const reactColorfulModule = require("react-colorful");
+  HexColorPicker = reactColorfulModule.HexColorPicker;
+} catch (error) {
+  console.error("Failed to import react-colorful:", error);
+}
+import html2canvas from "html2canvas";
 import { useStore } from "@nanostores/react";
 import { chatId } from "~/lib/persistence/useChatHistory";
 import {
@@ -399,9 +404,6 @@ export const Canvas = memo(() => {
   // Add showTick state for save animation
   const [showTick, setShowTick] = useState(false);
 
-  // Track module loading state
-  const [modulesLoaded, setModulesLoaded] = useState(false);
-
   // --- Editing state for text/note ---
   const [resizeState, setResizeState] = useState<{
     objectId: string;
@@ -454,34 +456,6 @@ export const Canvas = memo(() => {
   // Generate unique ID
   const generateId = () =>
     `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-  // Load client-side modules when component mounts
-  useEffect(() => {
-    const loadClientSideModules = async () => {
-      try {
-        // Load react-colorful
-        const reactColorfulModule = await import("react-colorful");
-        HexColorPicker = reactColorfulModule.HexColorPicker;
-        console.log("react-colorful loaded successfully");
-      } catch (error) {
-        console.error("Failed to import react-colorful:", error);
-      }
-
-      try {
-        // Load html2canvas
-        const html2canvasModule = await import("html2canvas");
-        html2canvas = html2canvasModule.default;
-        console.log("html2canvas loaded successfully");
-      } catch (error) {
-        console.error("Failed to import html2canvas:", error);
-      }
-
-      // Mark modules as loaded regardless of success/failure
-      setModulesLoaded(true);
-    };
-
-    loadClientSideModules();
-  }, []);
 
   // Save to history for undo/redo
   const saveToHistory = useCallback(
@@ -2147,14 +2121,6 @@ export const Canvas = memo(() => {
   const [isExporting, setIsExporting] = useState(false);
   const handleExport = async () => {
     if (!canvasRef.current || isExporting) return;
-
-    if (!html2canvas) {
-      toast.error(
-        "Export functionality not available - html2canvas not loaded"
-      );
-      return;
-    }
-
     setIsExporting(true);
     // Determine background color based on current theme
     const isDarkMode =
@@ -2883,7 +2849,7 @@ export const Canvas = memo(() => {
                         }
                         return selectedColor;
                       })()}
-                      onChange={(newColor: string) => {
+                      onChange={(newColor) => {
                         // Always update the selected color for the current tool
                         setSelectedColor(newColor);
 
