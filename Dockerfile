@@ -1,34 +1,45 @@
-FROM node:20.18.0 AS bolt-ai-development
+# -----------------------
+# Stage 1: Base & Deps
+# -----------------------
+FROM node:20-slim AS base
+ENV NODE_ENV=production
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+RUN corepack enable
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y iputils-ping dnsutils curl wget git
+# Only copy lockfile first for cache optimization
+COPY pnpm-lock.yaml package.json ./
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm fetch --frozen-lockfile
 
-RUN git config --global --add safe.directory /app
+# Install production dependencies only
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prod
 
+# -----------------------
+# Stage 2: Build
+# -----------------------
+FROM base AS build
+WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && \
-    pnpm config set node-linker hoisted && \
-    CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
-
-
+# Install dev dependencies and build
 COPY . .
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 RUN pnpm run build
 
-
-FROM node:20.18.0-alpine
-
+# -----------------------
+# Stage 3: Final Runtime
+# -----------------------
+FROM node:20-alpine AS runtime
 WORKDIR /app
 
-RUN npm install -g pnpm
-
-
-COPY --from=builder /app ./
+COPY --from=build /app/build /app/build
+COPY --from=base /app/node_modules /app/node_modules
+COPY package.json ./
 
 EXPOSE 3000
-
-
-CMD ["pnpm", "run", "start", "--port", "3000", "--host", "0.0.0.0"]
+CMD ["node", "./build/index.js"]
