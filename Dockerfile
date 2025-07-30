@@ -18,7 +18,9 @@ RUN npm install -g pnpm && \
 
 # Run fixes for peer dependencies and ensure react-colorful is present
 RUN npm install --legacy-peer-deps \
-    && npm install react-colorful@5.6.1 --legacy-peer-deps
+    && npm install react-colorful@5.6.1 --legacy-peer-deps \
+    && echo "Verifying @google/genai in development stage:" \
+    && node -e "try { require('@google/genai'); console.log('@google/genai module found in dev stage'); } catch(e) { console.error('@google/genai module not found in dev stage:', e.message); }"
 
 # Copy source and build
 COPY . .
@@ -31,13 +33,22 @@ WORKDIR /app
 # Install runtime pnpm
 RUN npm install -g pnpm
 
-# Copy build artifacts and production dependencies
+# Copy build artifacts and dependencies
 COPY --from=bolt-ai-development /app/package.json ./
 COPY --from=bolt-ai-development /app/pnpm-lock.yaml ./
-RUN pnpm config set node-linker hoisted && pnpm install --prod --frozen-lockfile
+RUN pnpm config set node-linker hoisted && pnpm install --frozen-lockfile && \
+    ls -la node_modules/@google/ && \
+    echo "Verifying @google/genai installation..." && \
+    node -e "try { require('@google/genai'); console.log('@google/genai module found'); } catch(e) { console.error('@google/genai module not found:', e.message); process.exit(1); }" && \
+    echo "Node modules structure:" && ls -la node_modules/ | head -20
 
-# Copy only the build output (replace path if different)
+# Copy build output and necessary files
 COPY --from=bolt-ai-development /app/build ./build
+COPY --from=bolt-ai-development /app/app ./app
+COPY --from=bolt-ai-development /app/public ./public
+COPY --from=bolt-ai-development /app/load-context.ts ./
+COPY --from=bolt-ai-development /app/vite.config.ts ./
+COPY --from=bolt-ai-development /app/tsconfig.json ./
 
 EXPOSE 3000
 ENV NODE_ENV=production

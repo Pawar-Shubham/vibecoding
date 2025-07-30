@@ -1,8 +1,28 @@
 import { type ActionFunctionArgs, json } from '@remix-run/cloudflare';
-import { GoogleGenAI, Modality } from '@google/genai';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('api.logo');
+
+// Dynamic import function
+async function getGenAI() {
+  try {
+    const { GoogleGenAI, Modality } = await import('@google/genai');
+    return { GoogleGenAI, Modality };
+  } catch (error) {
+    logger.error('Failed to import @google/genai:', error);
+    // Try alternative import method
+    try {
+      const genaiModule = require('@google/genai');
+      return { 
+        GoogleGenAI: genaiModule.GoogleGenAI, 
+        Modality: genaiModule.Modality 
+      };
+    } catch (requireError) {
+      logger.error('Both dynamic import and require failed:', requireError);
+      throw new Error('Google GenAI module not available');
+    }
+  }
+}
 
 export async function action({ request }: ActionFunctionArgs) {
   try {
@@ -36,6 +56,13 @@ export async function action({ request }: ActionFunctionArgs) {
       logger.info('Including images:', Object.entries(sourceCounts).map(([type, count]) => `${count} ${type}`).join(', '));
     }
 
+    // Get GenAI dynamically
+    const { GoogleGenAI, Modality } = await getGenAI();
+    
+    if (!GoogleGenAI || !Modality) {
+      return json({ error: 'Google GenAI module not available' }, { status: 500 });
+    }
+    
     const ai = new GoogleGenAI({ apiKey });
 
     // Build content array with text and optional images
@@ -85,7 +112,7 @@ export async function action({ request }: ActionFunctionArgs) {
         logger.info('Generated description:', description.substring(0, 100) + '...');
       } else if (part.inlineData && part.inlineData.data) {
         imageData = part.inlineData.data;
-        logger.info('Generated image data length:', imageData.length);
+        logger.info('Generated image data length:', imageData?.length || 0);
       }
     }
 
