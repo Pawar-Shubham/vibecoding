@@ -1,3 +1,4 @@
+# Stage 1: Build (named bolt-ai-development)
 FROM node:20.18.0 AS bolt-ai-development
 
 ENV NODE_OPTIONS="--max-old-space-size=4096"
@@ -5,30 +6,33 @@ ENV NODE_OPTIONS="--max-old-space-size=4096"
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y iputils-ping dnsutils curl wget git
-
 RUN git config --global --add safe.directory /app
 
-
+# Setup pnpm & install dependencies
+RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && \
-    pnpm config set node-linker hoisted && \
-    CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile
+RUN pnpm config set node-linker hoisted && pnpm install --frozen-lockfile
 
-
+# Copy source and build
 COPY . .
 RUN pnpm run build
 
-
-FROM node:20.18.0-alpine
-
+# Stage 2: Production runtime
+FROM node:20.18.0-alpine AS bolt-ai-production
 WORKDIR /app
 
+# Install runtime pnpm
 RUN npm install -g pnpm
 
+# Copy build artifacts and production dependencies
+COPY --from=bolt-ai-development /app/package.json ./
+COPY --from=bolt-ai-development /app/pnpm-lock.yaml ./
+RUN pnpm config set node-linker hoisted && pnpm install --prod --frozen-lockfile
 
-COPY --from=builder /app ./
+COPY --from=bolt-ai-development /app/build ./build
+# Or replace 'build' with output folder (e.g. dist or build/client)
 
 EXPOSE 3000
+ENV NODE_ENV=production
 
-
-CMD ["pnpm", "run", "start", "--port", "3000", "--host", "0.0.0.0"] 
+CMD ["pnpm", "run", "start", "--port", "3000", "--host", "0.0.0.0"]
