@@ -13,6 +13,10 @@ RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm config set node-linker hoisted && pnpm install --frozen-lockfile
 
+# Run fixes for peer dependencies and ensure react-colorful is present
+RUN npm install --legacy-peer-deps \
+    && npm install react-colorful@5.6.1 --legacy-peer-deps
+
 # Copy source and build
 COPY . .
 RUN pnpm run build
@@ -29,8 +33,8 @@ COPY --from=bolt-ai-development /app/package.json ./
 COPY --from=bolt-ai-development /app/pnpm-lock.yaml ./
 RUN pnpm config set node-linker hoisted && pnpm install --prod --frozen-lockfile
 
+# Copy only the build output (replace path if different)
 COPY --from=bolt-ai-development /app/build ./build
-# Or replace 'build' with output folder (e.g. dist or build/client)
 
 EXPOSE 3000
 ENV NODE_ENV=production
