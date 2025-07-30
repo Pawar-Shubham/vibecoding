@@ -33,13 +33,11 @@ WORKDIR /app
 # Install runtime pnpm
 RUN npm install -g pnpm
 
-# Copy build artifacts and dependencies
-COPY --from=bolt-ai-development /app/package.json ./
-COPY --from=bolt-ai-development /app/pnpm-lock.yaml ./
-RUN pnpm config set node-linker hoisted && pnpm install --frozen-lockfile && \
-    npm install --legacy-peer-deps && \
-    npm install react-colorful@5.6.1 --legacy-peer-deps && \
-    ls -la node_modules/@google/ && \
+# Copy node_modules from development stage to ensure all dependencies are available
+COPY --from=bolt-ai-development /app/node_modules ./node_modules
+
+# Verify critical dependencies
+RUN ls -la node_modules/@google/ && \
     echo "Verifying @google/genai installation..." && \
     node -e "try { require('@google/genai'); console.log('@google/genai module found'); } catch(e) { console.error('@google/genai module not found:', e.message); process.exit(1); }" && \
     echo "Verifying react-colorful installation..." && \
