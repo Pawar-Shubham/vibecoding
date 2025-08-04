@@ -1,3 +1,107 @@
+/* BaseChat styles for LogoGenerator */
+.BaseChat {
+  font-size: 0.9375rem; /* Base font size for chat */
+  line-height: 1.5;
+  padding-top: calc(var(--header-height) + -2.25rem); /* Increased from 0.5rem to 2rem */
+  border-radius: 0;
+  overflow: hidden; /* Ensure rounded corners are visible */
+  background-color: transparent;
+  position: relative;
+  z-index: 2; /* Ensure it's above the background */
+
+  /* Dark mode styles */
+  :global(html[data-theme='dark']) & {
+    border-radius: 0;
+    background-color: transparent;
+  }
+
+  /* Ensure scrollbar track has rounded corners */
+  ::-webkit-scrollbar-track {
+    border-radius: 1rem;
+    margin: 0.5rem;
+    background-color: transparent;
+  }
+
+  /* Style the scrollbar to match the rounded design */
+  ::-webkit-scrollbar {
+    width: 8px;
+    background-color: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 1rem;
+    border: none;
+    background-clip: padding-box;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  /* Dark mode scrollbar */
+  :global(html[data-theme='dark']) & {
+    ::-webkit-scrollbar-thumb {
+      background-color: rgba(242, 229, 159, 0.2);
+
+      &:hover {
+        background-color: rgba(7, 242, 156, 0.3);
+      }
+    }
+  }
+
+  /* Firefox scrollbar styles */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+
+  :global(html[data-theme='dark']) & {
+    scrollbar-color: rgba(242, 229, 159, 0.2) transparent;
+  }
+
+  &[data-chat-visible='false'] {
+    --workbench-inner-width: 100%;
+    --workbench-left: 0;
+
+    .Chat {
+      --at-apply: bolt-ease-cubic-bezier;
+      transition-property: transform, opacity;
+      transition-duration: 0.3s;
+      will-change: transform, opacity;
+      transform: translateX(-50%);
+      opacity: 0;
+    }
+  }
+}
+
+.Chat {
+  opacity: 1;
+  padding: 0 1.25rem; /* Slightly reduced padding */
+  border-radius: 0;
+  background-color: transparent;
+  position: relative;
+  z-index: 2;
+  isolation: isolate; /* Create new stacking context */
+  
+  :global(html[data-theme='dark']) & {
+    border-radius: 0;
+    background-color: transparent;
+  }
+  
+  mask-image: linear-gradient(to bottom, 
+    transparent, 
+    black 0.5rem,
+    black calc(100% - 0.5rem),
+    transparent
+  );
+  
+  /* Add styles for different text elements */
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.125rem; }
+  p, li { font-size: 0.9375rem; }
+  code { font-size: 0.875rem; }
+}
+
 .MaterialPrompt {
   position: relative;
   border-radius: 12px;

@@ -559,25 +559,7 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
             </motion.button>
           </div>
 
-          {/* Logo Generator Button */}
-          <motion.button
-            onClick={() => {
-              // Close the sidebar before navigating
-              sidebarStore.set(false);
 
-              // Show loading animation immediately
-              startNavigationLoading();
-
-              // Navigate to logo generator
-              window.location.href = "/logo";
-            }}
-            className="w-full flex gap-2 items-center justify-center bg-gradient-to-r from-purple-500/10 to-blue-500/10 text-purple-600 dark:text-purple-400 hover:from-purple-500/20 hover:to-blue-500/20 rounded-lg px-3 py-2 transition-all border border-purple-500/20"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <span className="inline-block i-ph:palette h-4 w-4" />
-            <span className="text-sm font-medium">Logo Generator</span>
-          </motion.button>
 
           {/* Selection Mode Controls */}
           {selectionMode && (
@@ -662,6 +644,24 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Logo Generator Section */}
+        <div className="border-t border-gray-200 dark:border-[#2a2a2a]">
+          <div className="p-2">
+            <a
+              href="/logo"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                startNavigationLoading();
+              }}
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-transparent hover:bg-gray-100 dark:hover:bg-[#2a2a2a] rounded-lg transition-colors"
+            >
+              <span className="i-ph:palette h-4 w-4" />
+              <span>VxC Logo Generator</span>
+            </a>
           </div>
         </div>
 

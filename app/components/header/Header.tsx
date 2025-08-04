@@ -147,30 +147,7 @@ export function Header() {
           </ClientOnly>
         )}
 
-        {/* Logo Creator Button - Always visible */}
-        <a
-          href="/logo"
-          className="px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all duration-300 shadow-sm flex items-center justify-center gap-1 sm:gap-2 relative overflow-hidden"
-          style={{
-            background: "linear-gradient(90deg, #F2E59F, #07F29C)",
-          }}
-          onClick={() => {
-            startNavigationLoading();
-          }}
-        >
-          <div className="relative z-10">
-            <div className="i-ph:palette text-base sm:text-lg text-black" />
-          </div>
-          <span className="relative z-10 text-black hidden sm:inline">
-            Logo Creator
-          </span>
-          <div
-            className="absolute inset-0 transition-opacity duration-500 ease-in-out opacity-0 hover:opacity-100"
-            style={{
-              background: "linear-gradient(90deg, #07F29C, #F2E59F)",
-            }}
-          />
-        </a>
+
 
         <ClientOnly>
           {() => (

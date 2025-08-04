@@ -288,7 +288,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <>
       {(shouldShowNavigationLoading || shouldShowPageReloadLoading || shouldShowAppLoading) && <LoadingScreen />}
       <ClientOnly>{() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}</ClientOnly>
-      <SocialMediaIcons />
+
       <ClientOnly>{() => <DynamicFeedback />}</ClientOnly>
       <ScrollRestoration />
       <Scripts />
