@@ -12,8 +12,7 @@ import { IconButton } from "~/components/ui/IconButton";
 import { PanelHeaderButton } from "~/components/ui/PanelHeaderButton";
 import { classNames } from "~/utils/classNames";
 import { toast } from "react-toastify";
-// Dynamic import for react-colorful to avoid SSR issues
-let HexColorPicker: any = null;
+import { ColorPicker } from "~/components/ui/ColorPicker.client";
 import html2canvas from "html2canvas";
 import { useStore } from "@nanostores/react";
 import { chatId } from "~/lib/persistence/useChatHistory";
@@ -396,24 +395,6 @@ export const Canvas = memo(() => {
 
   // Add showTick state for save animation
   const [showTick, setShowTick] = useState(false);
-
-  // Dynamic import state for react-colorful
-  const [colorPickerLoaded, setColorPickerLoaded] = useState(false);
-
-  // Dynamically import react-colorful on client-side mount
-  useEffect(() => {
-    const loadColorPicker = async () => {
-      try {
-        const reactColorfulModule = await import("react-colorful");
-        HexColorPicker = reactColorfulModule.HexColorPicker;
-        setColorPickerLoaded(true);
-      } catch (error) {
-        console.error("Failed to import react-colorful:", error);
-      }
-    };
-
-    loadColorPicker();
-  }, []);
 
   // --- Editing state for text/note ---
   const [resizeState, setResizeState] = useState<{
@@ -2846,50 +2827,44 @@ export const Canvas = memo(() => {
                   style={{ minWidth: 200, marginLeft: 30, marginTop: -190 }}
                   onMouseLeave={() => closeAllSubToolbars()}
                 >
-                  {colorPickerLoaded && HexColorPicker ? (
-                    <HexColorPicker
-                      color={(() => {
-                        if (state.selectedObjects.size === 1) {
-                          const selectedId = Array.from(
-                            state.selectedObjects
-                          )[0];
-                          const selectedObj = state.objects.find(
-                            (obj) => obj.id === selectedId
-                          );
-                          return selectedObj?.color || selectedColor;
-                        }
-                        return selectedColor;
-                      })()}
-                      onChange={(newColor: string) => {
-                        // Always update the selected color for the current tool
-                        setSelectedColor(newColor);
+                  <ColorPicker
+                    color={(() => {
+                      if (state.selectedObjects.size === 1) {
+                        const selectedId = Array.from(
+                          state.selectedObjects
+                        )[0];
+                        const selectedObj = state.objects.find(
+                          (obj) => obj.id === selectedId
+                        );
+                        return selectedObj?.color || selectedColor;
+                      }
+                      return selectedColor;
+                    })()}
+                    onChange={(newColor: string) => {
+                      // Always update the selected color for the current tool
+                      setSelectedColor(newColor);
 
-                        // If an object is selected, update its color
-                        if (state.selectedObjects.size === 1) {
-                          const selectedId = Array.from(
-                            state.selectedObjects
-                          )[0];
-                          setState((prev) => ({
-                            ...prev,
-                            objects: prev.objects.map((obj) => {
-                              if (obj.id === selectedId) {
-                                if (obj.type === "text") {
-                                  return { ...obj, textColor: newColor };
-                                }
-                                return { ...obj, color: newColor };
+                      // If an object is selected, update its color
+                      if (state.selectedObjects.size === 1) {
+                        const selectedId = Array.from(
+                          state.selectedObjects
+                        )[0];
+                        setState((prev) => ({
+                          ...prev,
+                          objects: prev.objects.map((obj) => {
+                            if (obj.id === selectedId) {
+                              if (obj.type === "text") {
+                                return { ...obj, textColor: newColor };
                               }
-                              return obj;
-                            }),
-                          }));
-                        }
-                      }}
-                      style={{ width: 180, height: 180 }}
-                    />
-                  ) : (
-                    <div className="text-center text-gray-500 p-4">
-                      {colorPickerLoaded ? "Color picker not available" : "Loading color picker..."}
-                    </div>
-                  )}
+                              return { ...obj, color: newColor };
+                            }
+                            return obj;
+                          }),
+                        }));
+                      }
+                    }}
+                    style={{ width: 180, height: 180 }}
+                  />
                 </div>
               )}
             </div>
