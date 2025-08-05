@@ -13,14 +13,52 @@ import { PanelHeaderButton } from "~/components/ui/PanelHeaderButton";
 import { classNames } from "~/utils/classNames";
 import { toast } from "react-toastify";
 // Dynamic import for react-colorful to avoid SSR issues
-let HexColorPicker: any;
+let HexColorPicker: any = null;
+let isColorfulLoaded = false;
 
-try {
-  const reactColorfulModule = require("react-colorful");
-  HexColorPicker = reactColorfulModule.HexColorPicker;
-} catch (error) {
-  console.error("Failed to import react-colorful:", error);
-}
+// Use dynamic import instead of require for browser compatibility
+const loadReactColorful = async () => {
+  if (isColorfulLoaded) return;
+  
+  try {
+    const reactColorfulModule = await import("react-colorful");
+    HexColorPicker = reactColorfulModule.HexColorPicker;
+    isColorfulLoaded = true;
+  } catch (error) {
+    console.error("Failed to import react-colorful:", error);
+    // Fallback: create a simple color picker component
+    HexColorPicker = ({ color, onChange }: { color: string; onChange: (color: string) => void }) => (
+      <div className="p-4">
+        <div className="grid grid-cols-5 gap-2">
+          {[
+            "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7",
+            "#DDA0DD", "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E9",
+            "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF",
+            "#00FFFF", "#FFA500", "#800080", "#008000", "#000000"
+          ].map((c) => (
+            <button
+              key={c}
+              className="w-8 h-8 rounded border-2 border-gray-300 hover:border-gray-400"
+              style={{ backgroundColor: c }}
+              onClick={() => onChange(c)}
+              title={c}
+            />
+          ))}
+        </div>
+        <div className="mt-2">
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full h-8 rounded border border-gray-300"
+          />
+        </div>
+      </div>
+    );
+  }
+};
+
+
 import html2canvas from "html2canvas";
 import { useStore } from "@nanostores/react";
 import { chatId } from "~/lib/persistence/useChatHistory";
@@ -2103,6 +2141,7 @@ export const Canvas = memo(() => {
 
   // Modern color picker state
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  const [isColorPickerLoaded, setIsColorPickerLoaded] = useState(false);
   const COLOR_SWATCHES = [
     "#FF6B6B",
     "#4ECDC4",
@@ -2116,6 +2155,18 @@ export const Canvas = memo(() => {
     "#85C1E9",
   ];
   const colorButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Load react-colorful when component mounts
+  useEffect(() => {
+    const loadColorPicker = async () => {
+      await loadReactColorful();
+      setIsColorPickerLoaded(true);
+    };
+    
+    if (typeof window !== 'undefined') {
+      loadColorPicker();
+    }
+  }, []);
 
   // Export handler (cleaned up)
   const [isExporting, setIsExporting] = useState(false);
@@ -2835,7 +2886,7 @@ export const Canvas = memo(() => {
                   style={{ minWidth: 200, marginLeft: 30, marginTop: -190 }}
                   onMouseLeave={() => closeAllSubToolbars()}
                 >
-                  {HexColorPicker ? (
+                  {isColorPickerLoaded && HexColorPicker ? (
                     <HexColorPicker
                       color={(() => {
                         if (state.selectedObjects.size === 1) {
@@ -2876,7 +2927,7 @@ export const Canvas = memo(() => {
                     />
                   ) : (
                     <div className="text-center text-gray-500 p-4">
-                      Color picker not available
+                      {isColorPickerLoaded ? "Color picker not available" : "Loading color picker..."}
                     </div>
                   )}
                 </div>
