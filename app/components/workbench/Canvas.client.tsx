@@ -13,7 +13,7 @@ import { PanelHeaderButton } from "~/components/ui/PanelHeaderButton";
 import { classNames } from "~/utils/classNames";
 import { toast } from "react-toastify";
 import { HexColorPicker } from "react-colorful";
-import html2canvas from "html2canvas";
+// html2canvas will be dynamically imported to avoid SSR issues
 import { useStore } from "@nanostores/react";
 import { chatId } from "~/lib/persistence/useChatHistory";
 import {
@@ -2117,29 +2117,40 @@ export const Canvas = memo(() => {
   // Export handler (cleaned up)
   const [isExporting, setIsExporting] = useState(false);
   const handleExport = async () => {
-    if (!canvasRef.current || isExporting) return;
+    if (!canvasRef.current || isExporting || typeof window === 'undefined') return;
     setIsExporting(true);
-    // Determine background color based on current theme
-    const isDarkMode =
-      typeof document !== 'undefined' && document.documentElement.getAttribute("data-theme") === "dark";
-    const backgroundColor = isDarkMode ? "#1a1a1a" : "#ffffff";
-    // Temporarily hide grid for export
-    const originalShowGrid = showGrid;
-    setShowGrid(false);
-    // Wait for the next animation frame to ensure grid is hidden
-    await new Promise(requestAnimationFrame);
-    const canvas = await html2canvas(canvasRef.current, {
-      backgroundColor: backgroundColor,
-      useCORS: true,
-      scale: 2,
-    });
-    setShowGrid(originalShowGrid);
-    setIsExporting(false);
-          const link = typeof document !== 'undefined' ? document.createElement("a") : null;
-    if (link) {
-      link.download = "canvas-export.png";
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+    
+    try {
+      // Dynamically import html2canvas to avoid SSR issues
+      const html2canvas = (await import("html2canvas")).default;
+      
+      // Determine background color based on current theme
+      const isDarkMode =
+        typeof document !== 'undefined' && document.documentElement.getAttribute("data-theme") === "dark";
+      const backgroundColor = isDarkMode ? "#1a1a1a" : "#ffffff";
+      // Temporarily hide grid for export
+      const originalShowGrid = showGrid;
+      setShowGrid(false);
+      // Wait for the next animation frame to ensure grid is hidden
+      await new Promise(requestAnimationFrame);
+      const canvas = await html2canvas(canvasRef.current, {
+        backgroundColor: backgroundColor,
+        useCORS: true,
+        scale: 2,
+      });
+      setShowGrid(originalShowGrid);
+      
+      const link = typeof document !== 'undefined' ? document.createElement("a") : null;
+      if (link) {
+        link.download = "canvas-export.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      }
+    } catch (error) {
+      console.error("Failed to export canvas:", error);
+      toast.error("Failed to export canvas");
+    } finally {
+      setIsExporting(false);
     }
   };
 
