@@ -969,7 +969,7 @@ export const Canvas = memo(() => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only handle shortcuts if not focused in input/textarea/contenteditable
-      const active = document.activeElement;
+      const active = typeof document !== 'undefined' ? document.activeElement : null;
       const isEditable =
         active &&
         (active.tagName === "INPUT" ||
@@ -1005,8 +1005,10 @@ export const Canvas = memo(() => {
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+          if (typeof window !== 'undefined') {
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+      }
   }, [undo, redo, saveToHistory]);
 
   // Auto-save canvas state changes to Supabase
@@ -1287,12 +1289,14 @@ export const Canvas = memo(() => {
       });
     };
     const onMouseUp = () => setResizeState(null);
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-    };
+            if (typeof window !== 'undefined') {
+          window.addEventListener("mousemove", onMouseMove);
+          window.addEventListener("mouseup", onMouseUp);
+          return () => {
+            window.removeEventListener("mousemove", onMouseMove);
+            window.removeEventListener("mouseup", onMouseUp);
+          };
+        }
   }, [resizeState]);
 
   // 1. Use pointer events for pen drawing
@@ -2117,7 +2121,7 @@ export const Canvas = memo(() => {
     setIsExporting(true);
     // Determine background color based on current theme
     const isDarkMode =
-      document.documentElement.getAttribute("data-theme") === "dark";
+      typeof document !== 'undefined' && document.documentElement.getAttribute("data-theme") === "dark";
     const backgroundColor = isDarkMode ? "#1a1a1a" : "#ffffff";
     // Temporarily hide grid for export
     const originalShowGrid = showGrid;
@@ -2131,10 +2135,12 @@ export const Canvas = memo(() => {
     });
     setShowGrid(originalShowGrid);
     setIsExporting(false);
-    const link = document.createElement("a");
-    link.download = "canvas-export.png";
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+          const link = typeof document !== 'undefined' ? document.createElement("a") : null;
+    if (link) {
+      link.download = "canvas-export.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
   };
 
   // Replace individual subtoolbar states with a single activeSubToolbar state
@@ -2170,8 +2176,10 @@ export const Canvas = memo(() => {
       closeAllSubToolbars();
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+          if (typeof document !== 'undefined') {
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+      }
   }, [activeSubToolbar]);
 
   // Frame presets
@@ -2623,7 +2631,7 @@ export const Canvas = memo(() => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   useEffect(() => {
     setIsDarkMode(
-      document.documentElement.getAttribute("data-theme") === "dark"
+              typeof document !== 'undefined' && document.documentElement.getAttribute("data-theme") === "dark"
     );
   }, []);
   const gridLineColor = "var(--canvas-grid-color)";
