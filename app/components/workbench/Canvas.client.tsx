@@ -12,15 +12,7 @@ import { IconButton } from "~/components/ui/IconButton";
 import { PanelHeaderButton } from "~/components/ui/PanelHeaderButton";
 import { classNames } from "~/utils/classNames";
 import { toast } from "react-toastify";
-// Dynamic import for react-colorful to avoid SSR issues
-let HexColorPicker: any;
-
-try {
-  const reactColorfulModule = require("react-colorful");
-  HexColorPicker = reactColorfulModule.HexColorPicker;
-} catch (error) {
-  console.error("Failed to import react-colorful:", error);
-}
+import { HexColorPicker } from "react-colorful";
 import html2canvas from "html2canvas";
 import { useStore } from "@nanostores/react";
 import { chatId } from "~/lib/persistence/useChatHistory";
@@ -232,6 +224,7 @@ function getSmoothPathCanvas(points: { x: number; y: number }[]) {
 const logger = createScopedLogger("Canvas");
 
 export const Canvas = memo(() => {
+
   // Pen types and penStyle state must be at the top
   const PEN_TYPES = [
     {
@@ -2833,10 +2826,8 @@ export const Canvas = memo(() => {
                   data-subtoolbar-content
                   className="subtoolbar-panel absolute left-full ml-2 p-3 z-50 min-w-[200px] bg-gray-100 dark:bg-gray-700 rounded-xl shadow-lg"
                   style={{ minWidth: 200, marginLeft: 30, marginTop: -190 }}
-                  onMouseLeave={() => closeAllSubToolbars()}
                 >
-                  {HexColorPicker ? (
-                    <HexColorPicker
+                  <HexColorPicker
                       color={(() => {
                         if (state.selectedObjects.size === 1) {
                           const selectedId = Array.from(
@@ -2849,7 +2840,7 @@ export const Canvas = memo(() => {
                         }
                         return selectedColor;
                       })()}
-                      onChange={(newColor) => {
+                      onChange={(newColor: string) => {
                         // Always update the selected color for the current tool
                         setSelectedColor(newColor);
 
@@ -2874,14 +2865,9 @@ export const Canvas = memo(() => {
                       }}
                       style={{ width: 180, height: 180 }}
                     />
-                  ) : (
-                    <div className="text-center text-gray-500 p-4">
-                      Color picker not available
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
+              </div>
 
             {/* Subtoolbars positioned relative to the toolbar container */}
             {activeSubToolbar === "shape" && tool === "shape" && (
