@@ -41,6 +41,7 @@ RUN npm install -g pnpm && \
     pnpm install --frozen-lockfile && \
     npm install --legacy-peer-deps && \
     npm install react-colorful@5.6.1 --legacy-peer-deps && \
+    npm install @google/genai@1.1.0 --legacy-peer-deps && \
     npm install html2canvas@1.4.1 --legacy-peer-deps
 
 # Verify critical dependencies
