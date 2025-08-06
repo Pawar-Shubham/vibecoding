@@ -12,15 +12,7 @@ import { IconButton } from "~/components/ui/IconButton";
 import { PanelHeaderButton } from "~/components/ui/PanelHeaderButton";
 import { classNames } from "~/utils/classNames";
 import { toast } from "react-toastify";
-// Dynamic import for react-colorful to avoid SSR issues
-let HexColorPicker: any;
-
-try {
-  const reactColorfulModule = require("react-colorful");
-  HexColorPicker = reactColorfulModule.HexColorPicker;
-} catch (error) {
-  console.error("Failed to import react-colorful:", error);
-}
+// Native HTML5 color picker - no external dependencies needed
 import html2canvas from "html2canvas";
 import { useStore } from "@nanostores/react";
 import { chatId } from "~/lib/persistence/useChatHistory";
@@ -394,6 +386,19 @@ export const Canvas = memo(() => {
   >("select");
   // 1. Set the initial default color to #00FFFF
   const [selectedColor, setSelectedColor] = useState("#014D4E");
+  const [hexInputValue, setHexInputValue] = useState("#014D4E");
+
+  // Sync hex input with selected color changes
+  useEffect(() => {
+    if (state.selectedObjects.size === 1) {
+      const selectedId = Array.from(state.selectedObjects)[0];
+      const selectedObj = state.objects.find((obj) => obj.id === selectedId);
+      const currentColor = selectedObj?.color || selectedColor;
+      setHexInputValue(currentColor);
+    } else {
+      setHexInputValue(selectedColor);
+    }
+  }, [selectedColor, state.selectedObjects, state.objects]);
   const [selectedShape, setSelectedShape] =
     useState<(typeof SHAPES)[number]>("rectangle");
   const [showGrid, setShowGrid] = useState(true);
@@ -2116,6 +2121,7 @@ export const Canvas = memo(() => {
     "#85C1E9",
   ];
   const colorButtonRef = useRef<HTMLButtonElement>(null);
+   const hiddenColorInputRef = useRef<HTMLInputElement>(null);
 
   // Export handler (cleaned up)
   const [isExporting, setIsExporting] = useState(false);
@@ -2806,42 +2812,140 @@ export const Canvas = memo(() => {
             </button>
             {/* Color picker */}
             <div className="relative">
-              <button
-                ref={colorButtonRef}
-                data-color-picker
-                className="w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center shadow-sm hover:shadow-md transition-all mt-2"
+                                <button
+                   ref={colorButtonRef}
+                   data-subtoolbar
+                   className={classNames(
+                     "toolbar-btn p-3 rounded-md transition-colors relative",
+                     activeSubToolbar === "color" ? "active bg-blue-100" : "hover:bg-gray-200 dark:hover:bg-gray-600"
+                   )}
+                   onClick={() => {
+                     if (activeSubToolbar === "color") {
+                       closeAllSubToolbars();
+                     } else {
+                       openSubToolbar("color");
+                     }
+                   }}
+                   title="Color picker"
+                 >
+                   <div className="w-6 h-6 rounded-full border-2 border-white shadow-sm relative overflow-hidden">
+                     <div 
+                       className="w-full h-full"
+                       style={{
+                         background: (() => {
+                           if (state.selectedObjects.size === 1) {
+                             const selectedId = Array.from(state.selectedObjects)[0];
+                             const selectedObj = state.objects.find(
+                               (obj) => obj.id === selectedId
+                             );
+                             return selectedObj?.color || selectedColor;
+                           }
+                           return selectedColor;
+                         })(),
+                       }}
+                     />
+                     {/* Color wheel icon overlay */}
+                     <div className="absolute inset-0 flex items-center justify-center">
+                       <div className="w-3 h-3 border border-white/50 rounded-full" />
+                     </div>
+                   </div>
+                 </button>
+             </div>
+
+             {/* Subtoolbars positioned relative to the toolbar container */}
+            {activeSubToolbar === "color" && (
+              <div
+                data-subtoolbar
+                data-subtoolbar-content
+                className="absolute bg-gray-100 dark:bg-gray-700 rounded-xl p-3 shadow-lg z-[60]"
                 style={{
-                  background: (() => {
-                    if (state.selectedObjects.size === 1) {
-                      const selectedId = Array.from(state.selectedObjects)[0];
-                      const selectedObj = state.objects.find(
-                        (obj) => obj.id === selectedId
-                      );
-                      return selectedObj?.color || selectedColor;
-                    }
-                    return selectedColor;
-                  })(),
+                  left: "calc(100% + 12px)",
+                  bottom: "0",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 8,
+                  minWidth: 280,
+                  maxWidth: 300,
+                  paddingBottom: 16,
                 }}
-                title="Pick a color"
-                onClick={() => openSubToolbar("color")}
               >
-                <span className="sr-only">Pick a color</span>
-              </button>
-              {activeSubToolbar === "color" && (
-                <div
-                  data-color-picker
-                  data-subtoolbar-content
-                  className="subtoolbar-panel absolute left-full ml-2 p-3 z-50 min-w-[200px] bg-gray-100 dark:bg-gray-700 rounded-xl shadow-lg"
-                  style={{ minWidth: 200, marginLeft: 30, marginTop: -190 }}
-                  onMouseLeave={() => closeAllSubToolbars()}
-                >
-                  {HexColorPicker ? (
-                    <HexColorPicker
-                      color={(() => {
+                <span className="text-xs text-gray-500 mb-1">Color Picker</span>
+                
+                {/* Current color preview */}
+                <div className="flex items-center gap-3 w-full">
+                  <div className="flex-1">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">Current Color</div>
+                    <div 
+                      className="w-full h-12 rounded-lg border-2 border-gray-300 dark:border-gray-500 shadow-sm"
+                      style={{
+                        backgroundColor: (() => {
+                          if (state.selectedObjects.size === 1) {
+                            const selectedId = Array.from(state.selectedObjects)[0];
+                            const selectedObj = state.objects.find(
+                              (obj) => obj.id === selectedId
+                            );
+                            return selectedObj?.color || selectedColor;
+                          }
+                          return selectedColor;
+                        })(),
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Color palette */}
+                <div className="w-full">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">Quick Colors</div>
+                  <div className="grid grid-cols-8 gap-2">
+                    {[
+                      "#000000", "#374151", "#6B7280", "#9CA3AF", "#D1D5DB", "#F3F4F6", "#FFFFFF", "#FEF2F2",
+                      "#DC2626", "#EA580C", "#D97706", "#CA8A04", "#65A30D", "#16A34A", "#059669", "#0D9488",
+                      "#0891B2", "#0284C7", "#2563EB", "#4F46E5", "#7C3AED", "#9333EA", "#C026D3", "#DB2777",
+                      "#E11D48", "#F43F5E", "#FB7185", "#FDBA74", "#FDE047", "#BEF264", "#86EFAC", "#6EE7B7",
+                      "#7DD3FC", "#93C5FD", "#A5B4FC", "#C4B5FD", "#DDD6FE", "#F3E8FF", "#FCE7F3", "#FDF2F8"
+                    ].map((color) => (
+                      <button
+                        key={color}
+                        className="w-6 h-6 rounded border border-gray-300 dark:border-gray-500 hover:scale-110 transition-transform shadow-sm"
+                        style={{ backgroundColor: color }}
+                        onClick={() => {
+                          setSelectedColor(color);
+                          
+                          // If an object is selected, update its color
+                          if (state.selectedObjects.size === 1) {
+                            const selectedId = Array.from(state.selectedObjects)[0];
+                            setState((prev) => ({
+                              ...prev,
+                              objects: prev.objects.map((obj) => {
+                                if (obj.id === selectedId) {
+                                  if (obj.type === "text") {
+                                    return { ...obj, textColor: color };
+                                  }
+                                  return { ...obj, color: color };
+                                }
+                                return obj;
+                              }),
+                            }));
+                          }
+                        }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Custom color section */}
+                <div className="w-full">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">Custom Color</div>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      ref={hiddenColorInputRef}
+                      type="color"
+                      className="w-12 h-10 rounded border-2 border-gray-300 dark:border-gray-500 cursor-pointer"
+                      value={(() => {
                         if (state.selectedObjects.size === 1) {
-                          const selectedId = Array.from(
-                            state.selectedObjects
-                          )[0];
+                          const selectedId = Array.from(state.selectedObjects)[0];
                           const selectedObj = state.objects.find(
                             (obj) => obj.id === selectedId
                           );
@@ -2849,15 +2953,13 @@ export const Canvas = memo(() => {
                         }
                         return selectedColor;
                       })()}
-                      onChange={(newColor) => {
-                        // Always update the selected color for the current tool
+                      onChange={(e) => {
+                        const newColor = e.target.value;
                         setSelectedColor(newColor);
 
                         // If an object is selected, update its color
                         if (state.selectedObjects.size === 1) {
-                          const selectedId = Array.from(
-                            state.selectedObjects
-                          )[0];
+                          const selectedId = Array.from(state.selectedObjects)[0];
                           setState((prev) => ({
                             ...prev,
                             objects: prev.objects.map((obj) => {
@@ -2872,18 +2974,61 @@ export const Canvas = memo(() => {
                           }));
                         }
                       }}
-                      style={{ width: 180, height: 180 }}
+                      title="Open system color picker"
                     />
-                  ) : (
-                    <div className="text-center text-gray-500 p-4">
-                      Color picker not available
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-500 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        placeholder="#000000"
+                        value={hexInputValue}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setHexInputValue(value);
+                          
+                          // Only apply color if it's a valid hex code
+                          if (/^#[0-9A-F]{6}$/i.test(value) || /^#[0-9A-F]{3}$/i.test(value)) {
+                            setSelectedColor(value);
+                            
+                            // If an object is selected, update its color
+                            if (state.selectedObjects.size === 1) {
+                              const selectedId = Array.from(state.selectedObjects)[0];
+                              setState((prev) => ({
+                                ...prev,
+                                objects: prev.objects.map((obj) => {
+                                  if (obj.id === selectedId) {
+                                    if (obj.type === "text") {
+                                      return { ...obj, textColor: value };
+                                    }
+                                    return { ...obj, color: value };
+                                  }
+                                  return obj;
+                                }),
+                              }));
+                            }
+                          }
+                        }}
+                        onBlur={() => {
+                          // On blur, sync with the actual selected color if input is invalid
+                          const currentColor = (() => {
+                            if (state.selectedObjects.size === 1) {
+                              const selectedId = Array.from(state.selectedObjects)[0];
+                              const selectedObj = state.objects.find(
+                                (obj) => obj.id === selectedId
+                              );
+                              return selectedObj?.color || selectedColor;
+                            }
+                            return selectedColor;
+                          })();
+                          setHexInputValue(currentColor);
+                        }}
+                      />
                     </div>
-                  )}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">Click color square for advanced picker</div>
                 </div>
-              )}
-            </div>
-
-            {/* Subtoolbars positioned relative to the toolbar container */}
+              </div>
+            )}
             {activeSubToolbar === "shape" && tool === "shape" && (
               <div
                 data-subtoolbar
