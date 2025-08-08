@@ -268,7 +268,32 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
 
   const handleRepoSelect = async (repo: GitHubRepoInfo) => {
     setSelectedRepository(repo);
-    await fetchBranches(repo);
+
+    // Optionally prefetch branches (not strictly required to proceed)
+    fetchBranches(repo).catch(() => {});
+
+    // Immediately verify and open stats dialog so the user sees progress
+    try {
+      let gitUrl = formatGitUrl(repo.html_url);
+
+      if (selectedBranch) {
+        gitUrl = `${gitUrl}#${selectedBranch}`;
+      }
+
+      const stats = await verifyRepository(gitUrl);
+
+      if (!stats) {
+        return;
+      }
+
+      setCurrentStats(stats);
+      setPendingGitUrl(gitUrl);
+      setShowStatsDialog(true);
+    } catch (error) {
+      console.error('Error preparing repository from list:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to prepare repository.';
+      toast.error(errorMessage);
+    }
   };
 
   const formatGitUrl = (url: string): string => {
@@ -924,14 +949,28 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                   )}
 
                   <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 modern-scrollbar-dark-grey">
-                    {repositories.length === 0 ? (
-                      <EmptyState
-                        icon="i-ph:git-branch"
-                        title="No repositories found"
-                        description="Connect your GitHub account or create a new repository to get started"
-                        actionLabel="Connect GitHub Account"
-                        onAction={() => setShowAuthDialog(true)}
-                      />
+                    {isLoading || (isConnected && activeTab === 'my-repos' && repositories.length === 0) ? (
+                      <div className="flex items-center justify-center h-24 gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#07F29C] animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#07F29C] animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#07F29C] animate-bounce" style={{ animationDelay: '300ms' }} />
+                      </div>
+                    ) : repositories.length === 0 ? (
+                      isConnected ? (
+                        <EmptyState
+                          icon="i-ph:git-branch"
+                          title="No repositories found"
+                          description=""
+                        />
+                      ) : (
+                        <EmptyState
+                          icon="i-ph:git-branch"
+                          title="No repositories found"
+                          description="Connect your GitHub account or create a new repository to get started"
+                          actionLabel="Connect GitHub Account"
+                          onAction={() => setShowAuthDialog(true)}
+                        />
+                      )
                     ) : (
                       <RepositoryList
                         repos={activeTab === 'my-repos' ? repositories : searchResults}
