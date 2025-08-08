@@ -432,26 +432,57 @@ export const Canvas = memo(() => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const imageUrl = event.target?.result as string;
-      setState((prev) => ({
-        ...prev,
-        objects: [
-          ...prev.objects,
-          {
-            id: generateId(),
-            type: "image",
-            x: 100,
-            y: 100,
-            width: 200,
-            height: 150,
-            rotation: 0,
-            imageUrl,
-            color: selectedColor,
-            zIndex: prev.objects.length,
-          },
-        ],
-        selectedObjects: new Set(),
-      }));
-      setTool("select");
+
+      // Load image to get natural dimensions
+      const img = new Image();
+      img.onload = () => {
+        const rect = canvasRef.current?.getBoundingClientRect();
+        const viewportScale = state.viewport.scale;
+        const viewportX = state.viewport.x;
+        const viewportY = state.viewport.y;
+
+        // Fallbacks if no rect
+        const viewW = rect?.width ?? 1200;
+        const viewH = rect?.height ?? 800;
+
+        // Target visual size ~40% of viewport width, respecting aspect ratio
+        const targetScreenW = Math.min(viewW * 0.4, 800);
+        const targetCanvasW = targetScreenW / viewportScale;
+        const aspect = img.naturalWidth && img.naturalHeight
+          ? img.naturalWidth / img.naturalHeight
+          : 4 / 3;
+        const width = Math.max(20, targetCanvasW);
+        const height = Math.max(20, width / aspect);
+
+        // Center in current viewport (convert screen center to canvas coords)
+        const centerCanvasX = ((viewW / 2) - viewportX) / viewportScale;
+        const centerCanvasY = ((viewH / 2) - viewportY) / viewportScale;
+        const x = centerCanvasX - width / 2;
+        const y = centerCanvasY - height / 2;
+
+        const newId = generateId();
+        setState((prev) => ({
+          ...prev,
+          objects: [
+            ...prev.objects,
+            {
+              id: newId,
+              type: "image",
+              x,
+              y,
+              width,
+              height,
+              rotation: 0,
+              imageUrl,
+              color: selectedColor,
+              zIndex: prev.objects.length,
+            },
+          ],
+          selectedObjects: new Set([newId]),
+        }));
+        setTool("select");
+      };
+      img.src = imageUrl;
     };
     reader.readAsDataURL(file);
     // Reset input so the same file can be uploaded again
@@ -551,8 +582,12 @@ export const Canvas = memo(() => {
       });
 
       if (tool === "select") {
-        setState((prev) => ({ ...prev, selectedObjects: new Set() }));
-        return;
+        // Click on canvas should only clear selection if the click target is the canvas itself
+        if (e.target === canvasRef.current) {
+          setState((prev) => ({ ...prev, selectedObjects: new Set() }));
+          return;
+        }
+        return; // Don't create objects when in select tool
       }
 
       // Prevent adding a frame by clicking the canvas
@@ -611,33 +646,98 @@ export const Canvas = memo(() => {
 
       if (tool === "select") {
         setState((prev) => {
-          const newSelected = new Set(prev.selectedObjects);
-          let newObjects = prev.objects;
-          let maxZ = Math.max(0, ...prev.objects.map((o) => o.zIndex || 0));
+          const selected = new Set(prev.selectedObjects);
+          const maxZ = Math.max(0, ...prev.objects.map((o) => o.zIndex || 0));
+          let objects = prev.objects;
           if (e.shiftKey) {
-            if (newSelected.has(objectId)) {
-              newSelected.delete(objectId);
-            } else {
-              newSelected.add(objectId);
-              // Bump zIndex for multi-select
-              newObjects = prev.objects.map((obj) =>
-                newSelected.has(obj.id) ? { ...obj, zIndex: maxZ + 1 } : obj
-              );
-            }
+            if (selected.has(objectId)) selected.delete(objectId);
+            else selected.add(objectId);
           } else {
-            newSelected.clear();
-            newSelected.add(objectId);
-            // Bump zIndex for single select
-            newObjects = prev.objects.map((obj) =>
-              obj.id === objectId ? { ...obj, zIndex: maxZ + 1 } : obj
-            );
+            selected.clear();
+            selected.add(objectId);
           }
-          return { ...prev, selectedObjects: newSelected, objects: newObjects };
+          // Bring all selected to top visually
+          const selectedIds = new Set(selected);
+          objects = prev.objects.map((o) =>
+            selectedIds.has(o.id) ? { ...o, zIndex: maxZ + 1 } : o
+          );
+          return { ...prev, selectedObjects: selected, objects };
         });
       }
     },
     [tool]
   );
+
+  // Unified, state-driven dragging to keep overlay in sync
+  const [dragObj, setDragObj] = useState<{
+    ids: string[];
+    startPointer: { x: number; y: number };
+    originals: Record<string, { x: number; y: number; points?: { x: number; y: number }[] }>;
+  } | null>(null);
+
+  const startObjectDrag = (e: React.PointerEvent, objectId: string) => {
+    if (tool !== "select") return;
+    e.stopPropagation();
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const px = (e.clientX - rect.left - state.viewport.x) / state.viewport.scale;
+    const py = (e.clientY - rect.top - state.viewport.y) / state.viewport.scale;
+
+    // Ensure the clicked object is selected (Miro/Figma behavior)
+    let selectedIds: string[];
+    if (e.shiftKey) {
+      const set = new Set(state.selectedObjects);
+      if (set.has(objectId)) set.delete(objectId); else set.add(objectId);
+      selectedIds = Array.from(set);
+      setState((prev) => ({ ...prev, selectedObjects: new Set(selectedIds) }));
+    } else {
+      selectedIds = [objectId];
+      if (!state.selectedObjects.has(objectId) || state.selectedObjects.size !== 1) {
+        setState((prev) => ({ ...prev, selectedObjects: new Set([objectId]) }));
+      }
+    }
+
+    const originals: Record<string, { x: number; y: number; points?: { x: number; y: number }[] }> = {};
+    for (const id of selectedIds) {
+      const o = state.objects.find((oo) => oo.id === id);
+      if (!o) continue;
+      originals[id] = o.type === "drawing"
+        ? { x: o.x, y: o.y, points: (o.points || []).map((p) => ({ ...p })) }
+        : { x: o.x, y: o.y };
+    }
+    setDragObj({ ids: selectedIds, startPointer: { x: px, y: py }, originals });
+  };
+
+  useEffect(() => {
+    if (!dragObj) return;
+    const onMove = (e: PointerEvent) => {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const px = (e.clientX - rect.left - state.viewport.x) / state.viewport.scale;
+      const py = (e.clientY - rect.top - state.viewport.y) / state.viewport.scale;
+      const dx = px - dragObj.startPointer.x;
+      const dy = py - dragObj.startPointer.y;
+
+      setState((prev) => ({
+        ...prev,
+        objects: prev.objects.map((o) => {
+          if (!dragObj.ids.includes(o.id)) return o;
+          const orig = dragObj.originals[o.id];
+          if (o.type === "drawing" && orig.points) {
+            return { ...o, points: orig.points.map((p) => ({ x: p.x + dx, y: p.y + dy })) };
+          }
+          return { ...o, x: orig.x + dx, y: orig.y + dy };
+        }),
+      }));
+    };
+    const onUp = () => setDragObj(null);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [dragObj, state.viewport.x, state.viewport.y, state.viewport.scale]);
 
   // Handle object drag
   const handleObjectDrag = useCallback(
@@ -825,6 +925,8 @@ export const Canvas = memo(() => {
       if (tool === "select") {
         // Only pan if not clicking on an object
         if (e.target === canvasRef.current) {
+          // Explicitly clear selection when clicking empty canvas
+          setState((prev) => ({ ...prev, selectedObjects: new Set() }));
           setIsPanning(true);
           setLastPanPosition({ x: e.clientX, y: e.clientY });
         }
@@ -947,17 +1049,15 @@ export const Canvas = memo(() => {
               // Calculate bounding box
               const xs = newPoints.map((p) => p.x);
               const ys = newPoints.map((p) => p.y);
-              const minX = Math.min(...xs);
-              const minY = Math.min(...ys);
-              const maxX = Math.max(...xs);
-              const maxY = Math.max(...ys);
+              // Use the helper function to calculate bounding box
+              const boundingBox = updateDrawingBoundingBox(newPoints);
               return {
                 ...obj,
                 points: newPoints,
-                x: minX,
-                y: minY,
-                width: Math.max(1, maxX - minX),
-                height: Math.max(1, maxY - minY),
+                x: boundingBox.x,
+                y: boundingBox.y,
+                width: boundingBox.width,
+                height: boundingBox.height,
               };
             }
             return obj;
@@ -1192,21 +1292,23 @@ export const Canvas = memo(() => {
   ) => {
     e.stopPropagation();
     e.preventDefault();
-    setResizeState({
-      objectId,
-      handle,
-      startX: e.clientX,
-      startY: e.clientY,
-      startWidth: object.width,
-      startHeight: object.height,
-      startLeft: object.x,
-      startTop: object.y,
-      // For pen drawings, store original points and bounding box
-      originalPoints:
-        object.type === "drawing" ? [...(object.points || [])] : undefined,
-      originalX: object.type === "drawing" ? object.x : undefined,
-      originalY: object.type === "drawing" ? object.y : undefined,
-    });
+
+      
+      setResizeState({
+        objectId,
+        handle,
+        startX: e.clientX,
+        startY: e.clientY,
+        startWidth: object.width,
+        startHeight: object.height,
+        startLeft: object.x,
+        startTop: object.y,
+        // For pen drawings, store original points
+        originalPoints:
+          object.type === "drawing" ? [...(object.points || [])] : undefined,
+        originalX: object.type === "drawing" ? object.x : undefined,
+        originalY: object.type === "drawing" ? object.y : undefined,
+      });
   };
 
   // Resize mouse move
@@ -1264,19 +1366,33 @@ export const Canvas = memo(() => {
                 resizeState.startLeft + (resizeState.startWidth - newWidth);
               break;
           }
-          // If pen drawing, scale all points
+          // If pen drawing, scale points to fit the new bounding box
           if (
             obj.type === "drawing" &&
             resizeState.originalPoints &&
             resizeState.originalX !== undefined &&
             resizeState.originalY !== undefined
           ) {
+            // Simple approach: scale points relative to the object's bounding box
             const scaleX = newWidth / resizeState.startWidth;
             const scaleY = newHeight / resizeState.startHeight;
-            const scaledPoints = resizeState.originalPoints.map((p) => ({
-              x: newX + (p.x - resizeState.originalX!) * scaleX,
-              y: newY + (p.y - resizeState.originalY!) * scaleY,
-            }));
+            
+            // Use uniform scaling to maintain aspect ratio
+            const uniformScale = Math.min(scaleX, scaleY);
+            
+            // Scale points relative to the object's position
+            const scaledPoints = resizeState.originalPoints.map((p) => {
+              // Calculate relative position within the original object bounds
+              const relativeX = (p.x - resizeState.originalX!) / resizeState.startWidth;
+              const relativeY = (p.y - resizeState.originalY!) / resizeState.startHeight;
+              
+              // Apply to new object bounds
+              const finalX = newX + relativeX * newWidth;
+              const finalY = newY + relativeY * newHeight;
+              
+              return { x: finalX, y: finalY };
+            });
+            
             return {
               ...obj,
               points: scaledPoints,
@@ -1306,6 +1422,25 @@ export const Canvas = memo(() => {
       window.removeEventListener("mouseup", onMouseUp);
     };
   }, [resizeState]);
+
+  // Helper function to update bounding box for drawing objects
+  const updateDrawingBoundingBox = useCallback((points: { x: number; y: number }[]) => {
+    if (points.length === 0) return { x: 0, y: 0, width: 1, height: 1 };
+    
+    const xs = points.map((p) => p.x);
+    const ys = points.map((p) => p.y);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const maxX = Math.max(...xs);
+    const maxY = Math.max(...ys);
+    
+    return {
+      x: minX,
+      y: minY,
+      width: Math.max(1, maxX - minX),
+      height: Math.max(1, maxY - minY),
+    };
+  }, []);
 
   // 1. Use pointer events for pen drawing
   // 2. Render all pen strokes in a single, full-canvas SVG layer
@@ -1517,8 +1652,7 @@ export const Canvas = memo(() => {
     };
 
     const baseClasses = classNames(
-      "absolute cursor-move select-none",
-      isSelected ? "ring-2 ring-blue-500 ring-offset-2" : ""
+      "absolute cursor-move select-none"
     );
 
     // At the top of renderObject:
@@ -1530,18 +1664,9 @@ export const Canvas = memo(() => {
         return (
           <motion.div
             key={object.id}
-            className={classNames(
-              baseClasses,
-              isSelected ? "ring-2 ring-blue-500 ring-offset-2" : ""
-            )}
+            className={baseClasses}
             style={{ ...objectStyle, cursor: "inherit" }}
-            drag={!isEraserActive && !isPenActive && !isEditing}
-            dragMomentum={false}
-            onDrag={
-              !isEraserActive && !isPenActive && !isEditing
-                ? (_, info) => handleObjectDrag(object.id, _, info)
-                : undefined
-            }
+            onPointerDown={(e) => startObjectDrag(e, object.id)}
             onClick={
               !isEraserActive && !isPenActive
                 ? (e) => handleObjectClick(e, object.id)
@@ -1591,7 +1716,7 @@ export const Canvas = memo(() => {
                 </div>
               )}
             </div>
-            {isSelected && tool === "select" && (
+            {false && isSelected && tool === "select" && (
               <>
                 {RESIZE_HANDLES.map((h) => (
                   <div
@@ -1633,13 +1758,7 @@ export const Canvas = memo(() => {
             key={object.id}
             className={baseClasses}
             style={{ ...objectStyle, cursor: "inherit" }}
-            drag={!isEraserActive && !isPenActive}
-            dragMomentum={false}
-            onDrag={
-              !isEraserActive && !isPenActive
-                ? (_, info) => handleObjectDrag(object.id, _, info)
-                : undefined
-            }
+            onPointerDown={(e) => startObjectDrag(e, object.id)}
             onClick={
               !isEraserActive && !isPenActive
                 ? (e) => handleObjectClick(e, object.id)
@@ -1662,7 +1781,7 @@ export const Canvas = memo(() => {
                     : undefined,
               }}
             />
-            {isSelected && tool === "select" && (
+            {false && isSelected && tool === "select" && (
               <>
                 {RESIZE_HANDLES.map((h) => (
                   <div
@@ -1703,18 +1822,9 @@ export const Canvas = memo(() => {
         return (
           <motion.div
             key={object.id}
-            className={classNames(
-              baseClasses,
-              isSelected ? "ring-2 ring-blue-500 ring-offset-2" : ""
-            )}
+            className={baseClasses}
             style={{ ...objectStyle, cursor: "inherit" }}
-            drag={!isEraserActive && !isPenActive && !isEditingText}
-            dragMomentum={false}
-            onDrag={
-              !isEraserActive && !isPenActive && !isEditingText
-                ? (_, info) => handleObjectDrag(object.id, _, info)
-                : undefined
-            }
+            onPointerDown={(e) => startObjectDrag(e, object.id)}
             onClick={
               !isEraserActive && !isPenActive
                 ? (e) => handleObjectClick(e, object.id)
@@ -1798,7 +1908,7 @@ export const Canvas = memo(() => {
                 />
               )}
             </div>
-            {isSelected && tool === "select" && (
+            {false && isSelected && tool === "select" && (
               <>
                 {RESIZE_HANDLES.map((h) => (
                   <div
@@ -1838,64 +1948,93 @@ export const Canvas = memo(() => {
         // Offset points by (-object.x, -object.y) so they fit in the SVG
         const isDrawingThis = drawingId === object.id;
         // const smoothPath = getSmoothPath(object.points || [], state.viewport.scale, object.x, object.y);
+        // Compute container from actual stroke bounds so hit area aligns perfectly
+        let bx = object.x;
+        let by = object.y;
+        let bw = Math.max(1, object.width || 1);
+        let bh = Math.max(1, object.height || 1);
+        if (object.points && object.points.length > 1) {
+          const xs = object.points.map((p) => p.x);
+          const ys = object.points.map((p) => p.y);
+          const minX = Math.min(...xs);
+          const minY = Math.min(...ys);
+          const maxX = Math.max(...xs);
+          const maxY = Math.max(...ys);
+          bx = minX;
+          by = minY;
+          bw = Math.max(1, maxX - minX);
+          bh = Math.max(1, maxY - minY);
+        }
+        const drawingStyle = {
+          position: "absolute" as const,
+          left: bx * state.viewport.scale + state.viewport.x,
+          top: by * state.viewport.scale + state.viewport.y,
+          width: bw * state.viewport.scale,
+          height: bh * state.viewport.scale,
+          transform: `rotate(${object.rotation}deg)`,
+          zIndex: object.zIndex,
+          cursor: "inherit",
+        };
+        // Use an invisible hit area that matches the stroke bounds so clicks always land
         return (
-          <motion.div
-            key={object.id}
-            className={classNames(
-              baseClasses,
-              isSelected && !isDrawingThis
-                ? "ring-2 ring-blue-500 ring-offset-2"
-                : ""
-            )}
-            style={{ ...objectStyle, cursor: "inherit" }}
-            drag={!isEraserActive && !isPenActive}
-            dragMomentum={false}
-            onDrag={
-              !isEraserActive && !isPenActive
-                ? (_, info) => handleObjectDrag(object.id, _, info)
-                : undefined
-            }
-            onClick={
-              !isEraserActive && !isPenActive
-                ? (e) => handleObjectClick(e, object.id)
-                : undefined
-            }
-          >
-            {/* Do NOT render the SVG path here; it's rendered in the main SVG layer */}
-            {isSelected && tool === "select" && !isDrawingThis && (
-              <>
-                {RESIZE_HANDLES.map((h) => (
-                  <div
-                    key={h.key}
-                    style={{
-                      position: "absolute",
-                      ...getHandleStyle(
-                        h.key,
-                        object.width * state.viewport.scale,
-                        object.height * state.viewport.scale
-                      ),
-                      cursor: h.cursor,
-                      zIndex: 10,
-                    }}
-                    onMouseDown={(e) =>
-                      handleResizeMouseDown(e, object.id, h.key, object)
-                    }
-                  >
-                    <div
-                      style={{
-                        width: 12,
-                        height: 12,
-                        background: "#fff",
-                        border: "2px solid #2563eb",
-                        borderRadius: 3,
-                        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-                      }}
-                    />
-                  </div>
-                ))}
-              </>
-            )}
-          </motion.div>
+                     <motion.div
+              key={object.id}
+              className={baseClasses}
+              style={drawingStyle}
+             onPointerDown={(e) => startObjectDrag(e, object.id)}
+             onClick={
+               !isEraserActive && !isPenActive
+                 ? (e) => handleObjectClick(e, object.id)
+                 : undefined
+             }
+           >
+              {/* Large transparent overlay for reliable hit-testing of drawings */}
+              <div
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  width: '100%',
+                  height: '100%',
+                  pointerEvents: 'auto',
+                }}
+                onClick={(e) => handleObjectClick(e as any, object.id)}
+              />
+              {/* Do NOT render the SVG path here; it's rendered in the main SVG layer */}
+            {false && isSelected && tool === "select" && !isDrawingThis && (
+               <>
+                 {RESIZE_HANDLES.map((h) => (
+                   <div
+                     key={h.key}
+                     style={{
+                       position: "absolute",
+                       ...getHandleStyle(
+                         h.key,
+                         object.width * state.viewport.scale,
+                         object.height * state.viewport.scale
+                       ),
+                       cursor: h.cursor,
+                       zIndex: 10,
+                     }}
+                     onMouseDown={(e) =>
+                       handleResizeMouseDown(e, object.id, h.key, object)
+                     }
+                   >
+                     <div
+                       style={{
+                         width: 12,
+                         height: 12,
+                         background: "#fff",
+                         border: "2px solid #2563eb",
+                         borderRadius: 3,
+                         boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                       }}
+                     />
+                   </div>
+                 ))}
+               </>
+             )}
+           </motion.div>
         );
 
       case "image":
@@ -1904,13 +2043,7 @@ export const Canvas = memo(() => {
             key={object.id}
             className={baseClasses}
             style={{ ...objectStyle, cursor: "inherit" }}
-            drag={!isEraserActive && !isPenActive}
-            dragMomentum={false}
-            onDrag={
-              !isEraserActive && !isPenActive
-                ? (_, info) => handleObjectDrag(object.id, _, info)
-                : undefined
-            }
+            onPointerDown={(e) => startObjectDrag(e, object.id)}
             onClick={
               !isEraserActive && !isPenActive
                 ? (e) => handleObjectClick(e, object.id)
@@ -1928,7 +2061,7 @@ export const Canvas = memo(() => {
               }}
               draggable={false}
             />
-            {isSelected && tool === "select" && (
+            {false && isSelected && tool === "select" && (
               <>
                 {RESIZE_HANDLES.map((h) => (
                   <div
@@ -1979,18 +2112,9 @@ export const Canvas = memo(() => {
         return (
           <motion.div
             key={object.id}
-            className={classNames(
-              baseClasses,
-              isSelected ? "ring-2 ring-blue-500 ring-offset-2" : ""
-            )}
+            className={baseClasses}
             style={{ ...objectStyle, cursor: "inherit" }}
-            drag={!isEraserActive && !isPenActive}
-            dragMomentum={false}
-            onDrag={
-              !isEraserActive && !isPenActive
-                ? (_, info) => handleObjectDrag(object.id, _, info)
-                : undefined
-            }
+            onPointerDown={(e) => startObjectDrag(e, object.id)}
             onClick={
               !isEraserActive && !isPenActive
                 ? (e) => handleObjectClick(e, object.id)
@@ -2061,7 +2185,7 @@ export const Canvas = memo(() => {
             </div>
             {/* Render SVG directly, always fill frame */}
             {frameSVG}
-            {isSelected && tool === "select" && (
+            {false && isSelected && tool === "select" && (
               <>
                 {RESIZE_HANDLES.map((h) => (
                   <div
@@ -3472,6 +3596,51 @@ export const Canvas = memo(() => {
           </svg>
           {/* Canvas objects */}
           {state.objects.map((obj) => renderObject({ object: obj }))}
+          
+          {/* Unified selection overlay (Miro/Figma-like) */}
+          {tool === "select" && state.selectedObjects.size === 1 && (() => {
+            const selectedId = Array.from(state.selectedObjects)[0];
+            const obj = state.objects.find(o => o.id === selectedId);
+            if (!obj) return null;
+
+            // Compute actual bounds (for drawings use points, else object box)
+            let x = obj.x;
+            let y = obj.y;
+            let w = obj.width;
+            let h = obj.height;
+            if (obj.type === "drawing" && obj.points && obj.points.length > 1) {
+              const xs = obj.points.map(p => p.x);
+              const ys = obj.points.map(p => p.y);
+              const minX = Math.min(...xs);
+              const minY = Math.min(...ys);
+              const maxX = Math.max(...xs);
+              const maxY = Math.max(...ys);
+              x = minX; y = minY; w = Math.max(1, maxX - minX); h = Math.max(1, maxY - minY);
+            }
+
+            const left = x * state.viewport.scale + state.viewport.x;
+            const top = y * state.viewport.scale + state.viewport.y;
+            const width = w * state.viewport.scale;
+            const height = h * state.viewport.scale;
+
+            return (
+              <div
+                key={`selection-overlay-${selectedId}`}
+                style={{ position: 'absolute', left, top, width, height, pointerEvents: 'none', zIndex: 9999 }}
+              >
+                <div style={{ position: 'absolute', inset: -2, border: '2px solid #2563eb', borderRadius: 4 }} />
+                {RESIZE_HANDLES.map(hdl => (
+                  <div
+                    key={hdl.key}
+                    style={{ position: 'absolute', pointerEvents: 'auto', cursor: hdl.cursor, ...getHandleStyle(hdl.key, width, height) }}
+                    onMouseDown={(e) => handleResizeMouseDown(e, selectedId, hdl.key, obj)}
+                  >
+                    <div style={{ width: 12, height: 12, background: '#fff', border: '2px solid #2563eb', borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* Formatting toolbar rendered at top level, above all objects */}
           {editingTextId && editingTextObject && editingTextBoxRect && (
