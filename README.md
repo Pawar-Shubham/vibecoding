@@ -43,31 +43,10 @@ VIBESxCODED is a powerful, modern development environment that brings together t
 ## Tech Stack
 
 - Next.js
+- Remix
 - React
 - TypeScript
-- Tailwind CSS
-- Shadcn UI
-
-## Project Structure
-
-```
-VIBESxCODED/
-├── app/              # Application source code
-├── components/       # Reusable UI components
-├── lib/             # Utility functions and helpers
-├── public/          # Static assets
-└── styles/          # Global styles and themes
-```
-
-## Contributing
-
-We welcome contributions! If you'd like to contribute:
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- Supabase
 
 ## License
 
@@ -77,8 +56,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 For any questions or suggestions, please reach out through:
 - GitHub Issues
-- Email: [Your contact email]
-- Twitter: [@YourHandle]
+- Email: vibesxcoded@gmail.com
+- Twitter: https://x.com/vibesxcoded
 
 ---
 
