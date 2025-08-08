@@ -1,14 +1,13 @@
 {
-  "name": "bolt",
-  "description": "An AI Agent",
+  "name": "vxc",
+  "description": "An AI Full Stack Developer",
   "private": true,
-  "license": "MIT",
   "sideEffects": false,
   "type": "module",
   "version": "1.0.0",
   "author": {
-    "name": "bolt.diy team",
-    "email": "maintainers@bolt.diy"
+    "name": "vxc team",
+    "email": "vibesxcoded@gmail.com"
   },
   "scripts": {
     "deploy": "npm run build && wrangler pages deploy",
