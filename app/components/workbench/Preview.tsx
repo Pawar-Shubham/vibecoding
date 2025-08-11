@@ -920,16 +920,16 @@ export const Preview = memo(() => {
                   className="fixed inset-0 z-50"
                   onClick={() => setIsWindowSizeDropdownOpen(false)}
                 />
-                <div className="absolute right-0 top-full mt-2 z-50 min-w-[240px] max-h-[400px] overflow-y-auto bg-white dark:bg-[#0A0A0A] rounded-xl shadow-2xl border border-[#E5E7EB] dark:border-[rgba(255,255,255,0.1)] overflow-hidden modern-scrollbar modern-scrollbar-dark">
-                  <div className="p-4 border-b border-[#E5E7EB] dark:border-[rgba(255,255,255,0.1)]">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-[#111827] dark:text-gray-200">
+                <div className="absolute right-0 top-full mt-4 z-50 min-w-[240px] max-h-[400px] overflow-y-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-lg p-2 overflow-hidden modern-scrollbar modern-scrollbar-dark">
+                  <div className="px-3 py-2 border-b border-bolt-elements-borderColor">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-bolt-elements-textPrimary">
                         Window Options
                       </span>
                     </div>
-                    <div className="flex flex-col gap-2.5">
+                    <div className="flex flex-col gap-1.5">
                       <button
-                        className={`flex w-full justify-between items-center text-start bg-transparent text-sm text-[#6B7280] dark:text-gray-400 hover:text-[#111827] dark:hover:text-white transition-colors duration-200 py-1`}
+                        className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm text-bolt-elements-textPrimary bg-transparent hover:bg-bolt-elements-background-depth-3 transition-colors"
                         onClick={() => {
                           openInNewTab();
                         }}
@@ -938,7 +938,7 @@ export const Preview = memo(() => {
                         <div className="i-ph:arrow-square-out h-5 w-4" />
                       </button>
                       <button
-                        className={`flex w-full justify-between items-center text-start bg-transparent text-xs text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary`}
+                        className="flex w-full items-center justify-between rounded-md px-3 py-2 text-sm text-bolt-elements-textPrimary bg-transparent hover:bg-bolt-elements-background-depth-3 transition-colors"
                         onClick={() => {
                           if (!activePreview?.baseUrl) {
                             console.warn(
@@ -973,14 +973,14 @@ export const Preview = memo(() => {
                         <span>Open in new window</span>
                         <div className="i-ph:browser h-5 w-4" />
                       </button>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-bolt-elements-textTertiary">
+                      <div className="flex items-center justify-between px-3 py-1">
+                        <span className="text-xs text-bolt-elements-textSecondary">
                           Show Device Frame
                         </span>
                         <button
                           className={`w-10 h-5 rounded-full transition-colors duration-200 ${
                             showDeviceFrame
-                              ? "bg-[#6D28D9]"
+                              ? "bg-[#07F29C]"
                               : "bg-gray-300 dark:bg-gray-700"
                           } relative`}
                           onClick={(e) => {
@@ -995,14 +995,14 @@ export const Preview = memo(() => {
                           />
                         </button>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-bolt-elements-textTertiary">
+                      <div className="flex items-center justify-between px-3 py-1">
+                        <span className="text-xs text-bolt-elements-textSecondary">
                           Landscape Mode
                         </span>
                         <button
                           className={`w-10 h-5 rounded-full transition-colors duration-200 ${
                             isLandscape
-                              ? "bg-[#6D28D9]"
+                              ? "bg-[#07F29C]"
                               : "bg-gray-300 dark:bg-gray-700"
                           } relative`}
                           onClick={(e) => {
@@ -1022,21 +1022,19 @@ export const Preview = memo(() => {
                   {WINDOW_SIZES.map((size) => (
                     <button
                       key={size.name}
-                      className="w-full px-4 py-3.5 text-left text-[#111827] dark:text-gray-300 text-sm whitespace-nowrap flex items-center gap-3 group hover:bg-[#F5EEFF] dark:hover:bg-gray-900 bg-white dark:bg-black"
+                      className="w-full rounded-md px-3 py-2 text-left text-bolt-elements-textPrimary text-sm whitespace-nowrap flex items-center gap-3 group bg-transparent hover:bg-bolt-elements-background-depth-3"
                       onClick={() => {
                         setSelectedWindowSize(size);
                         setIsWindowSizeDropdownOpen(false);
                         openInNewWindow(size);
                       }}
                     >
-                      <div
-                        className={`${size.icon} w-5 h-5 text-[#6B7280] dark:text-gray-400 group-hover:text-[#6D28D9] dark:group-hover:text-[#6D28D9] transition-colors duration-200`}
-                      />
+                      <div className={`${size.icon} w-5 h-5 text-bolt-elements-textSecondary group-hover:text-[#07F29C] transition-colors duration-200`} />
                       <div className="flex-grow flex flex-col">
-                        <span className="font-medium group-hover:text-[#6D28D9] dark:group-hover:text-[#6D28D9] transition-colors duration-200">
+                        <span className="font-medium text-bolt-elements-textPrimary group-hover:text-[#07F29C] transition-colors duration-200">
                           {size.name}
                         </span>
-                        <span className="text-xs text-[#6B7280] dark:text-gray-400 group-hover:text-[#6D28D9] dark:group-hover:text-[#6D28D9] transition-colors duration-200">
+                        <span className="text-xs text-bolt-elements-textSecondary group-hover:text-[#07F29C] transition-colors duration-200">
                           {isLandscape &&
                           (size.frameType === "mobile" ||
                             size.frameType === "tablet")
@@ -1048,7 +1046,7 @@ export const Preview = memo(() => {
                         </span>
                       </div>
                       {selectedWindowSize.name === size.name && (
-                        <div className="text-[#6D28D9] dark:text-[#6D28D9]">
+                        <div className="text-[#07F29C]">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="16"
