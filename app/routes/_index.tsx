@@ -49,13 +49,13 @@ export default function Index() {
               
               {/* Social Media Icons */}
               <div className="flex items-center gap-3">
-                <a href="https://twitter.com/vibesxcoded" target="_blank" rel="noopener noreferrer" className="text-black/70 hover:text-black transition-colors">
+                <a href="https://x.com/vibesxcoded" target="_blank" rel="noopener noreferrer" className="text-black/70 hover:text-black transition-colors">
                   <div className="i-simple-icons:twitter text-xl" />
                 </a>
-                <a href="https://github.com/vibesxcoded" target="_blank" rel="noopener noreferrer" className="text-black/70 hover:text-black transition-colors">
-                  <div className="i-simple-icons:github text-xl" />
+                <a href="https://www.linkedin.com/company/vibesxcoded/about/" target="_blank" rel="noopener noreferrer" className="text-black/70 hover:text-black transition-colors">
+                  <div className="i-simple-icons:linkedin text-xl" />
                 </a>
-                <a href="https://discord.gg/vibesxcoded" target="_blank" rel="noopener noreferrer" className="text-black/70 hover:text-black transition-colors">
+                <a href="https://discord.gg/UrPWWrzPqt" target="_blank" rel="noopener noreferrer" className="text-black/70 hover:text-black transition-colors">
                   <div className="i-simple-icons:discord text-xl" />
                 </a>
               </div>

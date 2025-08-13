@@ -23,15 +23,15 @@ export function SocialMediaIcons() {
       >
         <FaXTwitter className="w-6 h-6" />
       </a>
-      <a
-        href="https://discord.gg/qXAJ5q9v"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-        title="Join our Discord"
-      >
-        <FaDiscord className="w-6 h-6" />
-      </a>
+		<a
+			href="https://discord.gg/UrPWWrzPqt"
+			target="_blank"
+			rel="noopener noreferrer"
+			className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+			title="Join our Discord"
+		>
+			<FaDiscord className="w-6 h-6" />
+		</a>
       
       {/* Vertical divider */}
       <div className="h-6 w-px bg-gray-300 dark:bg-gray-600" />

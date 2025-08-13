@@ -26,16 +26,16 @@ export default function LogoPage() {
             <div className="i-simple-icons:twitter text-xl" />
           </a>
           <a
-            href="https://github.com/vibesxcoded"
+            href="https://www.linkedin.com/company/vibesxcoded/about/"
             target="_blank"
             rel="noopener noreferrer"
             className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-            title="Check out our GitHub"
+            title="Follow us on LinkedIn"
           >
-            <div className="i-simple-icons:github text-xl" />
+            <div className="i-simple-icons:linkedin text-xl" />
           </a>
           <a
-            href="https://discord.gg/qXAJ5q9v"
+            href="https://discord.gg/UrPWWrzPqt"
             target="_blank"
             rel="noopener noreferrer"
             className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
