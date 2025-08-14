@@ -949,9 +949,11 @@ export function LogoGenerator({ onMessagesChange }: LogoGeneratorProps) {
                                   href="https://aistudio.google.com/app/apikey"
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 rounded text-xs whitespace-nowrap flex items-center gap-2"
+                                  className="px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 rounded text-xs whitespace-nowrap inline-flex items-center gap-2 cursor-pointer relative z-10"
                                 >
-                                  <span>Get Key</span>
+                                  <span className="pointer-events-auto">
+                                    Get Key
+                                  </span>
                                   <div className="i-ph:key w-4 h-4" />
                                 </a>
                               )}
@@ -1026,13 +1028,26 @@ export function LogoGenerator({ onMessagesChange }: LogoGeneratorProps) {
                               </IconButton>
                             </div>
                           ) : (
-                            <IconButton
-                              onClick={() => setIsEditingGenerative(true)}
-                              title="Edit API Key"
-                              className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-500"
-                            >
-                              <div className="i-ph:pencil-simple w-4 h-4" />
-                            </IconButton>
+                            <>
+                              <IconButton
+                                onClick={() => setIsEditingGenerative(true)}
+                                title="Edit API Key"
+                                className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-500"
+                              >
+                                <div className="i-ph:pencil-simple w-4 h-4" />
+                              </IconButton>
+                              {!apiKeys.GENERATIVE_API_KEY && (
+                                <a
+                                  href="https://aistudio.google.com/app/apikey"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 rounded text-xs whitespace-nowrap inline-flex items-center gap-2 cursor-pointer relative z-10"
+                                >
+                                  <span>Get Key</span>
+                                  <div className="i-ph:key w-4 h-4" />
+                                </a>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
