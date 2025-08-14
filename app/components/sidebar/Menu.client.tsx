@@ -559,8 +559,6 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
             </motion.button>
           </div>
 
-
-
           {/* Selection Mode Controls */}
           {selectionMode && (
             <div className="flex flex-col gap-2 p-2 bg-gray-50 dark:bg-[#1a1a1a] rounded-lg border border-gray-200 dark:border-[#2a2a2a]">
@@ -691,7 +689,16 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
               {profile.avatar || user?.user_metadata?.avatar_url ? (
                 <div className="flex items-center justify-center w-8 h-8 overflow-hidden rounded-full shrink-0 border border-gray-200 dark:border-gray-700 shadow-sm">
                   <img
-                    src={profile.avatar || user.user_metadata.avatar_url}
+                    src={(function () {
+                      const direct =
+                        profile.avatar || user.user_metadata.avatar_url;
+                      if (!direct) return "";
+                      return /https?:\/\/([^.]+\.)?googleusercontent\.com\//.test(
+                        direct
+                      )
+                        ? `/api/image-proxy?url=${encodeURIComponent(direct)}`
+                        : direct;
+                    })()}
                     alt={
                       profile.username ||
                       user.user_metadata?.name ||

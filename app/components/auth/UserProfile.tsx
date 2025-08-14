@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { signOut } from '~/lib/supabase';
-import { toast } from 'react-toastify';
-import { useStore } from '@nanostores/react';
-import { profileStore } from '~/lib/stores/profile';
-import { ControlPanel } from '~/components/@settings/core/ControlPanel';
+import { useState } from "react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { signOut } from "~/lib/supabase";
+import { toast } from "react-toastify";
+import { useStore } from "@nanostores/react";
+import { profileStore } from "~/lib/stores/profile";
+import { ControlPanel } from "~/components/@settings/core/ControlPanel";
 
 interface UserProfileProps {
   user: any;
@@ -18,23 +18,23 @@ export function UserProfile({ user }: UserProfileProps) {
   const handleSignOut = async () => {
     try {
       setIsLoading(true);
-      
+
       // Close any open dropdowns/modals first
       setIsSettingsOpen(false);
-      
+
       // Navigate first, then sign out
-      window.location.href = '/';
-      
+      window.location.href = "/";
+
       // Sign out after navigation is initiated
       const { error } = await signOut();
-      
+
       if (error) {
-        console.error('Sign out error:', error);
-        toast.error('Failed to sign out');
+        console.error("Sign out error:", error);
+        toast.error("Failed to sign out");
       }
     } catch (error) {
-      console.error('Sign out error:', error);
-      toast.error('An unexpected error occurred');
+      console.error("Sign out error:", error);
+      toast.error("An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -51,26 +51,32 @@ export function UserProfile({ user }: UserProfileProps) {
   if (!user) return null;
 
   // Prioritize profile store avatar over user metadata
-  const userAvatar = profile.avatar || user.user_metadata?.avatar_url || null;
-  const userName = profile.username || user.user_metadata?.name || user.email || 'User';
+  const directAvatar = profile.avatar || user.user_metadata?.avatar_url || null;
+  const userAvatar =
+    directAvatar &&
+    /https?:\/\/([^.]+\.)?googleusercontent\.com\//.test(directAvatar)
+      ? `/api/image-proxy?url=${encodeURIComponent(directAvatar)}`
+      : directAvatar;
+  const userName =
+    profile.username || user.user_metadata?.name || user.email || "User";
   const userInitial = userName[0].toUpperCase();
-  
+
   return (
     <>
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
-          <button 
-            className="flex items-center justify-center h-9 w-9 rounded-full focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 shadow-sm border border-gray-200 dark:border-gray-700" 
+          <button
+            className="flex items-center justify-center h-9 w-9 rounded-full focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 shadow-sm border border-gray-200 dark:border-gray-700"
             aria-label="User profile"
           >
             {userAvatar ? (
-              <img 
-                src={userAvatar} 
-                alt="User avatar" 
+              <img
+                src={userAvatar}
+                alt="User avatar"
                 className="h-9 w-9 rounded-full object-cover"
                 onError={(e) => {
                   // If image fails to load, replace with initial
-                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.style.display = "none";
                   e.currentTarget.parentElement!.innerHTML = `
                     <div class="h-9 w-9 flex items-center justify-center rounded-full bg-accent-600 text-white font-medium">
                       ${userInitial}
@@ -102,10 +108,10 @@ export function UserProfile({ user }: UserProfileProps) {
                 </div>
               )}
             </div>
-            
+
             <DropdownMenu.Separator className="h-px bg-gray-200 dark:bg-bolt-elements-borderColor my-1" />
-            
-            <DropdownMenu.Item 
+
+            <DropdownMenu.Item
               className="text-sm rounded-md flex items-center justify-between h-8 px-3 py-4 text-gray-800 dark:text-bolt-elements-textPrimary hover:bg-[#2a2a2a] cursor-pointer transition-colors"
               onClick={handleSettingsClick}
             >
@@ -113,12 +119,12 @@ export function UserProfile({ user }: UserProfileProps) {
               <div className="i-ph:gear-six text-lg" />
             </DropdownMenu.Item>
 
-            <DropdownMenu.Item 
+            <DropdownMenu.Item
               className="text-sm rounded-md flex items-center justify-between h-8 px-3 py-4 text-gray-800 dark:text-bolt-elements-textPrimary hover:bg-[#2a2a2a] cursor-pointer transition-colors"
               onClick={handleSignOut}
               disabled={isLoading}
             >
-              <span>{isLoading ? 'Signing out...' : 'Sign out'}</span>
+              <span>{isLoading ? "Signing out..." : "Sign out"}</span>
               <div className="i-ph:sign-out text-lg" />
             </DropdownMenu.Item>
           </DropdownMenu.Content>
@@ -128,4 +134,4 @@ export function UserProfile({ user }: UserProfileProps) {
       <ControlPanel open={isSettingsOpen} onClose={handleSettingsClose} />
     </>
   );
-} 
+}

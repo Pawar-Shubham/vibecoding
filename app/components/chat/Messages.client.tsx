@@ -1,17 +1,17 @@
-import type { Message } from 'ai';
-import { Fragment } from 'react';
-import { classNames } from '~/utils/classNames';
-import { AssistantMessage } from './AssistantMessage';
-import { UserMessage } from './UserMessage';
-import { useLocation } from '@remix-run/react';
-import { db, chatId } from '~/lib/persistence/useChatHistory';
-import { forkChat } from '~/lib/persistence/db';
-import { toast } from 'react-toastify';
-import { useStore } from '@nanostores/react';
-import { profileStore } from '~/lib/stores/profile';
-import { forwardRef } from 'react';
-import type { ForwardedRef } from 'react';
-import { useAuth } from '~/lib/hooks/useAuth';
+import type { Message } from "ai";
+import { Fragment } from "react";
+import { classNames } from "~/utils/classNames";
+import { AssistantMessage } from "./AssistantMessage";
+import { UserMessage } from "./UserMessage";
+import { useLocation } from "@remix-run/react";
+import { db, chatId } from "~/lib/persistence/useChatHistory";
+import { forkChat } from "~/lib/persistence/db";
+import { toast } from "react-toastify";
+import { useStore } from "@nanostores/react";
+import { profileStore } from "~/lib/stores/profile";
+import { forwardRef } from "react";
+import type { ForwardedRef } from "react";
+import { useAuth } from "~/lib/hooks/useAuth";
 
 interface MessagesProps {
   id?: string;
@@ -29,27 +29,34 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
 
     const handleRewind = (messageId: string) => {
       const searchParams = new URLSearchParams(location.search);
-      searchParams.set('rewindTo', messageId);
+      searchParams.set("rewindTo", messageId);
       window.location.search = searchParams.toString();
     };
 
     const handleFork = async (messageId: string) => {
       try {
         if (!db || !chatId.get()) {
-          toast.error('Chat persistence is not available');
+          toast.error("Chat persistence is not available");
           return;
         }
 
         const urlId = await forkChat(db, chatId.get()!, messageId);
         window.location.href = `/chat/${urlId}`;
       } catch (error) {
-        toast.error('Failed to fork chat: ' + (error as Error).message);
+        toast.error("Failed to fork chat: " + (error as Error).message);
       }
     };
 
     // Prioritize profile store avatar over user metadata
-    const userAvatar = profile?.avatar || user?.user_metadata?.avatar_url || null;
-    const userName = profile?.username || user?.user_metadata?.name || user?.email || 'User';
+    const directAvatar =
+      profile?.avatar || user?.user_metadata?.avatar_url || null;
+    const userAvatar =
+      directAvatar &&
+      /https?:\/\/([^.]+\.)?googleusercontent\.com\//.test(directAvatar)
+        ? `/api/image-proxy?url=${encodeURIComponent(directAvatar)}`
+        : directAvatar;
+    const userName =
+      profile?.username || user?.user_metadata?.name || user?.email || "User";
     const userInitial = userName[0].toUpperCase();
 
     return (
@@ -57,10 +64,10 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
         {messages.length > 0
           ? messages.map((message, index) => {
               const { role, content, id: messageId, annotations } = message;
-              const isUserMessage = role === 'user';
+              const isUserMessage = role === "user";
               const isFirst = index === 0;
               const isLast = index === messages.length - 1;
-              const isHidden = annotations?.includes('hidden');
+              const isHidden = annotations?.includes("hidden");
 
               if (isHidden) {
                 return <Fragment key={index} />;
@@ -69,23 +76,29 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
               return (
                 <div
                   key={index}
-                  className={classNames('flex gap-4 p-6 py-5 w-full rounded-[calc(0.75rem-1px)]', {
-                    'bg-white dark:bg-gray-900': isUserMessage || !isStreaming || (isStreaming && !isLast),
-                    'bg-gradient-to-b from-white dark:from-gray-900 from-30% to-transparent':
-                      isStreaming && isLast,
-                    'mt-4': !isFirst,
-                  })}
+                  className={classNames(
+                    "flex gap-4 p-6 py-5 w-full rounded-[calc(0.75rem-1px)]",
+                    {
+                      "bg-white dark:bg-gray-900":
+                        isUserMessage ||
+                        !isStreaming ||
+                        (isStreaming && !isLast),
+                      "bg-gradient-to-b from-white dark:from-gray-900 from-30% to-transparent":
+                        isStreaming && isLast,
+                      "mt-4": !isFirst,
+                    }
+                  )}
                 >
                   {isUserMessage && (
                     <div className="flex items-center justify-center w-[40px] h-[40px] overflow-hidden rounded-full shrink-0 self-start">
                       {userAvatar ? (
-                        <img 
-                          src={userAvatar} 
-                          alt="User avatar" 
+                        <img
+                          src={userAvatar}
+                          alt="User avatar"
                           className="w-full h-full rounded-full object-cover"
                           onError={(e) => {
                             // If image fails to load, replace with initial
-                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.style.display = "none";
                             e.currentTarget.parentElement!.innerHTML = `
                               <div class="w-full h-full flex items-center justify-center rounded-full bg-accent-600 text-white font-medium">
                                 ${userInitial}
@@ -122,5 +135,5 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
         )}
       </div>
     );
-  },
+  }
 );
