@@ -645,8 +645,8 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
           </div>
         </div>
 
-        {/* Logo Generator Section */}
-        <div className="border-t border-gray-200 dark:border-[#2a2a2a]">
+        {/* Logo Generator Section - Hidden for now */}
+        {/* <div className="border-t border-gray-200 dark:border-[#2a2a2a]">
           <div className="p-2">
             <a
               href="/logo"
@@ -661,7 +661,7 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
               <span>VxC Logo Generator</span>
             </a>
           </div>
-        </div>
+        </div> */}
 
         {/* Footer */}
         <div className="border-t border-gray-200 dark:border-[#2a2a2a]">

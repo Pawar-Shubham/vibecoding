@@ -45,6 +45,13 @@ export async function action({ request }: ActionFunctionArgs) {
       return json({ error: 'Google Gemini API key is required' }, { status: 400 });
     }
 
+    // Support multiple API keys for logo generation (comma-separated)
+    const availableApiKeys = apiKey.split(',').map(key => key.trim()).filter(key => key.length > 0);
+    
+    if (availableApiKeys.length === 0) {
+      return json({ error: 'No valid API keys provided' }, { status: 400 });
+    }
+
     logger.info('Starting logo generation with prompt:', prompt.substring(0, 100) + '...');
     if (images && images.length > 0) {
       const sourceCounts = images.reduce((acc, img) => {
@@ -62,70 +69,103 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!GoogleGenAI || !Modality) {
       return json({ error: 'Google GenAI module not available' }, { status: 500 });
     }
-    
-    const ai = new GoogleGenAI({ apiKey });
 
-    // Build content array with text and optional images
-    let contents: any = prompt;
+    // Try each API key with automatic failover
+    let lastError: any = null;
     
-    if (images && images.length > 0) {
-      contents = [
-        {
-          text: prompt
+    for (let i = 0; i < availableApiKeys.length; i++) {
+      const currentApiKey = availableApiKeys[i];
+      const keyPreview = currentApiKey.substring(0, 10) + '...' + currentApiKey.substring(currentApiKey.length - 4);
+      
+      try {
+        logger.info(`Attempting logo generation with API key ${i + 1}/${availableApiKeys.length} (${keyPreview})`);
+        
+        const ai = new GoogleGenAI({ apiKey: currentApiKey });
+
+        // Build content array with text and optional images
+        let contents: any = prompt;
+        
+        if (images && images.length > 0) {
+          contents = [
+            {
+              text: prompt
+            }
+          ];
+
+          // Add all images to the content
+          images.forEach((image) => {
+            contents.push({
+              inlineData: {
+                data: image.imageData,
+                mimeType: image.mimeType
+              }
+            });
+          });
         }
-      ];
 
-      // Add all images to the content
-      images.forEach((image) => {
-        contents.push({
-          inlineData: {
-            data: image.imageData,
-            mimeType: image.mimeType
-          }
+        const response = await ai.models.generateContent({
+          model: "gemini-2.0-flash-preview-image-generation",
+          contents: contents,
+          config: {
+            responseModalities: [Modality.TEXT, Modality.IMAGE],
+          },
         });
-      });
-    }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-preview-image-generation",
-      contents: contents,
-      config: {
-        responseModalities: [Modality.TEXT, Modality.IMAGE],
-      },
-    });
+        let imageData: string | null = null;
+        let description = '';
 
-    let imageData: string | null = null;
-    let description = '';
+        if (!response.candidates || response.candidates.length === 0) {
+          throw new Error('No response candidates generated');
+        }
 
-    if (!response.candidates || response.candidates.length === 0) {
-      return json({ error: 'No response candidates generated' }, { status: 500 });
-    }
+        const candidate = response.candidates[0];
+        if (!candidate.content || !candidate.content.parts) {
+          throw new Error('Invalid response structure');
+        }
 
-    const candidate = response.candidates[0];
-    if (!candidate.content || !candidate.content.parts) {
-      return json({ error: 'Invalid response structure' }, { status: 500 });
-    }
+        for (const part of candidate.content.parts) {
+          if (part.text) {
+            description = part.text;
+            logger.info('Generated description:', description.substring(0, 100) + '...');
+          } else if (part.inlineData && part.inlineData.data) {
+            imageData = part.inlineData.data;
+            logger.info('Generated image data length:', imageData?.length || 0);
+          }
+        }
 
-    for (const part of candidate.content.parts) {
-      if (part.text) {
-        description = part.text;
-        logger.info('Generated description:', description.substring(0, 100) + '...');
-      } else if (part.inlineData && part.inlineData.data) {
-        imageData = part.inlineData.data;
-        logger.info('Generated image data length:', imageData?.length || 0);
+        if (!imageData) {
+          throw new Error('No image was generated');
+        }
+
+        // Success!
+        logger.info(`✅ Logo generation successful with API key ${i + 1}/${availableApiKeys.length}`);
+        return json({
+          success: true,
+          imageData,
+          description,
+          mimeType: 'image/png'
+        });
+
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.warn(`❌ Logo generation failed with API key ${i + 1}/${availableApiKeys.length}: ${errorMessage}`);
+        lastError = error;
+        
+        // If this is the last key, we'll throw the error
+        if (i === availableApiKeys.length - 1) {
+          logger.error(`All API keys failed for logo generation. Last error: ${errorMessage}`);
+          break;
+        }
+        
+        // Try next key
+        logger.info(`🔄 Falling back to next API key for logo generation...`);
       }
     }
-
-    if (!imageData) {
-      return json({ error: 'No image was generated' }, { status: 500 });
-    }
-
-    return json({
-      success: true,
-      imageData,
-      description,
-      mimeType: 'image/png'
-    });
+    
+    // If we get here, all keys failed
+    return json({ 
+      error: lastError instanceof Error ? lastError.message : 'All API keys failed for logo generation' 
+    }, { status: 500 });
 
   } catch (error) {
     logger.error('Logo generation failed:', error);

@@ -406,6 +406,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setNotchTag(null); // Remove the notch after sending
       console.log("Prompt sent:", finalInput);
       if (sendMessage) {
+        // Check authentication before sending
+        if (!auth) {
+          // Store the prompt text in a cookie
+          Cookies.set("pending_prompt", finalInput);
+          // Show auth modal
+          const authEvent = new CustomEvent("open-auth-modal");
+          window.dispatchEvent(authEvent);
+          return;
+        }
+
         sendMessage(event, finalInput);
       }
       // Dispatch event to turn off inspector toggle
