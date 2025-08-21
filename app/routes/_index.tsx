@@ -5,6 +5,8 @@ import { Chat } from '~/components/chat/Chat.client';
 import { Header } from '~/components/header/Header';
 import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
+import { useMobileDetection } from '~/lib/hooks/useMobileDetection';
+import { MobileMessage } from '~/components/mobile/MobileMessage';
 
 export const meta: MetaFunction = () => {
   return [{ title: 'VxC' }, { name: 'description', content: 'Talk with VibesXCoded, an AI assistant to help you build your next project faster!' }];
@@ -20,6 +22,12 @@ export const loader = () => json({});
  */
 export default function Index() {
   const chat = useStore(chatStore);
+  const isMobile = useMobileDetection();
+  
+  // Show mobile message if on mobile device
+  if (isMobile) {
+    return <ClientOnly fallback={<div>Loading...</div>}>{() => <MobileMessage />}</ClientOnly>;
+  }
   
   return (
     <div className="flex flex-col h-full w-full">
