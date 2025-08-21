@@ -522,11 +522,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           }}
         />
 
-        <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
+        <div className="flex flex-col lg:flex-row w-full h-full">
           <div
             className={classNames(
               styles.Chat,
-              "flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full"
+              "flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full overflow-y-auto"
             )}
           >
             {!chatStarted && (
@@ -962,7 +962,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   </div>
                 </>
               )}
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-5 relative z-20">
                 {!chatStarted &&
                   ExamplePrompts((event, messageInput) => {
                     if (isStreaming) {

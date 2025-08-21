@@ -18,7 +18,7 @@ export function ExamplePrompts(sendMessage?: {
     >
       {/* Regular Example Prompts */}
       <div
-        className="flex flex-wrap justify-center gap-1.5 lg:gap-2 px-2"
+        className="flex flex-wrap justify-center gap-1.5 lg:gap-2 px-2 pb-20"
         style={{
           animation: ".25s ease-out 0s 1 _fade-and-move-in_g2ptj_1 forwards",
         }}

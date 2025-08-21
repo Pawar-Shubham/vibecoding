@@ -1,26 +1,37 @@
-import { useState, useEffect } from 'react';
-import * as Dialog from '@radix-ui/react-dialog';
-import * as Tabs from '@radix-ui/react-tabs';
-import { signInWithGoogle, signInWithGitHub, signInWithEmail, signUpWithEmail, resetPassword } from '~/lib/supabase';
-import { toast } from 'react-toastify';
-import Cookies from 'js-cookie';
-import { getSession, getCurrentUser } from '~/lib/supabase';
-import { authStore } from '~/lib/stores/auth';
-import { FiEye, FiEyeOff } from 'react-icons/fi';
+import { useState, useEffect } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
+import * as Tabs from "@radix-ui/react-tabs";
+import {
+  signInWithGoogle,
+  signInWithGitHub,
+  signInWithEmail,
+  signUpWithEmail,
+  resetPassword,
+} from "~/lib/supabase";
+import { toast } from "react-toastify";
+import Cookies from "js-cookie";
+import { getSession, getCurrentUser } from "~/lib/supabase";
+import { authStore } from "~/lib/stores/auth";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (pendingPrompt?: string) => void;
-  initialTab?: 'signin' | 'signup';
+  initialTab?: "signin" | "signup";
 }
 
-export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }: AuthModalProps) {
+export function AuthModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialTab = "signin",
+}: AuthModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [tabValue, setTabValue] = useState(initialTab);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [forgotPassword, setForgotPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -39,7 +50,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
       // Get the latest session and user data
       const session = await getSession();
       const user = await getCurrentUser();
-      
+
       if (user && session) {
         // Update auth store directly
         authStore.set({
@@ -47,30 +58,30 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
           session,
           loading: false,
           initialized: true,
-          error: null
+          error: null,
         });
 
         // Handle any pending prompts
-        const pendingPrompt = Cookies.get('pending_prompt');
+        const pendingPrompt = Cookies.get("pending_prompt");
         if (pendingPrompt) {
-          Cookies.remove('pending_prompt');
+          Cookies.remove("pending_prompt");
           if (onSuccess) onSuccess(pendingPrompt);
         } else {
           if (onSuccess) onSuccess();
         }
 
         // Show success message
-        toast.success('Signed in successfully');
-        
+        toast.success("Signed in successfully");
+
         // Close the modal
         onClose();
       } else {
-        throw new Error('Failed to get user data after login');
+        throw new Error("Failed to get user data after login");
       }
     } catch (error) {
-      console.error('Error handling successful login:', error);
-      toast.error('There was a problem completing your sign in');
-      setErrorMessage('Failed to complete sign in process');
+      console.error("Error handling successful login:", error);
+      toast.error("There was a problem completing your sign in");
+      setErrorMessage("Failed to complete sign in process");
     }
   };
 
@@ -80,7 +91,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
 
     try {
       const { data, error } = await signInWithGoogle();
-      
+
       if (error) {
         throw error;
       }
@@ -88,9 +99,9 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
       // For OAuth providers, we'll get a redirect so we don't need to handle success here
       // The auth state will be handled by the auth callback route
     } catch (error: any) {
-      console.error('Google sign in error:', error);
-      setErrorMessage(error.message || 'Failed to sign in with Google');
-      toast.error(error.message || 'Failed to sign in with Google');
+      console.error("Google sign in error:", error);
+      setErrorMessage(error.message || "Failed to sign in with Google");
+      toast.error(error.message || "Failed to sign in with Google");
     } finally {
       setIsLoading(false);
     }
@@ -102,7 +113,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
 
     try {
       const { data, error } = await signInWithGitHub();
-      
+
       if (error) {
         throw error;
       }
@@ -110,9 +121,9 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
       // For OAuth providers, we'll get a redirect so we don't need to handle success here
       // The auth state will be handled by the auth callback route
     } catch (error: any) {
-      console.error('GitHub sign in error:', error);
-      setErrorMessage(error.message || 'Failed to sign in with GitHub');
-      toast.error(error.message || 'Failed to sign in with GitHub');
+      console.error("GitHub sign in error:", error);
+      setErrorMessage(error.message || "Failed to sign in with GitHub");
+      toast.error(error.message || "Failed to sign in with GitHub");
     } finally {
       setIsLoading(false);
     }
@@ -126,7 +137,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
 
     try {
       const { data, error } = await signInWithEmail(email, password);
-      
+
       if (error) {
         throw error;
       }
@@ -134,12 +145,12 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
       if (data?.user) {
         await handleSuccessfulLogin();
       } else {
-        throw new Error('No user data returned from sign in');
+        throw new Error("No user data returned from sign in");
       }
     } catch (error: any) {
-      console.error('Sign in error:', error);
-      setErrorMessage(error.message || 'Failed to sign in');
-      toast.error(error.message || 'Failed to sign in');
+      console.error("Sign in error:", error);
+      setErrorMessage(error.message || "Failed to sign in");
+      toast.error(error.message || "Failed to sign in");
     } finally {
       setIsLoading(false);
     }
@@ -149,37 +160,37 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
-    
+
     if (!email || !password) {
-      setErrorMessage('Please enter both email and password');
+      setErrorMessage("Please enter both email and password");
       return;
     }
-    
+
     if (password !== confirmPassword) {
-      setErrorMessage('Passwords do not match');
+      setErrorMessage("Passwords do not match");
       return;
     }
-    
+
     if (password.length < 6) {
-      setErrorMessage('Password must be at least 6 characters');
+      setErrorMessage("Password must be at least 6 characters");
       return;
     }
-    
+
     try {
       setIsLoading(true);
       const { error } = await signUpWithEmail(email, password);
-      
+
       if (error) {
-        console.error('Email sign up error:', error);
-        setErrorMessage(error.message || 'Failed to sign up with email');
+        console.error("Email sign up error:", error);
+        setErrorMessage(error.message || "Failed to sign up with email");
       } else {
-        setSuccessMessage('Check your email to confirm your account');
-        toast.success('Check your email to confirm your account');
-        setTabValue('signin');
+        setSuccessMessage("Check your email to confirm your account");
+        toast.success("Check your email to confirm your account");
+        setTabValue("signin");
       }
     } catch (error: any) {
-      console.error('Email sign up error:', error);
-      setErrorMessage(error.message || 'An unexpected error occurred');
+      console.error("Email sign up error:", error);
+      setErrorMessage(error.message || "An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -189,27 +200,27 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
-    
+
     if (!email) {
-      setErrorMessage('Please enter your email');
+      setErrorMessage("Please enter your email");
       return;
     }
-    
+
     try {
       setIsLoading(true);
       const { error } = await resetPassword(email);
-      
+
       if (error) {
-        console.error('Password reset error:', error);
-        setErrorMessage(error.message || 'Failed to send password reset email');
+        console.error("Password reset error:", error);
+        setErrorMessage(error.message || "Failed to send password reset email");
       } else {
-        setSuccessMessage('Check your email for password reset instructions');
-        toast.success('Check your email for password reset instructions');
+        setSuccessMessage("Check your email for password reset instructions");
+        toast.success("Check your email for password reset instructions");
         setForgotPassword(false);
       }
     } catch (error: any) {
-      console.error('Password reset error:', error);
-      setErrorMessage(error.message || 'An unexpected error occurred');
+      console.error("Password reset error:", error);
+      setErrorMessage(error.message || "An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -228,36 +239,46 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
         <Dialog.Content className="auth-modal-content fixed z-50 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 p-8 w-full max-w-md">
           <div className="mb-7 text-center">
             <Dialog.Title className="text-2xl font-bold text-white dark:text-white light-mode-title mb-2">
-              {forgotPassword ? 'Reset Password' : (
+              {forgotPassword ? (
+                "Reset Password"
+              ) : (
                 <div className="flex items-center justify-center gap-2">
-                  Welcome to{' '}
+                  Welcome to{" "}
                   <span className="flex items-center">
-                    <img src="/logo-dark-styled.png" alt="logo" className="h-[30px] w-auto hidden dark:inline-block" />
-                    <img src="/chat-logo-light-styled.png" alt="logo" className="h-[30px] w-auto dark:hidden inline-block" />
+                    <img
+                      src="/logo-dark-styled.png"
+                      alt="logo"
+                      className="h-[30px] w-auto hidden dark:inline-block"
+                    />
+                    <img
+                      src="/chat-logo-light-styled.png"
+                      alt="logo"
+                      className="h-[30px] w-auto dark:hidden inline-block"
+                    />
                   </span>
                 </div>
               )}
             </Dialog.Title>
             <Dialog.Description className="text-gray-800 dark:text-gray-300 text-sm">
-              {forgotPassword 
-                ? 'Enter your email to receive a password reset link' 
-                : 'Sign in to save your chats and build'}
+              {forgotPassword
+                ? "Enter your email to receive a password reset link"
+                : tabValue === "signup"
+                  ? "Sign up to save your chats and build"
+                  : "Sign in to save your chats and build"}
             </Dialog.Description>
           </div>
-          
-          {errorMessage && (
-            <div className="auth-error">{errorMessage}</div>
-          )}
-          
+
+          {errorMessage && <div className="auth-error">{errorMessage}</div>}
+
           {successMessage && (
             <div className="auth-success">{successMessage}</div>
           )}
-          
-          <Tabs.Root 
-            value={tabValue} 
+
+          <Tabs.Root
+            value={tabValue}
             onValueChange={(value: string) => {
               // Only set if it's one of our valid values
-              if (value === 'signin' || value === 'signup') {
+              if (value === "signin" || value === "signup") {
                 setTabValue(value);
               }
             }}
@@ -282,7 +303,10 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
                 <Tabs.Content value="signin">
                   <form onSubmit={handleEmailSignIn} className="space-y-5 mb-5">
                     <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-2">
+                      <label
+                        htmlFor="email"
+                        className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-2"
+                      >
                         Email Address
                       </label>
                       <input
@@ -312,9 +336,15 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent border-none outline-none focus:outline-none"
                         tabIndex={-1}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
                       >
-                        {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                        {showPassword ? (
+                          <FiEyeOff size={20} />
+                        ) : (
+                          <FiEye size={20} />
+                        )}
                       </button>
                     </div>
                     <div className="flex justify-end">
@@ -332,7 +362,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
                       className="auth-btn-primary w-full py-3 rounded-lg"
                       disabled={isLoading}
                     >
-                      {isLoading ? 'Signing in...' : 'Sign In'}
+                      {isLoading ? "Signing in..." : "Sign In"}
                     </button>
                   </form>
                 </Tabs.Content>
@@ -340,7 +370,10 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
                 <Tabs.Content value="signup">
                   <form onSubmit={handleEmailSignUp} className="space-y-5 mb-5">
                     <div>
-                      <label htmlFor="signup-email" className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-2">
+                      <label
+                        htmlFor="signup-email"
+                        className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-2"
+                      >
                         Email Address
                       </label>
                       <input
@@ -370,9 +403,15 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent border-none outline-none focus:outline-none"
                         tabIndex={-1}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
                       >
-                        {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                        {showPassword ? (
+                          <FiEyeOff size={20} />
+                        ) : (
+                          <FiEye size={20} />
+                        )}
                       </button>
                     </div>
                     <div className="relative">
@@ -388,12 +427,22 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
                       />
                       <button
                         type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent border-none outline-none focus:outline-none"
                         tabIndex={-1}
-                        aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                        aria-label={
+                          showConfirmPassword
+                            ? "Hide confirm password"
+                            : "Show confirm password"
+                        }
                       >
-                        {showConfirmPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                        {showConfirmPassword ? (
+                          <FiEyeOff size={20} />
+                        ) : (
+                          <FiEye size={20} />
+                        )}
                       </button>
                     </div>
                     <button
@@ -401,7 +450,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
                       className="auth-btn-primary w-full py-3 rounded-lg"
                       disabled={isLoading}
                     >
-                      {isLoading ? 'Signing up...' : 'Sign Up'}
+                      {isLoading ? "Signing up..." : "Sign Up"}
                     </button>
                   </form>
                 </Tabs.Content>
@@ -409,7 +458,10 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
             ) : (
               <form onSubmit={handlePasswordReset} className="space-y-5 mb-5">
                 <div>
-                  <label htmlFor="reset-email" className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-2">
+                  <label
+                    htmlFor="reset-email"
+                    className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-2"
+                  >
                     Email Address
                   </label>
                   <input
@@ -437,19 +489,19 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
                     className="auth-btn-primary flex-1 py-3 rounded-lg"
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Sending...' : 'Send Reset Link'}
+                    {isLoading ? "Sending..." : "Send Reset Link"}
                   </button>
                 </div>
               </form>
             )}
           </Tabs.Root>
-          
+
           {!forgotPassword && (
             <>
               <div className="auth-divider">
                 <span>Or continue with</span>
               </div>
-              
+
               <div className="space-y-3">
                 <button
                   className="auth-social-btn w-full"
@@ -500,7 +552,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
               </div>
             </>
           )}
-          
+
           <Dialog.Close asChild>
             <button
               className="absolute top-3 right-3 p-2 rounded-full"
@@ -527,4 +579,4 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialTab = 'signin' }:
       </Dialog.Portal>
     </Dialog.Root>
   );
-} 
+}
