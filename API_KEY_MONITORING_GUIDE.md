@@ -38,14 +38,15 @@ tail -f your-app.log | grep "GoogleProvider"
 ## 📊 What You'll See
 
 ### Server Logs Show:
-- **Key Rotation**: `Rotated to API key 2/3 for Google provider`
-- **Key Usage**: `Using API key 1/3 (AIzaSyD...abcd) for Google provider`
-- **Model Creation**: `Creating model instance for gemini-2.5-flash-preview-05-20`
-- **Automatic Failover**: `❌ Content generation failed with API key 1/3: quota exceeded`
-- **Failover Action**: `🔄 Trying next available API key...`
+- **Proactive Health Check**: `🔍 Proactively checking health of 12 available API keys`
+- **Individual Health Check**: `🔍 Health checking API key (AIzaSyD...abcd)`
+- **Health Results**: `✅ API key (AIzaSyD...abcd) is healthy` or `⚠️ API key (AIzaSyD...abcd) quota exceeded`
+- **Healthy Key Found**: `✅ Found 8 healthy API keys`
+- **Key Selection**: `Using healthy API key 3/12 (AIzaSyD...efgh) for Google provider`
+- **Pre-validated Usage**: `Attempting content generation with pre-validated healthy API key 3/12`
+- **Success**: `✅ Content generation successful with API key 3/12`
+- **Fallback (if needed)**: `🔄 Trying reactive failover to other keys...`
 - **Key Marking**: `🚫 Marking API key (AIzaSyD...abcd) as failed for 5 minutes`
-- **Success**: `✅ Content generation successful with API key 2/3`
-- **Logo Generation**: `Attempting logo generation with API key 1/2 (AIzaSyD...efgh)`
 
 ### Monitoring Script Shows:
 ```
@@ -65,27 +66,40 @@ tail -f your-app.log | grep "GoogleProvider"
 🔍 Checking API Key Validity...
 
 🤖 Chat Generation Keys:
-✅ Key Chat 1: Valid (15 models available)
-✅ Key Chat 2: Valid (15 models available)
-✅ Key Chat 3: Valid (15 models available)
+✅ Key Chat 1: Valid & Healthy (15 models available)
+⚠️ Key Chat 2: Valid but quota exceeded
+❌ Key Chat 3: Invalid API key
+✅ Key Chat 4: Valid & Healthy (15 models available)
 
 🎨 Logo Generation Keys:
-✅ Key Logo 1: Valid (15 models available)
-✅ Key Logo 2: Valid (15 models available)
+✅ Key Logo 1: Valid & Healthy (15 models available)
+✅ Key Logo 2: Valid & Healthy (15 models available)
+
+📊 Health Summary:
+🤖 Chat Keys: 2/4 healthy
+   ⚠️ 1 quota exceeded
+   ❌ 1 invalid
+🎨 Logo Keys: 2/2 healthy
+
+🎯 Overall Health: 4/6 keys are healthy and ready to use
+✅ Good: Majority of keys are healthy and ready for use.
 ```
 
 ## 🎯 Key Rotation & Failover Behavior
 
 ### Chat Generation (Code Generation):
-- **Normal Rotation**: Every 60 seconds (sequential: 1→2→3→1...)
-- **Immediate Failover**: When a key fails (quota/invalid), instantly switches to next available key
-- **Smart Avoidance**: Failed keys are marked and avoided for 5 minutes
+- **Proactive Health Checking**: Before each request, checks which keys are healthy
+- **Smart Key Selection**: Only uses keys that pass health checks
+- **Health Caching**: Health checks are cached for 1 minute for performance
+- **Automatic Avoidance**: Failed keys are avoided for 5 minutes
+- **Fallback Protection**: If pre-validated key fails, falls back to other healthy keys
 - **Log Messages**: 
-  - `Rotated to API key X/Y for Google provider`
-  - `❌ Content generation failed with API key X/Y: quota exceeded`
-  - `🚫 Marking API key (AIzaSyD...abcd) as failed for 5 minutes`
-  - `🔄 Trying next available API key...`
-  - `✅ Content generation successful with API key X/Y`
+  - `🔍 Proactively checking health of 12 available API keys`
+  - `🔍 Health checking API key (AIzaSyD...abcd)`
+  - `✅ Found 8 healthy API keys`
+  - `Using healthy API key 3/12 (AIzaSyD...efgh) for Google provider`
+  - `Attempting content generation with pre-validated healthy API key 3/12`
+  - `✅ Content generation successful with API key 3/12`
 
 ### Logo Generation:
 - **Sequential Failover**: Tries each key in order until one succeeds

@@ -16,19 +16,38 @@ const path = require('path');
 // Function to check API key validity and quota
 async function checkApiKey(key, keyNumber) {
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${key}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${key}`, {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
     const data = await response.json();
     
     if (response.ok) {
-      console.log(`✅ Key ${keyNumber}: Valid (${data.models?.length || 0} models available)`);
-      return { valid: true, models: data.models?.length || 0 };
+      console.log(`✅ Key ${keyNumber}: Valid & Healthy (${data.models?.length || 0} models available)`);
+      return { valid: true, healthy: true, models: data.models?.length || 0 };
     } else {
-      console.log(`❌ Key ${keyNumber}: Invalid - ${data.error?.message || 'Unknown error'}`);
-      return { valid: false, error: data.error?.message };
+      if (response.status === 429 || data.error?.message?.includes('quota')) {
+        console.log(`⚠️ Key ${keyNumber}: Valid but quota exceeded - ${data.error?.message || 'Unknown quota error'}`);
+        return { valid: true, healthy: false, error: 'quota_exceeded', quotaExceeded: true };
+      } else if (response.status === 403 || data.error?.message?.includes('invalid')) {
+        console.log(`❌ Key ${keyNumber}: Invalid API key - ${data.error?.message || 'Unknown error'}`);
+        return { valid: false, healthy: false, error: 'invalid_key' };
+      } else {
+        console.log(`⚠️ Key ${keyNumber}: Valid but unhealthy - ${data.error?.message || 'Unknown error'}`);
+        return { valid: true, healthy: false, error: data.error?.message };
+      }
     }
   } catch (error) {
+    if (error.name === 'AbortError') {
+      console.log(`⏰ Key ${keyNumber}: Timeout - Health check took too long`);
+      return { valid: false, healthy: false, error: 'timeout' };
+    }
     console.log(`❌ Key ${keyNumber}: Error - ${error.message}`);
-    return { valid: false, error: error.message };
+    return { valid: false, healthy: false, error: error.message };
   }
 }
 
@@ -93,11 +112,15 @@ async function monitorApiKeys() {
   
   console.log('\n🔍 Checking API Key Validity...\n');
   
+  const chatResults = [];
+  const logoResults = [];
+  
   // Check chat generation keys
   if (keys.gemini) {
     console.log('🤖 Chat Generation Keys:');
     for (let i = 0; i < keys.gemini.length; i++) {
-      await checkApiKey(keys.gemini[i], `Chat ${i + 1}`);
+      const result = await checkApiKey(keys.gemini[i], `Chat ${i + 1}`);
+      chatResults.push(result);
     }
   }
   
@@ -105,20 +128,55 @@ async function monitorApiKeys() {
   if (keys.logo) {
     console.log('\n🎨 Logo Generation Keys:');
     for (let i = 0; i < keys.logo.length; i++) {
-      await checkApiKey(keys.logo[i], `Logo ${i + 1}`);
+      const result = await checkApiKey(keys.logo[i], `Logo ${i + 1}`);
+      logoResults.push(result);
     }
   }
   
-  console.log('\n📊 Summary:');
-  console.log(`- Total Chat Keys: ${keys.gemini?.length || 0}`);
-  console.log(`- Total Logo Keys: ${keys.logo?.length || 0}`);
-  console.log(`- Total Keys: ${(keys.gemini?.length || 0) + (keys.logo?.length || 0)}`);
+  // Calculate health statistics
+  const totalChatKeys = chatResults.length;
+  const healthyChatKeys = chatResults.filter(r => r.healthy).length;
+  const quotaExceededChatKeys = chatResults.filter(r => r.quotaExceeded).length;
+  const invalidChatKeys = chatResults.filter(r => !r.valid).length;
+  
+  const totalLogoKeys = logoResults.length;
+  const healthyLogoKeys = logoResults.filter(r => r.healthy).length;
+  const quotaExceededLogoKeys = logoResults.filter(r => r.quotaExceeded).length;
+  const invalidLogoKeys = logoResults.filter(r => !r.valid).length;
+  
+  console.log('\n📊 Health Summary:');
+  
+  if (totalChatKeys > 0) {
+    console.log(`🤖 Chat Keys: ${healthyChatKeys}/${totalChatKeys} healthy`);
+    if (quotaExceededChatKeys > 0) console.log(`   ⚠️ ${quotaExceededChatKeys} quota exceeded`);
+    if (invalidChatKeys > 0) console.log(`   ❌ ${invalidChatKeys} invalid`);
+  }
+  
+  if (totalLogoKeys > 0) {
+    console.log(`🎨 Logo Keys: ${healthyLogoKeys}/${totalLogoKeys} healthy`);
+    if (quotaExceededLogoKeys > 0) console.log(`   ⚠️ ${quotaExceededLogoKeys} quota exceeded`);
+    if (invalidLogoKeys > 0) console.log(`   ❌ ${invalidLogoKeys} invalid`);
+  }
+  
+  const totalHealthy = healthyChatKeys + healthyLogoKeys;
+  const totalKeys = totalChatKeys + totalLogoKeys;
+  
+  console.log(`\n🎯 Overall Health: ${totalHealthy}/${totalKeys} keys are healthy and ready to use`);
+  
+  if (totalHealthy === 0) {
+    console.log('\n🚨 WARNING: No healthy API keys found! Check your keys and billing.');
+  } else if (totalHealthy < totalKeys * 0.5) {
+    console.log('\n⚠️ WARNING: Less than 50% of keys are healthy. Consider checking quotas and billing.');
+  } else {
+    console.log('\n✅ Good: Majority of keys are healthy and ready for use.');
+  }
   
   console.log('\n💡 Tips:');
-  console.log('- Check server logs for "Using API key X/Y" messages');
+  console.log('- Proactive health checks now prevent using failed keys');
+  console.log('- Check server logs for "🔍 Health checking API key" messages');
   console.log('- Monitor quota usage in Google Cloud Console');
-  console.log('- Keys rotate every minute for chat requests');
-  console.log('- Logo requests use random key selection');
+  console.log('- Failed keys are automatically avoided for 5 minutes');
+  console.log('- Health checks are cached for 1 minute for performance');
 }
 
 // Run the monitor

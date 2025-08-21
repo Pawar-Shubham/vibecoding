@@ -15,6 +15,11 @@ const failedKeys = new Set<string>(); // Track failed keys
 const keyFailureCooldown = new Map<string, number>(); // Cooldown for failed keys
 const KEY_FAILURE_COOLDOWN_TIME = 300000; // 5 minutes cooldown for failed keys
 
+// Health check cache
+const keyHealthCache = new Map<string, { isHealthy: boolean; lastChecked: number; quotaAvailable: boolean }>();
+const HEALTH_CHECK_CACHE_TIME = 60000; // Cache health checks for 1 minute
+const HEALTH_CHECK_TIMEOUT = 5000; // 5 second timeout for health checks
+
 export default class GoogleProvider extends BaseProvider {
   name = 'Google';
   getApiKeyLink = 'https://aistudio.google.com/app/apikey';
@@ -46,6 +51,82 @@ export default class GoogleProvider extends BaseProvider {
     return apiKeyString.split(',').map(key => key.trim()).filter(key => key.length > 0);
   }
 
+  // Helper method to check API key health
+  private async checkApiKeyHealth(apiKey: string): Promise<{ isHealthy: boolean; quotaAvailable: boolean; error?: string }> {
+    const keyPreview = apiKey.substring(0, 10) + '...' + apiKey.substring(apiKey.length - 4);
+    
+    try {
+      logger.info(`🔍 Health checking API key (${keyPreview})`);
+      
+      // Use a controller to implement timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT);
+      
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`, {
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        logger.info(`✅ API key (${keyPreview}) is healthy`);
+        return { isHealthy: true, quotaAvailable: true };
+      } else {
+        const errorData = await response.json().catch(() => ({})) as any;
+        const errorMessage = errorData.error?.message || `HTTP ${response.status}`;
+        
+        if (response.status === 429 || errorMessage.includes('quota')) {
+          logger.warn(`⚠️ API key (${keyPreview}) quota exceeded`);
+          return { isHealthy: false, quotaAvailable: false, error: 'quota_exceeded' };
+        } else if (response.status === 403 || errorMessage.includes('invalid') || errorMessage.includes('API key not valid')) {
+          logger.warn(`❌ API key (${keyPreview}) is invalid`);
+          return { isHealthy: false, quotaAvailable: false, error: 'invalid_key' };
+        } else {
+          logger.warn(`⚠️ API key (${keyPreview}) health check failed: ${errorMessage}`);
+          return { isHealthy: false, quotaAvailable: false, error: errorMessage };
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        logger.warn(`⏰ API key (${keyPreview}) health check timed out`);
+        return { isHealthy: false, quotaAvailable: false, error: 'timeout' };
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.warn(`❌ API key (${keyPreview}) health check error: ${errorMessage}`);
+      return { isHealthy: false, quotaAvailable: false, error: errorMessage };
+    }
+  }
+
+  // Helper method to get cached health or perform new health check
+  private async getApiKeyHealth(apiKey: string): Promise<{ isHealthy: boolean; quotaAvailable: boolean }> {
+    const now = Date.now();
+    const cached = keyHealthCache.get(apiKey);
+    
+    // Use cached result if it's recent
+    if (cached && (now - cached.lastChecked) < HEALTH_CHECK_CACHE_TIME) {
+      return { isHealthy: cached.isHealthy, quotaAvailable: cached.quotaAvailable };
+    }
+    
+    // Perform new health check
+    const health = await this.checkApiKeyHealth(apiKey);
+    
+    // Cache the result
+    keyHealthCache.set(apiKey, {
+      isHealthy: health.isHealthy,
+      quotaAvailable: health.quotaAvailable,
+      lastChecked: now
+    });
+    
+    // If key is unhealthy, mark it as failed
+    if (!health.isHealthy) {
+      this.markKeyAsFailed(apiKey);
+    }
+    
+    return { isHealthy: health.isHealthy, quotaAvailable: health.quotaAvailable };
+  }
+
   // Helper method to check if a key is in cooldown
   private isKeyInCooldown(apiKey: string): boolean {
     const cooldownTime = keyFailureCooldown.get(apiKey);
@@ -56,6 +137,7 @@ export default class GoogleProvider extends BaseProvider {
       // Cooldown expired, remove from failed keys
       keyFailureCooldown.delete(apiKey);
       failedKeys.delete(apiKey);
+      keyHealthCache.delete(apiKey); // Clear health cache too
       return false;
     }
     return true;
@@ -69,8 +151,8 @@ export default class GoogleProvider extends BaseProvider {
     keyFailureCooldown.set(apiKey, Date.now());
   }
 
-  // Method to get the next available (non-failed) API key
-  private getAvailableApiKey(apiKeys: string[]): string {
+  // Method to get the next available and healthy API key
+  private async getHealthyApiKey(apiKeys: string[]): Promise<string> {
     if (apiKeys.length === 0) {
       throw new Error(`Missing API key for ${this.name} provider`);
     }
@@ -102,74 +184,134 @@ export default class GoogleProvider extends BaseProvider {
       return oldestKey;
     }
     
-    // Rotate to next available key if enough time has passed or if current key is in cooldown
+    logger.info(`🔍 Proactively checking health of ${availableKeys.length} available API keys`);
+    
+    // Check health of available keys (in parallel for speed)
+    const healthPromises = availableKeys.map(async key => {
+      const health = await this.getApiKeyHealth(key);
+      return { key, ...health };
+    });
+    
+    const healthResults = await Promise.all(healthPromises);
+    
+    // Filter to only healthy keys
+    const healthyKeys = healthResults.filter(result => result.isHealthy).map(result => result.key);
+    
+    if (healthyKeys.length === 0) {
+      logger.warn(`⚠️ No healthy API keys found, trying least recently failed key`);
+      
+      // If no keys are healthy, use the one that's been in cooldown the longest
+      let oldestKey = availableKeys[0];
+      let oldestTime = keyFailureCooldown.get(oldestKey) || 0;
+      
+      for (const key of availableKeys) {
+        const failTime = keyFailureCooldown.get(key) || 0;
+        if (failTime < oldestTime) {
+          oldestTime = failTime;
+          oldestKey = key;
+        }
+      }
+      return oldestKey;
+    }
+    
+    logger.info(`✅ Found ${healthyKeys.length} healthy API keys`);
+    
+    // Rotate through healthy keys
     const now = Date.now();
     const currentKey = apiKeys[currentKeyIndex];
     const shouldRotate = 
       now - lastUsedTime > MIN_TIME_BETWEEN_SWITCHES || 
       lastUsedTime === 0 || 
-      this.isKeyInCooldown(currentKey);
+      this.isKeyInCooldown(currentKey) ||
+      !healthyKeys.includes(currentKey);
     
     if (shouldRotate) {
-      // Find next available key
+      // Find next healthy key
       let nextIndex = (currentKeyIndex + 1) % apiKeys.length;
-      while (this.isKeyInCooldown(apiKeys[nextIndex]) && nextIndex !== currentKeyIndex) {
+      while (!healthyKeys.includes(apiKeys[nextIndex]) && nextIndex !== currentKeyIndex) {
         nextIndex = (nextIndex + 1) % apiKeys.length;
+      }
+      
+      // If we couldn't find a healthy key in sequence, use the first healthy one
+      if (!healthyKeys.includes(apiKeys[nextIndex])) {
+        const firstHealthyKey = healthyKeys[0];
+        nextIndex = apiKeys.indexOf(firstHealthyKey);
       }
       
       currentKeyIndex = nextIndex;
       lastUsedTime = now;
-      logger.info(`Rotated to API key ${currentKeyIndex + 1}/${apiKeys.length} for ${this.name} provider`);
+      logger.info(`Rotated to healthy API key ${currentKeyIndex + 1}/${apiKeys.length} for ${this.name} provider`);
     }
     
     const selectedKey = apiKeys[currentKeyIndex];
     const keyPreview = selectedKey.substring(0, 10) + '...' + selectedKey.substring(selectedKey.length - 4);
-    logger.info(`Using API key ${currentKeyIndex + 1}/${apiKeys.length} (${keyPreview}) for ${this.name} provider`);
+    logger.info(`Using healthy API key ${currentKeyIndex + 1}/${apiKeys.length} (${keyPreview}) for ${this.name} provider`);
     
     return selectedKey;
   }
 
-  // Method to try an operation with automatic failover
+  // Method to try an operation with proactive health checking and automatic failover
   private async tryWithFailover<T>(
     apiKeys: string[],
     operation: (apiKey: string) => Promise<T>,
     operationName: string
   ): Promise<T> {
-    const errors: Array<{ keyIndex: number; error: any }> = [];
+    // First, get a healthy API key proactively
+    const healthyApiKey = await this.getHealthyApiKey(apiKeys);
+    const keyIndex = apiKeys.indexOf(healthyApiKey);
+    const keyPreview = healthyApiKey.substring(0, 10) + '...' + healthyApiKey.substring(healthyApiKey.length - 4);
     
-    // Try each available key
-    for (let attempt = 0; attempt < apiKeys.length; attempt++) {
-      const apiKey = this.getAvailableApiKey(apiKeys);
-      const keyIndex = apiKeys.indexOf(apiKey);
-      const keyPreview = apiKey.substring(0, 10) + '...' + apiKey.substring(apiKey.length - 4);
+    try {
+      logger.info(`Attempting ${operationName} with pre-validated healthy API key ${keyIndex + 1}/${apiKeys.length} (${keyPreview})`);
+      const result = await operation(healthyApiKey);
+      logger.info(`✅ ${operationName} successful with API key ${keyIndex + 1}/${apiKeys.length}`);
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.warn(`❌ ${operationName} failed with pre-validated key ${keyIndex + 1}/${apiKeys.length}: ${errorMessage}`);
       
-      try {
-        logger.info(`Attempting ${operationName} with API key ${keyIndex + 1}/${apiKeys.length} (${keyPreview})`);
-        const result = await operation(apiKey);
-        logger.info(`✅ ${operationName} successful with API key ${keyIndex + 1}/${apiKeys.length}`);
-        return result;
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        logger.warn(`❌ ${operationName} failed with API key ${keyIndex + 1}/${apiKeys.length}: ${errorMessage}`);
+      // Mark this key as failed since it was supposed to be healthy
+      this.markKeyAsFailed(healthyApiKey);
+      
+      logger.info(`🔄 Trying reactive failover to other keys...`);
+      
+      // Fall back to reactive approach for remaining keys
+      const remainingKeys = apiKeys.filter(key => key !== healthyApiKey && !this.isKeyInCooldown(key));
+      
+      if (remainingKeys.length === 0) {
+        logger.error(`No more API keys available for ${operationName}`);
+        throw new Error(`All API keys failed for ${operationName}. Last error: ${errorMessage}`);
+      }
+      
+      for (let i = 0; i < remainingKeys.length; i++) {
+        const fallbackKey = remainingKeys[i];
+        const fallbackIndex = apiKeys.indexOf(fallbackKey);
+        const fallbackPreview = fallbackKey.substring(0, 10) + '...' + fallbackKey.substring(fallbackKey.length - 4);
         
-        // Check if this is a quota or auth error (should mark key as failed)
-        if (errorMessage.includes('quota') || 
-            errorMessage.includes('QUOTA_EXCEEDED') ||
-            errorMessage.includes('403') ||
-            errorMessage.includes('invalid') ||
-            errorMessage.includes('API_KEY_INVALID')) {
-          this.markKeyAsFailed(apiKey);
+        try {
+          logger.info(`Attempting ${operationName} with fallback API key ${fallbackIndex + 1}/${apiKeys.length} (${fallbackPreview})`);
+          const result = await operation(fallbackKey);
+          logger.info(`✅ ${operationName} successful with fallback API key ${fallbackIndex + 1}/${apiKeys.length}`);
+          return result;
+        } catch (fallbackError) {
+          const fallbackErrorMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+          logger.warn(`❌ ${operationName} failed with fallback API key ${fallbackIndex + 1}/${apiKeys.length}: ${fallbackErrorMessage}`);
+          
+          // Check if this is a quota or auth error (should mark key as failed)
+          if (fallbackErrorMessage.includes('quota') || 
+              fallbackErrorMessage.includes('QUOTA_EXCEEDED') ||
+              fallbackErrorMessage.includes('403') ||
+              fallbackErrorMessage.includes('invalid') ||
+              fallbackErrorMessage.includes('API_KEY_INVALID')) {
+            this.markKeyAsFailed(fallbackKey);
+          }
+          
+          // If this is the last fallback key, throw the error
+          if (i === remainingKeys.length - 1) {
+            logger.error(`All fallback API keys failed for ${operationName}`);
+            throw new Error(`All ${apiKeys.length} API keys failed for ${operationName}. Last error: ${fallbackErrorMessage}`);
+          }
         }
-        
-        errors.push({ keyIndex, error });
-        
-        // If this is the last attempt, throw the error
-        if (attempt === apiKeys.length - 1) {
-          logger.error(`All API keys failed for ${operationName}. Errors:`, errors);
-          throw new Error(`All ${apiKeys.length} API keys failed for ${operationName}. Last error: ${errorMessage}`);
-        }
-        
-        logger.info(`🔄 Trying next available API key...`);
       }
     }
     
@@ -258,17 +400,17 @@ export default class GoogleProvider extends BaseProvider {
 
     logger.info(`Found ${availableApiKeys.length} available API keys for ${this.name} provider`);
 
-    // Create a wrapper model that handles automatic failover
+    // Create a wrapper model that handles proactive health checking and automatic failover
     const createModelWithFailover = () => {
-      // Get the best available API key right now
-      const apiKey = this.getAvailableApiKey(availableApiKeys);
-      const google = createGoogleGenerativeAI({ apiKey });
+      // Create a base model with the first available key for structure
+      const tempApiKey = availableApiKeys[0];
+      const google = createGoogleGenerativeAI({ apiKey: tempApiKey });
       const baseModel = google(model);
 
-      // Create a wrapper that adds failover to model methods
+      // Create a wrapper that adds proactive health checking and failover to model methods
       return {
         ...baseModel,
-        // Override doGenerate to add failover (this is the actual method used by the AI SDK)
+        // Override doGenerate to add proactive health checking and failover
         doGenerate: async (params: any) => {
           return this.tryWithFailover(
             availableApiKeys,
@@ -280,7 +422,7 @@ export default class GoogleProvider extends BaseProvider {
             'content generation'
           );
         },
-        // Override doStream to add failover
+        // Override doStream to add proactive health checking and failover
         doStream: async (params: any) => {
           return this.tryWithFailover(
             availableApiKeys,
