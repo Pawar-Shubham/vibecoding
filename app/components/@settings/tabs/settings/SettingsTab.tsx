@@ -1,11 +1,15 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useStore } from '@nanostores/react';
-import { classNames } from '~/utils/classNames';
-import { profileStore, updateProfile, initializeProfile } from '~/lib/stores/profile';
-import { toast } from 'react-toastify';
-import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
-import { motion } from 'framer-motion';
-import { useAuth } from '~/lib/hooks/useAuth';
+import { useState, useCallback, useEffect } from "react";
+import { useStore } from "@nanostores/react";
+import { classNames } from "~/utils/classNames";
+import {
+  profileStore,
+  updateProfile,
+  initializeProfile,
+} from "~/lib/stores/profile";
+import { toast } from "react-toastify";
+import { ThemeSwitch } from "~/components/ui/ThemeSwitch";
+import { motion } from "framer-motion";
+import { useAuth } from "~/lib/hooks/useAuth";
 
 interface Profile {
   username: string;
@@ -34,10 +38,10 @@ export default function SettingsTab() {
 
   // Local form state
   const [formData, setFormData] = useState<Profile>({
-    username: profile.username || '',
-    email: profile.email || user?.email || '',
-    bio: profile.bio || '',
-    avatar: profile.avatar || '',
+    username: profile.username || "",
+    email: profile.email || user?.email || "",
+    bio: profile.bio || "",
+    avatar: profile.avatar || "",
   });
 
   // Track if form has changes
@@ -47,12 +51,12 @@ export default function SettingsTab() {
   useEffect(() => {
     const loadProfile = async () => {
       if (user?.id && (!profile.userId || profile.userId !== user.id)) {
-        console.log('Profile not loaded for current user, initializing...');
+        console.log("Profile not loaded for current user, initializing...");
         setIsProfileLoading(true);
         try {
           await initializeProfile(user.id, user.user_metadata);
         } catch (error) {
-          console.error('Error initializing profile:', error);
+          console.error("Error initializing profile:", error);
         } finally {
           setIsProfileLoading(false);
         }
@@ -68,10 +72,10 @@ export default function SettingsTab() {
   useEffect(() => {
     if (!profile.userId || profile.userId === user?.id) {
       const newFormData = {
-        username: profile.username || '',
-        email: profile.email || user?.email || '',
-        bio: profile.bio || '',
-        avatar: profile.avatar || '',
+        username: profile.username || "",
+        email: profile.email || user?.email || "",
+        bio: profile.bio || "",
+        avatar: profile.avatar || "",
       };
       setFormData(newFormData);
     }
@@ -80,13 +84,13 @@ export default function SettingsTab() {
   // Check for changes
   useEffect(() => {
     const originalData = {
-      username: profile.username || '',
-      email: profile.email || user?.email || '',
-      bio: profile.bio || '',
-      avatar: profile.avatar || '',
+      username: profile.username || "",
+      email: profile.email || user?.email || "",
+      bio: profile.bio || "",
+      avatar: profile.avatar || "",
     };
 
-    const hasFormChanges = 
+    const hasFormChanges =
       formData.username !== originalData.username ||
       formData.email !== originalData.email ||
       formData.bio !== originalData.bio;
@@ -94,30 +98,36 @@ export default function SettingsTab() {
     setHasChanges(hasFormChanges);
   }, [formData, profile, user?.email]);
 
-  const handleInputChange = useCallback((field: keyof Profile, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  }, []);
+  const handleInputChange = useCallback(
+    (field: keyof Profile, value: string) => {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    },
+    []
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!hasChanges || isSaving) return;
 
     setIsSaving(true);
-    
+
     try {
-      await updateProfile({
-        username: formData.username,
-        email: formData.email,
-        bio: formData.bio,
-        avatar: formData.avatar,
-      }, user?.id);
-      
-      toast.success('Account Information Updated');
+      await updateProfile(
+        {
+          username: formData.username,
+          email: formData.email,
+          bio: formData.bio,
+          avatar: formData.avatar,
+        },
+        user?.id
+      );
+
+      toast.success("Account Information Updated");
       setHasChanges(false);
     } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Failed to update account information');
+      console.error("Error updating profile:", error);
+      toast.error("Failed to update account information");
     } finally {
       setIsSaving(false);
     }
@@ -140,27 +150,27 @@ export default function SettingsTab() {
         try {
           const base64String = reader.result as string;
           // Update the form data and save avatar immediately
-          setFormData(prev => ({ ...prev, avatar: base64String }));
+          setFormData((prev) => ({ ...prev, avatar: base64String }));
           await updateProfile({ avatar: base64String }, user?.id);
           setIsUploading(false);
-          toast.success('Profile picture updated');
+          toast.success("Profile picture updated");
         } catch (error) {
-          console.error('Error updating avatar:', error);
+          console.error("Error updating avatar:", error);
           setIsUploading(false);
-          toast.error('Failed to update profile picture');
+          toast.error("Failed to update profile picture");
         }
       };
 
       reader.onerror = () => {
-        console.error('Error reading file:', reader.error);
+        console.error("Error reading file:", reader.error);
         setIsUploading(false);
-        toast.error('Failed to update profile picture');
+        toast.error("Failed to update profile picture");
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      console.error("Error uploading avatar:", error);
       setIsUploading(false);
-      toast.error('Failed to update profile picture');
+      toast.error("Failed to update profile picture");
     }
   };
 
@@ -185,14 +195,14 @@ export default function SettingsTab() {
           <div className="flex items-start gap-6 mb-8">
             <div
               className={classNames(
-                'w-24 h-24 rounded-full overflow-hidden',
-                'bg-gray-100 dark:bg-gray-800/50',
-                'flex items-center justify-center',
-                'ring-1 ring-gray-200 dark:ring-gray-700',
-                'relative group',
-                'transition-all duration-300 ease-out',
-                'hover:ring-[#07F29C]/30 dark:hover:ring-[#07F29C]/30',
-                'hover:shadow-lg hover:shadow-[#07F29C]/10',
+                "w-24 h-24 rounded-full overflow-hidden",
+                "bg-gray-100 dark:bg-gray-800/50",
+                "flex items-center justify-center",
+                "ring-1 ring-gray-200 dark:ring-gray-700",
+                "relative group",
+                "transition-all duration-300 ease-out",
+                "hover:ring-[#07F29C]/30 dark:hover:ring-[#07F29C]/30",
+                "hover:shadow-lg hover:shadow-[#07F29C]/10"
               )}
             >
               {formData.avatar ? (
@@ -200,9 +210,9 @@ export default function SettingsTab() {
                   src={formData.avatar}
                   alt="Profile"
                   className={classNames(
-                    'w-full h-full object-cover',
-                    'transition-all duration-300 ease-out',
-                    'group-hover:scale-105 group-hover:brightness-90',
+                    "w-full h-full object-cover",
+                    "transition-all duration-300 ease-out",
+                    "group-hover:scale-105 group-hover:brightness-90"
                   )}
                 />
               ) : (
@@ -211,11 +221,11 @@ export default function SettingsTab() {
 
               <label
                 className={classNames(
-                  'absolute inset-0',
-                  'flex items-center justify-center',
-                  'bg-black/0 group-hover:bg-black/40',
-                  'cursor-pointer transition-all duration-300 ease-out',
-                  isUploading ? 'cursor-wait' : '',
+                  "absolute inset-0",
+                  "flex items-center justify-center",
+                  "bg-black/0 group-hover:bg-black/40",
+                  "cursor-pointer transition-all duration-300 ease-out",
+                  isUploading ? "cursor-wait" : ""
                 )}
               >
                 <input
@@ -237,7 +247,9 @@ export default function SettingsTab() {
               <label className="block text-base font-medium text-gray-900 dark:text-gray-100 mb-1">
                 Profile Picture
               </label>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Upload a profile picture or avatar</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Upload a profile picture or avatar
+              </p>
             </div>
           </div>
 
@@ -245,7 +257,9 @@ export default function SettingsTab() {
           <div className="grid grid-cols-2 gap-4 mb-6">
             {/* Username Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Username</label>
+              <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                Username
+              </label>
               <div className="relative group">
                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2">
                   <div className="i-ph:user-circle-fill w-5 h-5 text-gray-400 dark:text-gray-500 transition-colors group-focus-within:text-[#07F29C]" />
@@ -253,15 +267,17 @@ export default function SettingsTab() {
                 <input
                   type="text"
                   value={formData.username}
-                  onChange={(e) => handleInputChange('username', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("username", e.target.value)
+                  }
                   className={classNames(
-                    'w-full pl-11 pr-4 py-2.5 rounded-xl',
-                    'bg-white dark:bg-gray-800/50',
-                    'border border-gray-200 dark:border-gray-700/50',
-                    'text-gray-900 dark:text-white',
-                    'placeholder-gray-400 dark:placeholder-gray-500',
-                    'focus:outline-none focus:ring-2 focus:ring-[#07F29C]/30 focus:border-[#07F29C]/30',
-                    'transition-all duration-300 ease-out',
+                    "w-full pl-11 pr-4 py-2.5 rounded-xl",
+                    "bg-white dark:bg-gray-800/50",
+                    "border border-gray-200 dark:border-gray-700/50",
+                    "text-gray-900 dark:text-white",
+                    "placeholder-gray-400 dark:placeholder-gray-500",
+                    "focus:outline-none focus:ring-2 focus:ring-[#07F29C]/30 focus:border-[#07F29C]/30",
+                    "transition-all duration-300 ease-out"
                   )}
                   placeholder="Enter your username"
                 />
@@ -270,7 +286,9 @@ export default function SettingsTab() {
 
             {/* Email Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Email</label>
+              <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                Email
+              </label>
               <div className="relative group">
                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2">
                   <div className="i-ph:envelope-fill w-5 h-5 text-gray-400 dark:text-gray-500 transition-colors group-focus-within:text-[#07F29C]" />
@@ -278,15 +296,14 @@ export default function SettingsTab() {
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  readOnly
                   className={classNames(
-                    'w-full pl-11 pr-4 py-2.5 rounded-xl',
-                    'bg-white dark:bg-gray-800/50',
-                    'border border-gray-200 dark:border-gray-700/50',
-                    'text-gray-900 dark:text-white',
-                    'placeholder-gray-400 dark:placeholder-gray-500',
-                    'focus:outline-none focus:ring-2 focus:ring-[#07F29C]/30 focus:border-[#07F29C]/30',
-                    'transition-all duration-300 ease-out',
+                    "w-full pl-11 pr-4 py-2.5 rounded-xl",
+                    "bg-gray-50 dark:bg-gray-800/30",
+                    "border border-gray-200 dark:border-gray-700/50",
+                    "text-gray-700 dark:text-gray-300",
+                    "cursor-not-allowed",
+                    "transition-all duration-300 ease-out"
                   )}
                   placeholder="Enter your email address"
                 />
@@ -296,24 +313,26 @@ export default function SettingsTab() {
 
           {/* Bio Input */}
           <div className="mb-8">
-            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Bio</label>
+            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+              Bio
+            </label>
             <div className="relative group">
               <div className="absolute left-3.5 top-3">
                 <div className="i-ph:text-aa w-5 h-5 text-gray-400 dark:text-gray-500 transition-colors group-focus-within:text-[#07F29C]" />
               </div>
               <textarea
                 value={formData.bio}
-                onChange={(e) => handleInputChange('bio', e.target.value)}
+                onChange={(e) => handleInputChange("bio", e.target.value)}
                 className={classNames(
-                  'w-full pl-11 pr-4 py-2.5 rounded-xl',
-                  'bg-white dark:bg-gray-800/50',
-                  'border border-gray-200 dark:border-gray-700/50',
-                  'text-gray-900 dark:text-white',
-                  'placeholder-gray-400 dark:placeholder-gray-500',
-                  'focus:outline-none focus:ring-2 focus:ring-[#07F29C]/30 focus:border-[#07F29C]/30',
-                  'transition-all duration-300 ease-out',
-                  'resize-none',
-                  'h-32',
+                  "w-full pl-11 pr-4 py-2.5 rounded-xl",
+                  "bg-white dark:bg-gray-800/50",
+                  "border border-gray-200 dark:border-gray-700/50",
+                  "text-gray-900 dark:text-white",
+                  "placeholder-gray-400 dark:placeholder-gray-500",
+                  "focus:outline-none focus:ring-2 focus:ring-[#07F29C]/30 focus:border-[#07F29C]/30",
+                  "transition-all duration-300 ease-out",
+                  "resize-none",
+                  "h-32"
                 )}
                 placeholder="Tell us about yourself"
               />
@@ -327,13 +346,13 @@ export default function SettingsTab() {
                 type="submit"
                 disabled={!hasChanges || isSaving}
                 className={classNames(
-                  'w-full py-2 px-4 rounded-md font-medium text-sm relative overflow-hidden',
-                  'disabled:opacity-50 disabled:cursor-not-allowed',
-                  'transition-all duration-300 ease-out',
-                  'focus:outline-none focus:ring-2 focus:ring-[#07F29C]/30',
+                  "w-full py-2 px-4 rounded-md font-medium text-sm relative overflow-hidden",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  "transition-all duration-300 ease-out",
+                  "focus:outline-none focus:ring-2 focus:ring-[#07F29C]/30"
                 )}
                 style={{
-                  background: 'linear-gradient(90deg, #F2E59F, #07F29C)',
+                  background: "linear-gradient(90deg, #F2E59F, #07F29C)",
                 }}
               >
                 <div className="relative z-10 text-black">
@@ -343,13 +362,13 @@ export default function SettingsTab() {
                       Saving...
                     </div>
                   ) : (
-                    'Save Changes'
+                    "Save Changes"
                   )}
                 </div>
                 <div
                   className="absolute inset-0 transition-opacity duration-500 ease-in-out opacity-0 hover:opacity-100"
                   style={{
-                    background: 'linear-gradient(90deg, #07F29C, #F2E59F)',
+                    background: "linear-gradient(90deg, #07F29C, #F2E59F)",
                   }}
                 />
               </button>
@@ -360,8 +379,12 @@ export default function SettingsTab() {
           <div className="mb-8 p-6 bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/50">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">Theme</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Choose your preferred theme</p>
+                <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">
+                  Theme
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Choose your preferred theme
+                </p>
               </div>
               <ThemeSwitch />
             </div>
