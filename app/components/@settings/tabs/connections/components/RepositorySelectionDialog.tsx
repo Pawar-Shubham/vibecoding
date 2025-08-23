@@ -1,5 +1,5 @@
 import type { GitHubRepoInfo } from '~/types/GitHub';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'react-toastify';
 import * as Dialog from '@radix-ui/react-dialog';
 import { classNames } from '~/utils/classNames';
@@ -73,6 +73,9 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
   const [pendingGitUrl, setPendingGitUrl] = useState<string>('');
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
+  // Debounce timer for search
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Fetch GitHub token from Supabase or localStorage on mount/open
   useEffect(() => {
     async function fetchGithubToken() {
@@ -140,6 +143,15 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
       fetchUserRepos();
     }
   }, [isOpen, activeTab]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const fetchUserRepos = async () => {
     if (!githubToken) {
@@ -225,6 +237,27 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Debounced search function
+  const debouncedSearch = useCallback((query: string) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      if (query.trim()) {
+        handleSearch(query);
+      } else {
+        setSearchResults([]);
+      }
+    }, 500);
+  }, [filters]);
+
+  // Handle search input changes
+  const handleSearchInputChange = (value: string) => {
+    setSearchQuery(value);
+    debouncedSearch(value);
   };
 
   const fetchBranches = async (repo: GitHubRepoInfo) => {
@@ -551,11 +584,22 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
     let parsedValue: string | number | undefined = value;
 
     if (key === 'stars' || key === 'forks') {
-      parsedValue = value ? parseInt(value, 10) : undefined;
+      const numValue = value ? parseInt(value, 10) : undefined;
+      // Prevent negative numbers for stars and forks
+      if (numValue !== undefined && numValue < 0) {
+        return; // Don't update the filter if negative
+      }
+      parsedValue = numValue;
     }
 
-    setFilters((prev) => ({ ...prev, [key]: parsedValue }));
-    handleSearch(searchQuery);
+    setFilters((prev) => {
+      const newFilters = { ...prev, [key]: parsedValue };
+      // Trigger search with updated filters if there's a search query
+      if (searchQuery.trim()) {
+        setTimeout(() => handleSearch(searchQuery), 0);
+      }
+      return newFilters;
+    });
   };
 
   // Handle dialog close properly
@@ -563,6 +607,11 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
     setIsLoading(false); // Reset loading state
     setSearchQuery(''); // Reset search
     setSearchResults([]); // Reset results
+    setFilters({}); // Reset filters
+    setActiveTab('my-repos'); // Reset to default tab
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current); // Clear any pending searches
+    }
     onClose();
   };
 
@@ -784,7 +833,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                                 type="text"
                                 placeholder="Search repositories..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => handleSearchInputChange(e.target.value)}
                                 className={classNames(
                                   'w-full pl-10 py-3',
                                   'border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
@@ -797,7 +846,12 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                             </div>
                           </div>
                           <motion.button
-                            onClick={() => setFilters({})}
+                            onClick={() => {
+                              setFilters({});
+                              if (searchQuery.trim()) {
+                                setTimeout(() => handleSearch(searchQuery), 0);
+                              }
+                            }}
                             className="px-3 py-2 rounded-lg bg-white dark:bg-bolt-elements-background-depth-4 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-sm"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
@@ -827,8 +881,8 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                                       delete newFilters.language;
                                       setFilters(newFilters);
 
-                                      if (searchQuery.length > 2) {
-                                        handleSearch(searchQuery);
+                                      if (searchQuery.trim()) {
+                                        setTimeout(() => handleSearch(searchQuery), 0);
                                       }
                                     }}
                                   />
@@ -844,8 +898,8 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                                       delete newFilters.stars;
                                       setFilters(newFilters);
 
-                                      if (searchQuery.length > 2) {
-                                        handleSearch(searchQuery);
+                                      if (searchQuery.trim()) {
+                                        setTimeout(() => handleSearch(searchQuery), 0);
                                       }
                                     }}
                                   />
@@ -861,8 +915,8 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                                       delete newFilters.forks;
                                       setFilters(newFilters);
 
-                                      if (searchQuery.length > 2) {
-                                        handleSearch(searchQuery);
+                                      if (searchQuery.trim()) {
+                                        setTimeout(() => handleSearch(searchQuery), 0);
                                       }
                                     }}
                                   />
@@ -896,6 +950,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                               </div>
                               <input
                                 type="number"
+                                min="0"
                                 placeholder="Min stars"
                                 value={filters.stars || ''}
                                 onChange={(e) => handleFilterChange('stars', e.target.value)}
@@ -914,6 +969,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                               </div>
                               <input
                                 type="number"
+                                min="0"
                                 placeholder="Min forks"
                                 value={filters.forks || ''}
                                 onChange={(e) => handleFilterChange('forks', e.target.value)}

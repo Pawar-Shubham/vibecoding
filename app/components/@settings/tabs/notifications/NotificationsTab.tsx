@@ -226,7 +226,7 @@ const NotificationsTab = () => {
             'group flex items-center gap-2',
             'rounded-lg px-3 py-1.5',
             'text-sm text-gray-900 dark:text-white',
-            'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
+            'bg-white dark:bg-[#0A0A0A]',
             'border border-[#E5E5E5] dark:border-[#1A1A1A]',
             'hover:bg-yellow-500/10 dark:hover:bg-yellow-500/20',
             'transition-all duration-200',
@@ -245,7 +245,7 @@ const NotificationsTab = () => {
             className={classNames(
               'flex flex-col items-center justify-center gap-4',
               'rounded-lg p-8 text-center',
-              'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
+              'bg-white dark:bg-[#0A0A0A]',
               'border border-[#E5E5E5] dark:border-[#1A1A1A]',
             )}
           >
@@ -263,14 +263,14 @@ const NotificationsTab = () => {
                 key={log.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={classNames(
-                  'flex flex-col gap-2',
-                  'rounded-lg p-4',
-                  'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
-                  'border border-[#E5E5E5] dark:border-[#1A1A1A]',
-                  style.bg,
-                  'transition-all duration-200',
-                )}
+                                  className={classNames(
+                    'flex flex-col gap-2',
+                    'rounded-lg p-4',
+                    'bg-white dark:bg-[#0A0A0A]',
+                    'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+                    style.bg,
+                    'transition-all duration-200',
+                  )}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3">

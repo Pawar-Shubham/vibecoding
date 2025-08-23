@@ -40,7 +40,36 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
-      inputRef.current.focus();
+      // Multiple attempts to ensure focus works
+      const focusInput = () => {
+        if (inputRef.current && isEditing) {
+          inputRef.current.focus();
+          // Force selection to ensure it's properly focused
+          inputRef.current.select();
+        }
+      };
+      
+      // Immediate focus
+      focusInput();
+      
+      // Backup focus with multiple timeouts
+      const timer1 = setTimeout(focusInput, 0);
+      const timer2 = setTimeout(focusInput, 10);
+      const timer3 = setTimeout(focusInput, 100);
+      
+      // Continuous focus maintenance
+      const interval = setInterval(() => {
+        if (inputRef.current && isEditing && document.activeElement !== inputRef.current) {
+          focusInput();
+        }
+      }, 100);
+      
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+        clearTimeout(timer3);
+        clearInterval(interval);
+      };
     }
   }, [isEditing]);
 
@@ -85,19 +114,39 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
     setIsEditing(false);
   }, [tempKey, setApiKey]);
 
+  const handleCancel = useCallback(() => {
+    setIsEditing(false);
+    setTempKey(apiKey);
+  }, [apiKey]);
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleSave();
     } else if (e.key === 'Escape') {
-      setIsEditing(false);
-      setTempKey(apiKey);
+      handleCancel();
     }
-  }, [handleSave, apiKey]);
+  }, [handleSave, handleCancel]);
+
+  const handleInputClick = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, []);
+
+  const handleInputMouseDown = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
 
   return (
     <div className="flex items-center justify-between py-3 px-1">
       <div className="flex items-center gap-2 flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-1">
           <span className="text-sm font-medium text-bolt-elements-textSecondary">{provider?.name} API Key:</span>
           {!isEditing && (
             <div className="flex items-center gap-2">
@@ -122,9 +171,17 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
         </div>
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-3 shrink-0">
         {isEditing ? (
-          <div className="flex items-center gap-2">
+          <div 
+            className="flex items-center gap-2 ml-6"
+            onMouseDown={(e) => {
+              // Prevent any mouse events from bubbling up that might cause focus loss
+              if (e.target !== inputRef.current) {
+                e.preventDefault();
+              }
+            }}
+          >
             <input
               ref={inputRef}
               type="password"
@@ -132,27 +189,41 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
               placeholder="Enter API Key"
               onChange={(e) => setTempKey(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="w-[300px] px-3 py-1.5 text-sm rounded border border-bolt-elements-borderColor 
-                        bg-bolt-elements-prompt-background text-bolt-elements-textPrimary 
-                        focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus
-                        hover:border-bolt-elements-borderColorHover
+              onClick={handleInputClick}
+              onMouseDown={handleInputMouseDown}
+              tabIndex={0}
+              className="w-[300px] px-3 py-1.5 text-sm rounded border-2 border-blue-500 
+                        bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                        hover:border-blue-600
                         transition-colors duration-200
-                        cursor-text"
+                        cursor-text z-50 relative"
               autoFocus
               spellCheck={false}
               autoComplete="off"
+              style={{ 
+                userSelect: 'text',
+                WebkitUserSelect: 'text',
+                MozUserSelect: 'text',
+                msUserSelect: 'text'
+              }}
             />
             <IconButton
-              onClick={handleSave}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSave();
+              }}
               title="Save API Key"
               className="bg-green-500/10 hover:bg-green-500/20 text-green-500"
             >
               <div className="i-ph:check w-4 h-4" />
             </IconButton>
             <IconButton
-              onClick={() => {
-                setIsEditing(false);
-                setTempKey(apiKey);
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleCancel();
               }}
               title="Cancel"
               className="bg-red-500/10 hover:bg-red-500/20 text-red-500"

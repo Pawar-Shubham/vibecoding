@@ -156,15 +156,21 @@ export function LockManager() {
           />
         </div>
         {/* Filter Select */}
-        <select
-          className="text-xs px-1 py-0.5 h-6 bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary rounded border border-bolt-elements-borderColor focus:outline-none"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as any)}
-        >
-          <option value="all">All</option>
-          <option value="files">Files</option>
-          <option value="folders">Folders</option>
-        </select>
+        <div className="relative">
+          <select
+            className="text-xs px-1 py-0.5 h-6 bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary rounded border border-bolt-elements-borderColor focus:outline-none appearance-none pr-5"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as any)}
+          >
+            <option value="all">All</option>
+            <option value="files">Files</option>
+            <option value="folders">Folders</option>
+          </select>
+          {/* Custom dropdown arrow */}
+          <div className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none w-3 h-3 text-bolt-elements-textTertiary">
+            <div className="i-ph:caret-down w-3 h-3" />
+          </div>
+        </div>
       </div>
 
       {/* Header Row with Select All */}

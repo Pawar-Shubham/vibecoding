@@ -361,23 +361,29 @@ const UpdateTab = () => {
               <span className="text-sm text-bolt-elements-textPrimary">Check Interval</span>
               <p className="text-xs text-bolt-elements-textSecondary">How often to check for updates</p>
             </div>
-            <select
-              value={updateSettings.checkInterval}
-              onChange={(e) => setUpdateSettings((prev) => ({ ...prev, checkInterval: Number(e.target.value) }))}
-              className={classNames(
-                'px-3 py-2 rounded-lg text-sm',
-                'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
-                'border border-[#E5E5E5] dark:border-[#1A1A1A]',
-                'text-bolt-elements-textPrimary',
-                'hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
-                'transition-colors duration-200',
-              )}
-            >
-              <option value="6">6 hours</option>
-              <option value="12">12 hours</option>
-              <option value="24">24 hours</option>
-              <option value="48">48 hours</option>
-            </select>
+            <div className="relative">
+              <select
+                value={updateSettings.checkInterval}
+                onChange={(e) => setUpdateSettings((prev) => ({ ...prev, checkInterval: Number(e.target.value) }))}
+                className={classNames(
+                  'px-3 py-2 rounded-lg text-sm appearance-none pr-8',
+                  'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
+                  'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+                  'text-bolt-elements-textPrimary',
+                  'hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
+                  'transition-colors duration-200',
+                )}
+              >
+                <option value="6">6 hours</option>
+                <option value="12">12 hours</option>
+                <option value="24">24 hours</option>
+                <option value="48">48 hours</option>
+              </select>
+              {/* Custom dropdown arrow */}
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none w-4 h-4 text-gray-500">
+                <div className="i-ph:caret-down w-4 h-4" />
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>

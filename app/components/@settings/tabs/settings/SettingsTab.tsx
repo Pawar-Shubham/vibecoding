@@ -10,6 +10,7 @@ import { toast } from "react-toastify";
 import { ThemeSwitch } from "~/components/ui/ThemeSwitch";
 import { motion } from "framer-motion";
 import { useAuth } from "~/lib/hooks/useAuth";
+import { toggleTheme } from "~/lib/stores/theme";
 
 interface Profile {
   username: string;
@@ -255,10 +256,10 @@ export default function SettingsTab() {
 
           {/* Username and Email Inputs */}
           <div className="grid grid-cols-2 gap-4 mb-6">
-            {/* Username Input */}
+            {/* Name Input */}
             <div>
               <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                Username
+                Name
               </label>
               <div className="relative group">
                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2">
@@ -376,17 +377,23 @@ export default function SettingsTab() {
           )}
 
           {/* Theme Switch Section */}
-          <div className="mb-8 p-6 bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/50">
+          <div 
+            className="mb-8 p-6 bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/50 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/70 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 group"
+            onClick={toggleTheme}
+            title="Click to toggle theme"
+          >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">
+                <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-1 transition-colors duration-200">
                   Theme
                 </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200">
                   Choose your preferred theme
                 </p>
               </div>
-              <ThemeSwitch />
+              <div onClick={(e) => e.stopPropagation()}>
+                <ThemeSwitch />
+              </div>
             </div>
           </div>
         </div>

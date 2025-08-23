@@ -1,9 +1,9 @@
 .Toastify__toast {
   --at-apply: shadow-md;
 
-  background-color: var(--bolt-elements-bg-depth-3) !important;
-  color: var(--bolt-elements-textPrimary);
-  border: 1px solid var(--bolt-elements-borderColor);
+  background-color: #1a1a1a !important;
+  color: #ffffff;
+  border: 1px solid #333333;
   border-radius: 8px;
 }
 
@@ -23,7 +23,7 @@
 
 /* Light theme overrides */
 :root[data-theme='light'] .Toastify__toast {
-  background-color: var(--bolt-elements-bg-depth-1) !important;
-  color: var(--bolt-elements-textPrimary);
-  border: 1px solid var(--bolt-elements-borderColor);
+  background-color: #ffffff !important;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
 }

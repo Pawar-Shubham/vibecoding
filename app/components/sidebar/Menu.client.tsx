@@ -39,6 +39,8 @@ import { ControlPanel } from "~/components/@settings/core/ControlPanel";
 import { sidebarStore } from "~/lib/stores/sidebar";
 import { chatStore } from "~/lib/stores/chat";
 import { streamingState } from "~/lib/stores/streaming";
+import Cookies from "js-cookie";
+import { PROMPT_COOKIE_KEY } from "~/utils/constants";
 // Use window events to communicate with root navigation loading
 const startNavigationLoading = () => {
   window.dispatchEvent(new CustomEvent("start-navigation-loading"));
@@ -532,6 +534,9 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
                   }
                 }
 
+                // Clear the cached prompt cookie before starting new chat
+                Cookies.remove(PROMPT_COOKIE_KEY);
+
                 // Close the sidebar before navigating
                 sidebarStore.set(false);
 
@@ -710,10 +715,20 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
                     decoding="sync"
                     onError={(e) => {
                       // If image fails to load, replace with initial
+                      const fallbackInitial = (profile.username?.[0] || user.user_metadata?.name?.[0] || user.email?.[0] || "U").toUpperCase();
+                      
+                      // Debug logging
+                      console.log("Menu Avatar Fallback Debug:", {
+                        profileUsername: profile.username,
+                        userMetadataName: user.user_metadata?.name,
+                        userEmail: user.email,
+                        fallbackInitial: fallbackInitial
+                      });
+                      
                       e.currentTarget.style.display = "none";
                       e.currentTarget.parentElement!.innerHTML = `
                         <div class="w-full h-full flex items-center justify-center rounded-full bg-accent-600 text-white font-medium">
-                          ${(profile.username?.[0] || user.user_metadata?.name?.[0] || user.email?.[0] || "U").toUpperCase()}
+                          ${fallbackInitial}
                         </div>
                       `;
                     }}
@@ -721,12 +736,24 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
                 </div>
               ) : (
                 <div className="flex items-center justify-center w-8 h-8 rounded-full shrink-0 bg-accent-600 text-white font-medium shadow-sm">
-                  {(
-                    profile.username?.[0] ||
-                    user.user_metadata?.name?.[0] ||
-                    user.email?.[0] ||
-                    "U"
-                  ).toUpperCase()}
+                  {(() => {
+                    const fallbackInitial = (
+                      profile.username?.[0] ||
+                      user.user_metadata?.name?.[0] ||
+                      user.email?.[0] ||
+                      "U"
+                    ).toUpperCase();
+                    
+                    // Debug logging for main avatar display
+                    console.log("Menu Main Avatar Debug:", {
+                      profileUsername: profile.username,
+                      userMetadataName: user.user_metadata?.name,
+                      userEmail: user.email,
+                      fallbackInitial: fallbackInitial
+                    });
+                    
+                    return fallbackInitial;
+                  })()}
                 </div>
               )}
               <div className="flex-1 min-w-0">

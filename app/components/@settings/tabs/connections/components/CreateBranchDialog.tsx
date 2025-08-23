@@ -74,24 +74,30 @@ export function CreateBranchDialog({ isOpen, onClose, onConfirm, repository, bra
                 >
                   Source Branch
                 </label>
-                <select
-                  id="sourceBranch"
-                  value={sourceBranch}
-                  onChange={(e) => setSourceBranch(e.target.value)}
-                  className={classNames(
-                    'w-full px-3 py-2 rounded-lg',
-                    'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
-                    'border border-[#E5E5E5] dark:border-[#1A1A1A]',
-                    'text-bolt-elements-textPrimary',
-                    'focus:outline-none focus:ring-2 focus:ring-purple-500/50',
-                  )}
-                >
-                  {branches?.map((branch) => (
-                    <option key={branch.name} value={branch.name}>
-                      {branch.name} {branch.default ? '(default)' : ''}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    id="sourceBranch"
+                    value={sourceBranch}
+                    onChange={(e) => setSourceBranch(e.target.value)}
+                    className={classNames(
+                      'w-full px-3 py-2 rounded-lg appearance-none pr-8',
+                      'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
+                      'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+                      'text-bolt-elements-textPrimary',
+                      'focus:outline-none focus:ring-2 focus:ring-purple-500/50',
+                    )}
+                  >
+                    {branches?.map((branch) => (
+                      <option key={branch.name} value={branch.name}>
+                        {branch.name} {branch.default ? '(default)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {/* Custom dropdown arrow */}
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none w-4 h-4 text-gray-500">
+                    <div className="i-ph:caret-down w-4 h-4" />
+                  </div>
+                </div>
               </div>
 
               <div className="mt-4 p-3 bg-[#F5F5F5] dark:bg-[#1A1A1A] rounded-lg">

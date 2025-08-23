@@ -182,7 +182,31 @@ export function AuthModal({
 
       if (error) {
         console.error("Email sign up error:", error);
-        setErrorMessage(error.message || "Failed to sign up with email");
+        
+        // Reformat Supabase password validation error messages
+        let formattedMessage = "Failed to sign up with email";
+        
+        if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+          const errorMessage = error.message;
+          
+          if (errorMessage.includes("Password should contain at least one character of each:")) {
+            formattedMessage = "Your password must include at least one character from each of the following categories:\n" +
+              "• Lowercase letters: a-z\n" +
+              "• Uppercase letters: A-Z\n" +
+              "• Numbers: 0-9\n" +
+              "• Special characters: !@#$%^&*()_+-=[]{}|;':\",./<>?";
+          } else if (errorMessage.includes("Password should be at least")) {
+            formattedMessage = "Password must be at least 6 characters long";
+          } else if (errorMessage.includes("Invalid email")) {
+            formattedMessage = "Please enter a valid email address";
+          } else if (errorMessage.includes("User already registered")) {
+            formattedMessage = "An account with this email already exists. Please sign in instead.";
+          } else {
+            formattedMessage = errorMessage;
+          }
+        }
+        
+        setErrorMessage(formattedMessage);
       } else {
         setSuccessMessage("Check your email to confirm your account");
         toast.success("Check your email to confirm your account");
@@ -212,7 +236,13 @@ export function AuthModal({
 
       if (error) {
         console.error("Password reset error:", error);
-        setErrorMessage(error.message || "Failed to send password reset email");
+        let resetErrorMessage = "Failed to send password reset email";
+        
+        if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+          resetErrorMessage = error.message;
+        }
+        
+        setErrorMessage(resetErrorMessage);
       } else {
         setSuccessMessage("Check your email for password reset instructions");
         toast.success("Check your email for password reset instructions");
@@ -220,7 +250,13 @@ export function AuthModal({
       }
     } catch (error: any) {
       console.error("Password reset error:", error);
-      setErrorMessage(error.message || "An unexpected error occurred");
+      let catchErrorMessage = "An unexpected error occurred";
+      
+      if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+        catchErrorMessage = error.message;
+      }
+      
+      setErrorMessage(catchErrorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -268,7 +304,11 @@ export function AuthModal({
             </Dialog.Description>
           </div>
 
-          {errorMessage && <div className="auth-error">{errorMessage}</div>}
+          {errorMessage && (
+            <div className="auth-error whitespace-pre-line">
+              {errorMessage}
+            </div>
+          )}
 
           {successMessage && (
             <div className="auth-success">{successMessage}</div>
@@ -320,32 +360,40 @@ export function AuthModal({
                         required
                       />
                     </div>
-                    <div className="relative">
-                      <input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="auth-input w-full px-4 py-3 rounded-lg pr-12"
-                        disabled={isLoading}
-                        placeholder="********"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent border-none outline-none focus:outline-none"
-                        tabIndex={-1}
-                        aria-label={
-                          showPassword ? "Hide password" : "Show password"
-                        }
+                    <div>
+                      <label
+                        htmlFor="password"
+                        className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-2"
                       >
-                        {showPassword ? (
-                          <FiEyeOff size={20} />
-                        ) : (
-                          <FiEye size={20} />
-                        )}
-                      </button>
+                        Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="auth-input w-full px-4 py-3 rounded-lg pr-12"
+                          disabled={isLoading}
+                          placeholder="********"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent border-none outline-none focus:outline-none"
+                          tabIndex={-1}
+                          aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                          }
+                        >
+                          {showPassword ? (
+                            <FiEyeOff size={20} />
+                          ) : (
+                            <FiEye size={20} />
+                          )}
+                        </button>
+                      </div>
                     </div>
                     <div className="flex justify-end">
                       <button
@@ -387,63 +435,79 @@ export function AuthModal({
                         required
                       />
                     </div>
-                    <div className="relative">
-                      <input
-                        id="signup-password"
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="auth-input w-full px-4 py-3 rounded-lg pr-12"
-                        disabled={isLoading}
-                        placeholder="********"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent border-none outline-none focus:outline-none"
-                        tabIndex={-1}
-                        aria-label={
-                          showPassword ? "Hide password" : "Show password"
-                        }
+                    <div>
+                      <label
+                        htmlFor="signup-password"
+                        className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-2"
                       >
-                        {showPassword ? (
-                          <FiEyeOff size={20} />
-                        ) : (
-                          <FiEye size={20} />
-                        )}
-                      </button>
+                        Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="signup-password"
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="auth-input w-full px-4 py-3 rounded-lg pr-12"
+                          disabled={isLoading}
+                          placeholder="********"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent border-none outline-none focus:outline-none"
+                          tabIndex={-1}
+                          aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                          }
+                        >
+                          {showPassword ? (
+                            <FiEyeOff size={20} />
+                          ) : (
+                            <FiEye size={20} />
+                          )}
+                        </button>
+                      </div>
                     </div>
-                    <div className="relative">
-                      <input
-                        id="confirm-password"
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="auth-input w-full px-4 py-3 rounded-lg pr-12"
-                        disabled={isLoading}
-                        placeholder="********"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent border-none outline-none focus:outline-none"
-                        tabIndex={-1}
-                        aria-label={
-                          showConfirmPassword
-                            ? "Hide confirm password"
-                            : "Show confirm password"
-                        }
+                    <div>
+                      <label
+                        htmlFor="confirm-password"
+                        className="block text-sm font-medium text-gray-900 dark:text-gray-200 mb-2"
                       >
-                        {showConfirmPassword ? (
-                          <FiEyeOff size={20} />
-                        ) : (
-                          <FiEye size={20} />
-                        )}
-                      </button>
+                        Confirm Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="confirm-password"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="auth-input w-full px-4 py-3 rounded-lg pr-12"
+                          disabled={isLoading}
+                          placeholder="********"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-transparent border-none outline-none focus:outline-none"
+                          tabIndex={-1}
+                          aria-label={
+                            showConfirmPassword
+                              ? "Hide confirm password"
+                              : "Show confirm password"
+                          }
+                        >
+                          {showConfirmPassword ? (
+                            <FiEyeOff size={20} />
+                          ) : (
+                            <FiEye size={20} />
+                          )}
+                        </button>
+                      </div>
                     </div>
                     <button
                       type="submit"

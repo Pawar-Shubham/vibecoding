@@ -776,35 +776,38 @@ export default function GitHubConnection() {
             <label className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-2">
               Token Type
             </label>
-            <select
-              value={connection.tokenType}
-              onChange={(e) => {
-                const newTokenType = e.target.value as 'classic' | 'fine-grained';
-                tokenTypeRef.current = newTokenType;
-                setConnection((prev) => ({ ...prev, tokenType: newTokenType }));
-              }}
-              disabled={isConnecting || !!connection.user}
-              className={classNames(
-                'w-full px-3 py-2 rounded-lg text-sm appearance-none',
-                'bg-white dark:bg-[#1A1A1A]',
-                'border border-gray-200 dark:border-bolt-elements-borderColor',
-                'text-gray-900 dark:text-white',
-                'focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-bolt-elements-item-contentAccent',
-                'disabled:opacity-50',
-                'relative',
-                'pr-10', // Add padding for the custom arrow
-              )}
-              style={{
-                backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='${connection.user ? '#9CA3AF' : '#4B5563'}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 0.75rem center',
-                backgroundSize: '1rem'
-              }}
-            >
-              <option value="classic" className="bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white">Personal Access Token (Classic)</option>
-              <option value="fine-grained" className="bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white">Fine-grained Token</option>
-            </select>
-          </div>
+            <div className="relative">
+              <select
+                value={connection.tokenType}
+                onChange={(e) => {
+                  const newTokenType = e.target.value as 'classic' | 'fine-grained';
+                  tokenTypeRef.current = newTokenType;
+                  setConnection((prev) => ({ ...prev, tokenType: newTokenType }));
+                }}
+                disabled={isConnecting || !!connection.user}
+                className={classNames(
+                  'w-full px-3 py-2 rounded-lg text-sm appearance-none',
+                  'bg-white dark:bg-[#1A1A1A]',
+                  'border border-gray-200 dark:border-bolt-elements-borderColor',
+                  'text-gray-900 dark:text-white',
+                  'focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-bolt-elements-item-contentAccent',
+                  'disabled:opacity-50',
+                  'pr-10', // Add padding for the custom arrow
+                )}
+              >
+                <option value="classic" className="bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white">Personal Access Token (Classic)</option>
+                <option value="fine-grained" className="bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white">Fine-grained Token</option>
+              </select>
+              {/* Custom dropdown arrow */}
+              <div className={classNames(
+                'absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none',
+                'w-4 h-4 text-gray-500 dark:text-gray-400',
+                connection.user ? 'text-gray-400 dark:text-gray-500' : 'text-gray-500 dark:text-gray-400'
+              )}>
+                <div className="i-ph:caret-down w-4 h-4" />
+              </div>
+                          </div>
+            </div>
 
           <div>
             <label className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-2">

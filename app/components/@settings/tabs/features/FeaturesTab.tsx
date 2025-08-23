@@ -267,27 +267,33 @@ export default function FeaturesTab() {
               Choose a prompt from the library to use as the system prompt
             </p>
           </div>
-          <select
-            value={promptId}
-            onChange={(e) => {
-              setPromptId(e.target.value);
-              toast.success('Prompt template updated');
-            }}
-            className={classNames(
-              'p-2 rounded-lg text-sm min-w-[200px]',
-              'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
-              'text-bolt-elements-textPrimary',
-              'focus:outline-none focus:ring-2 focus:ring-purple-500/30',
-              'group-hover:border-purple-500/30',
-              'transition-all duration-200',
-            )}
-          >
-            {PromptLibrary.getList().map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={promptId}
+              onChange={(e) => {
+                setPromptId(e.target.value);
+                toast.success('Prompt template updated');
+              }}
+              className={classNames(
+                'p-2 rounded-lg text-sm min-w-[200px] appearance-none pr-8',
+                'bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor',
+                'text-bolt-elements-textPrimary',
+                'focus:outline-none focus:ring-2 focus:ring-purple-500/30',
+                'group-hover:border-purple-500/30',
+                'transition-all duration-200',
+              )}
+            >
+              {PromptLibrary.getList().map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.label}
+                </option>
+              ))}
+            </select>
+            {/* Custom dropdown arrow */}
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none w-4 h-4 text-purple-500">
+              <div className="i-ph:caret-down w-4 h-4" />
+            </div>
+          </div>
         </div>
       </motion.div>
     </div>

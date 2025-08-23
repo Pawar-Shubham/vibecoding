@@ -58,6 +58,15 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
     const userName =
       profile?.username || user?.user_metadata?.name || user?.email || "User";
     const userInitial = userName[0].toUpperCase();
+    
+    // Debug logging to see what values are being used
+    console.log("Messages Debug:", {
+      profileUsername: profile?.username,
+      userMetadataName: user?.user_metadata?.name,
+      userEmail: user?.email,
+      finalUserName: userName,
+      finalUserInitial: userInitial
+    });
 
     return (
       <div id={id} className={props.className} ref={ref}>
