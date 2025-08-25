@@ -50,4 +50,30 @@ export class TerminalStore {
       process.resize({ cols, rows });
     }
   }
+
+  removeTerminal(terminal: ITerminal) {
+    try {
+      const index = this.#terminals.findIndex(({ terminal: t }) => t === terminal);
+      if (index !== -1) {
+        const { process } = this.#terminals[index];
+        
+        // Safely kill the process
+        try {
+          if (process && typeof process.kill === 'function') {
+            process.kill();
+          }
+        } catch (killError) {
+          console.warn('Error killing terminal process:', killError);
+        }
+        
+        // Remove from array
+        this.#terminals.splice(index, 1);
+        console.debug(`Terminal removed from store. Remaining terminals: ${this.#terminals.length}`);
+      } else {
+        console.warn('Terminal not found in store for removal');
+      }
+    } catch (error) {
+      console.error('Error in removeTerminal:', error);
+    }
+  }
 }
