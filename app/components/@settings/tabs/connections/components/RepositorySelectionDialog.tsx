@@ -1,22 +1,28 @@
-import type { GitHubRepoInfo } from '~/types/GitHub';
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { toast } from 'react-toastify';
-import * as Dialog from '@radix-ui/react-dialog';
-import { classNames } from '~/utils/classNames';
-import { getLocalStorage } from '~/lib/persistence';
-import { motion, AnimatePresence } from 'framer-motion';
-import Cookies from 'js-cookie';
-import { useAuth } from '~/lib/hooks/useAuth';
-import { supabase } from '~/lib/supabase';
+import type { GitHubRepoInfo } from "~/types/GitHub";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { toast } from "react-toastify";
+import * as Dialog from "@radix-ui/react-dialog";
+import { classNames } from "~/utils/classNames";
+import { getLocalStorage } from "~/lib/persistence";
+import { motion, AnimatePresence } from "framer-motion";
+import Cookies from "js-cookie";
+import { useAuth } from "~/lib/hooks/useAuth";
+import { supabase } from "~/lib/supabase";
 
 // Import UI components
-import { Input, SearchInput, Badge, FilterChip, EmptyState } from '~/components/ui';
+import {
+  Input,
+  SearchInput,
+  Badge,
+  FilterChip,
+  EmptyState,
+} from "~/components/ui";
 
 // Import the components we've extracted
-import { RepositoryList } from './RepositoryList';
-import { StatsDialog } from './StatsDialog';
-import { GitHubAuthDialog } from './GitHubAuthDialog';
-import { RepositoryDialogContext } from './RepositoryDialogContext';
+import { RepositoryList } from "./RepositoryList";
+import { StatsDialog } from "./StatsDialog";
+import { GitHubAuthDialog } from "./GitHubAuthDialog";
+import { RepositoryDialogContext } from "./RepositoryDialogContext";
 
 interface GitHubTreeResponse {
   tree: Array<{
@@ -54,23 +60,34 @@ interface RepositoryStats {
   largestFiles: Array<{ path: string; size: number }>;
 }
 
-export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: RepositorySelectionDialogProps) {
+export function RepositorySelectionDialog({
+  isOpen,
+  onClose,
+  onSelect,
+}: RepositorySelectionDialogProps) {
   const { user, isAuthenticated } = useAuth();
   const [githubToken, setGithubToken] = useState<string | null>(null);
   const [githubUser, setGithubUser] = useState<any>(null);
-  const [selectedRepository, setSelectedRepository] = useState<GitHubRepoInfo | null>(null);
+  const [selectedRepository, setSelectedRepository] =
+    useState<GitHubRepoInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [repositories, setRepositories] = useState<GitHubRepoInfo[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<GitHubRepoInfo[]>([]);
-  const [activeTab, setActiveTab] = useState<'my-repos' | 'search' | 'url'>('my-repos');
-  const [customUrl, setCustomUrl] = useState('');
-  const [branches, setBranches] = useState<{ name: string; default?: boolean }[]>([]);
-  const [selectedBranch, setSelectedBranch] = useState('');
+  const [activeTab, setActiveTab] = useState<"my-repos" | "search" | "url">(
+    "my-repos"
+  );
+  const [customUrl, setCustomUrl] = useState("");
+  const [branches, setBranches] = useState<
+    { name: string; default?: boolean }[]
+  >([]);
+  const [selectedBranch, setSelectedBranch] = useState("");
   const [filters, setFilters] = useState<SearchFilters>({});
   const [showStatsDialog, setShowStatsDialog] = useState(false);
-  const [currentStats, setCurrentStats] = useState<RepositoryStats | null>(null);
-  const [pendingGitUrl, setPendingGitUrl] = useState<string>('');
+  const [currentStats, setCurrentStats] = useState<RepositoryStats | null>(
+    null
+  );
+  const [pendingGitUrl, setPendingGitUrl] = useState<string>("");
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   // Debounce timer for search
@@ -82,11 +99,11 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
       if (isAuthenticated && user?.id) {
         // Fetch from Supabase
         const { data, error } = await supabase
-          .from('user_connections')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('provider', 'github')
-          .eq('is_active', true)
+          .from("user_connections")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("provider", "github")
+          .eq("is_active", true)
           .maybeSingle();
         if (data && data.token) {
           let token = data.token;
@@ -99,7 +116,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
         }
       }
       // Fallback to localStorage
-      const connection = getLocalStorage('github_connection');
+      const connection = getLocalStorage("github_connection");
       if (connection?.token) {
         setGithubToken(connection.token);
         setGithubUser(connection.user || null);
@@ -125,21 +142,21 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
     setShowAuthDialog(false);
 
     // If we're on the my-repos tab, refresh the repository list
-    if (activeTab === 'my-repos') {
+    if (activeTab === "my-repos") {
       fetchUserRepos();
     }
   };
 
   // Initialize GitHub connection and fetch repositories
   useEffect(() => {
-    const savedConnection = getLocalStorage('github_connection');
+    const savedConnection = getLocalStorage("github_connection");
 
     // No fallback to environment tokens - users must connect manually for proper isolation
   }, [isOpen]);
 
   // Fetch repositories when dialog opens or tab changes
   useEffect(() => {
-    if (isOpen && activeTab === 'my-repos') {
+    if (isOpen && activeTab === "my-repos") {
       fetchUserRepos();
     }
   }, [isOpen, activeTab]);
@@ -161,15 +178,18 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://api.github.com/user/repos?sort=updated&per_page=100&type=all', {
-        headers: {
-          Accept: 'application/vnd.github.v3+json',
-          Authorization: `Bearer ${githubToken}`,
-        },
-      });
+      const response = await fetch(
+        "https://api.github.com/user/repos?sort=updated&per_page=100&type=all",
+        {
+          headers: {
+            Accept: "application/vnd.github.v3+json",
+            Authorization: `Bearer ${githubToken}`,
+          },
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch repositories');
+        throw new Error("Failed to fetch repositories");
       }
 
       const data = await response.json();
@@ -177,15 +197,18 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
       // Add type assertion and validation
       if (
         Array.isArray(data) &&
-        data.every((item) => typeof item === 'object' && item !== null && 'full_name' in item)
+        data.every(
+          (item) =>
+            typeof item === "object" && item !== null && "full_name" in item
+        )
       ) {
         setRepositories(data as GitHubRepoInfo[]);
       } else {
-        throw new Error('Invalid repository data format');
+        throw new Error("Invalid repository data format");
       }
     } catch (error) {
-      console.error('Error fetching repos:', error);
-      toast.error('Failed to fetch your repositories');
+      console.error("Error fetching repos:", error);
+      toast.error("Failed to fetch your repositories");
     } finally {
       setIsLoading(false);
     }
@@ -214,45 +237,53 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
         `https://api.github.com/search/repositories?q=${encodeURIComponent(searchQuery)}&sort=stars&order=desc`,
         {
           headers: {
-            Accept: 'application/vnd.github.v3+json',
+            Accept: "application/vnd.github.v3+json",
           },
-        },
+        }
       );
 
       if (!response.ok) {
-        throw new Error('Failed to search repositories');
+        throw new Error("Failed to search repositories");
       }
 
       const data = await response.json();
 
       // Add type assertion and validation
-      if (typeof data === 'object' && data !== null && 'items' in data && Array.isArray(data.items)) {
+      if (
+        typeof data === "object" &&
+        data !== null &&
+        "items" in data &&
+        Array.isArray(data.items)
+      ) {
         setSearchResults(data.items as GitHubRepoInfo[]);
       } else {
-        throw new Error('Invalid search results format');
+        throw new Error("Invalid search results format");
       }
     } catch (error) {
-      console.error('Error searching repos:', error);
-      toast.error('Failed to search repositories');
+      console.error("Error searching repos:", error);
+      toast.error("Failed to search repositories");
     } finally {
       setIsLoading(false);
     }
   };
 
   // Debounced search function
-  const debouncedSearch = useCallback((query: string) => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    
-    searchTimeoutRef.current = setTimeout(() => {
-      if (query.trim()) {
-        handleSearch(query);
-      } else {
-        setSearchResults([]);
+  const debouncedSearch = useCallback(
+    (query: string) => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
       }
-    }, 500);
-  }, [filters]);
+
+      searchTimeoutRef.current = setTimeout(() => {
+        if (query.trim()) {
+          handleSearch(query);
+        } else {
+          setSearchResults([]);
+        }
+      }, 500);
+    },
+    [filters]
+  );
 
   // Handle search input changes
   const handleSearchInputChange = (value: string) => {
@@ -266,34 +297,42 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
     try {
       const headers: HeadersInit = githubToken
         ? {
-            Accept: 'application/vnd.github.v3+json',
+            Accept: "application/vnd.github.v3+json",
             Authorization: `Bearer ${githubToken}`,
           }
         : {};
-      const response = await fetch(`https://api.github.com/repos/${repo.full_name}/branches`, {
-        headers,
-      });
+      const response = await fetch(
+        `https://api.github.com/repos/${repo.full_name}/branches`,
+        {
+          headers,
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch branches');
+        throw new Error("Failed to fetch branches");
       }
 
       const data = await response.json();
 
       // Add type assertion and validation
-      if (Array.isArray(data) && data.every((item) => typeof item === 'object' && item !== null && 'name' in item)) {
+      if (
+        Array.isArray(data) &&
+        data.every(
+          (item) => typeof item === "object" && item !== null && "name" in item
+        )
+      ) {
         setBranches(
           data.map((branch) => ({
             name: branch.name,
             default: branch.name === repo.default_branch,
-          })),
+          }))
         );
       } else {
-        throw new Error('Invalid branch data format');
+        throw new Error("Invalid branch data format");
       }
     } catch (error) {
-      console.error('Error fetching branches:', error);
-      toast.error('Failed to fetch branches');
+      console.error("Error fetching branches:", error);
+      toast.error("Failed to fetch branches");
     } finally {
       setIsLoading(false);
     }
@@ -323,8 +362,11 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
       setPendingGitUrl(gitUrl);
       setShowStatsDialog(true);
     } catch (error) {
-      console.error('Error preparing repository from list:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to prepare repository.';
+      console.error("Error preparing repository from list:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to prepare repository.";
       toast.error(errorMessage);
     }
   };
@@ -332,66 +374,76 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
   const formatGitUrl = (url: string): string => {
     // Remove any tree references and ensure .git extension
     const baseUrl = url
-      .replace(/\/tree\/[^/]+/, '') // Remove /tree/branch-name
-      .replace(/\/$/, '') // Remove trailing slash
-      .replace(/\.git$/, ''); // Remove .git if present
+      .replace(/\/tree\/[^/]+/, "") // Remove /tree/branch-name
+      .replace(/\/$/, "") // Remove trailing slash
+      .replace(/\.git$/, ""); // Remove .git if present
     return `${baseUrl}.git`;
   };
 
-  const verifyRepository = async (repoUrl: string): Promise<RepositoryStats | null> => {
+  const verifyRepository = async (
+    repoUrl: string
+  ): Promise<RepositoryStats | null> => {
     try {
       // Extract branch from URL if present (format: url#branch)
       let branch: string | null = null;
       let cleanUrl = repoUrl;
 
-      if (repoUrl.includes('#')) {
-        const parts = repoUrl.split('#');
+      if (repoUrl.includes("#")) {
+        const parts = repoUrl.split("#");
         cleanUrl = parts[0];
         branch = parts[1];
       }
 
       const [owner, repo] = cleanUrl
-        .replace(/\.git$/, '')
-        .split('/')
+        .replace(/\.git$/, "")
+        .split("/")
         .slice(-2);
 
       // Use the already loaded connection
       let headers: HeadersInit = {};
       if (githubToken) {
         headers = {
-          Accept: 'application/vnd.github.v3+json',
+          Accept: "application/vnd.github.v3+json",
           Authorization: `Bearer ${githubToken}`,
         };
       } else if (import.meta.env.VITE_GITHUB_ACCESS_TOKEN) {
         headers = {
-          Accept: 'application/vnd.github.v3+json',
+          Accept: "application/vnd.github.v3+json",
           Authorization: `Bearer ${import.meta.env.VITE_GITHUB_ACCESS_TOKEN}`,
         };
       }
 
       // First, get the repository info to determine the default branch
-      const repoInfoResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-        headers,
-      });
+      const repoInfoResponse = await fetch(
+        `https://api.github.com/repos/${owner}/${repo}`,
+        {
+          headers,
+        }
+      );
 
       if (!repoInfoResponse.ok) {
-        if (repoInfoResponse.status === 401 || repoInfoResponse.status === 403) {
+        if (
+          repoInfoResponse.status === 401 ||
+          repoInfoResponse.status === 403
+        ) {
           throw new Error(
-            `Authentication failed (${repoInfoResponse.status}). Your GitHub token may be invalid or missing the required permissions.`,
+            `Authentication failed (${repoInfoResponse.status}). Your GitHub token may be invalid or missing the required permissions.`
           );
         } else if (repoInfoResponse.status === 404) {
           throw new Error(
-            `Repository not found or is private (${repoInfoResponse.status}). To access private repositories, you need to connect your GitHub account or provide a valid token with appropriate permissions.`,
+            `Repository not found or is private (${repoInfoResponse.status}). To access private repositories, you need to connect your GitHub account or provide a valid token with appropriate permissions.`
           );
         } else {
           throw new Error(
-            `Failed to fetch repository information: ${repoInfoResponse.statusText} (${repoInfoResponse.status})`,
+            `Failed to fetch repository information: ${repoInfoResponse.statusText} (${repoInfoResponse.status})`
           );
         }
       }
 
-      const repoInfo = (await repoInfoResponse.json()) as { default_branch: string };
-      let defaultBranch = repoInfo.default_branch || 'main';
+      const repoInfo = (await repoInfoResponse.json()) as {
+        default_branch: string;
+      };
+      let defaultBranch = repoInfo.default_branch || "main";
 
       // If a branch was specified in the URL, use that instead of the default
       if (branch) {
@@ -403,27 +455,33 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
         `https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`,
         {
           headers,
-        },
+        }
       );
 
       // If the selected branch doesn't work, try common branch names
       if (!treeResponse.ok) {
         // Try 'master' branch if default branch failed
-        treeResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/master?recursive=1`, {
-          headers,
-        });
+        treeResponse = await fetch(
+          `https://api.github.com/repos/${owner}/${repo}/git/trees/master?recursive=1`,
+          {
+            headers,
+          }
+        );
 
         // If master also fails, try 'main' branch
         if (!treeResponse.ok) {
-          treeResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`, {
-            headers,
-          });
+          treeResponse = await fetch(
+            `https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`,
+            {
+              headers,
+            }
+          );
         }
 
         // If all common branches fail, throw an error
         if (!treeResponse.ok) {
           throw new Error(
-            'Failed to fetch repository structure. Please check the repository URL and your access permissions.',
+            "Failed to fetch repository structure. Please check the repository URL and your access permissions."
           );
         }
       }
@@ -438,7 +496,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
       let hasDependencies = false;
 
       for (const file of treeData.tree) {
-        if (file.type === 'blob') {
+        if (file.type === "blob") {
           totalFiles++;
 
           if (file.size) {
@@ -446,17 +504,22 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
           }
 
           // Check for package.json
-          if (file.path === 'package.json') {
+          if (file.path === "package.json") {
             hasPackageJson = true;
 
             // Fetch package.json content to check dependencies
-            const contentResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/package.json`, {
-              headers,
-            });
+            const contentResponse = await fetch(
+              `https://api.github.com/repos/${owner}/${repo}/contents/package.json`,
+              {
+                headers,
+              }
+            );
 
             if (contentResponse.ok) {
               const content = (await contentResponse.json()) as GitHubContent;
-              const packageJson = JSON.parse(Buffer.from(content.content, 'base64').toString());
+              const packageJson = JSON.parse(
+                Buffer.from(content.content, "base64").toString()
+              );
               hasDependencies = !!(
                 packageJson.dependencies ||
                 packageJson.devDependencies ||
@@ -466,7 +529,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
           }
 
           // Detect language based on file extension
-          const ext = file.path.split('.').pop()?.toLowerCase();
+          const ext = file.path.split(".").pop()?.toLowerCase();
 
           if (ext) {
             languages[ext] = (languages[ext] || 0) + (file.size || 0);
@@ -486,20 +549,21 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
 
       return stats;
     } catch (error) {
-      console.error('Error verifying repository:', error);
+      console.error("Error verifying repository:", error);
 
       // Check if it's an authentication error and show the auth dialog
-      const errorMessage = error instanceof Error ? error.message : 'Failed to verify repository';
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to verify repository";
 
       if (
-        errorMessage.includes('Authentication failed') ||
-        errorMessage.includes('may be private') ||
-        errorMessage.includes('Repository not found or is private') ||
-        errorMessage.includes('Unauthorized') ||
-        errorMessage.includes('401') ||
-        errorMessage.includes('403') ||
-        errorMessage.includes('404') ||
-        errorMessage.includes('access permissions')
+        errorMessage.includes("Authentication failed") ||
+        errorMessage.includes("may be private") ||
+        errorMessage.includes("Repository not found or is private") ||
+        errorMessage.includes("Unauthorized") ||
+        errorMessage.includes("401") ||
+        errorMessage.includes("403") ||
+        errorMessage.includes("404") ||
+        errorMessage.includes("access permissions")
       ) {
         setShowAuthDialog(true);
       }
@@ -514,7 +578,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
     try {
       let gitUrl: string;
 
-      if (activeTab === 'url' && customUrl) {
+      if (activeTab === "url" && customUrl) {
         gitUrl = formatGitUrl(customUrl);
       } else if (selectedRepository) {
         gitUrl = formatGitUrl(selectedRepository.html_url);
@@ -537,21 +601,24 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
       setPendingGitUrl(gitUrl);
       setShowStatsDialog(true);
     } catch (error) {
-      console.error('Error preparing repository:', error);
+      console.error("Error preparing repository:", error);
 
       // Check if it's an authentication error
-      const errorMessage = error instanceof Error ? error.message : 'Failed to prepare repository. Please try again.';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to prepare repository. Please try again.";
 
       // Show the GitHub auth dialog for any authentication or permission errors
       if (
-        errorMessage.includes('Authentication failed') ||
-        errorMessage.includes('may be private') ||
-        errorMessage.includes('Repository not found or is private') ||
-        errorMessage.includes('Unauthorized') ||
-        errorMessage.includes('401') ||
-        errorMessage.includes('403') ||
-        errorMessage.includes('404') ||
-        errorMessage.includes('access permissions')
+        errorMessage.includes("Authentication failed") ||
+        errorMessage.includes("may be private") ||
+        errorMessage.includes("Repository not found or is private") ||
+        errorMessage.includes("Unauthorized") ||
+        errorMessage.includes("401") ||
+        errorMessage.includes("403") ||
+        errorMessage.includes("404") ||
+        errorMessage.includes("access permissions")
       ) {
         // Directly show the auth dialog instead of just showing a toast
         setShowAuthDialog(true);
@@ -559,11 +626,14 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
         toast.error(
           <div className="space-y-2">
             <p>{errorMessage}</p>
-            <button onClick={() => setShowAuthDialog(true)} className="underline font-medium block text-[#07F29C]">
+            <button
+              onClick={() => setShowAuthDialog(true)}
+              className="underline font-medium block text-[#07F29C]"
+            >
               Learn how to access private repositories
             </button>
           </div>,
-          { autoClose: 10000 }, // Keep the toast visible longer
+          { autoClose: 10000 } // Keep the toast visible longer
         );
       } else {
         toast.error(errorMessage);
@@ -583,7 +653,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
   const handleFilterChange = (key: keyof SearchFilters, value: string) => {
     let parsedValue: string | number | undefined = value;
 
-    if (key === 'stars' || key === 'forks') {
+    if (key === "stars" || key === "forks") {
       const numValue = value ? parseInt(value, 10) : undefined;
       // Prevent negative numbers for stars and forks
       if (numValue !== undefined && numValue < 0) {
@@ -605,10 +675,10 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
   // Handle dialog close properly
   const handleClose = () => {
     setIsLoading(false); // Reset loading state
-    setSearchQuery(''); // Reset search
+    setSearchQuery(""); // Reset search
     setSearchResults([]); // Reset results
     setFilters({}); // Reset filters
-    setActiveTab('my-repos'); // Reset to default tab
+    setActiveTab("my-repos"); // Reset to default tab
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current); // Clear any pending searches
     }
@@ -627,24 +697,30 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
       >
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
-          <Dialog.Content className={classNames(
-            'fixed top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2',
-            'w-[90vw] md:w-[750px] max-h-[85vh] overflow-hidden',
-            'bg-white dark:bg-gray-900 rounded-xl shadow-xl z-[51]',
-            'border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark'
-          )}>
+          <Dialog.Content
+            className={classNames(
+              "fixed top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2",
+              "w-[90vw] md:w-[750px] max-h-[85vh] overflow-hidden",
+              "bg-white dark:bg-gray-900 rounded-xl shadow-xl z-[51]",
+              "border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark"
+            )}
+          >
             {/* Header */}
-            <div className={classNames(
-              'p-5 border-b border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
-              'flex items-center justify-between'
-            )}>
+            <div
+              className={classNames(
+                "p-5 border-b border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark",
+                "flex items-center justify-between"
+              )}
+            >
               <div className="flex items-center gap-3">
-                <div className={classNames(
-                  'w-10 h-10 rounded-xl',
-                  'bg-gradient-to-br from-[#07F29C]/20 to-[#07F29C]/10',
-                  'flex items-center justify-center',
-                  'text-[#07F29C] shadow-sm'
-                )}>
+                <div
+                  className={classNames(
+                    "w-10 h-10 rounded-xl",
+                    "bg-gradient-to-br from-[#07F29C]/20 to-[#07F29C]/10",
+                    "flex items-center justify-center",
+                    "text-[#07F29C] shadow-sm"
+                  )}
+                >
                   <span className="i-ph:github-logo w-5 h-5" />
                 </div>
                 <div>
@@ -659,11 +735,11 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
               <Dialog.Close
                 onClick={handleClose}
                 className={classNames(
-                  'p-2 rounded-lg transition-all duration-200 ease-in-out bg-transparent',
-                  'text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary',
-                  'dark:text-bolt-elements-textTertiary-dark dark:hover:text-bolt-elements-textPrimary-dark',
-                  'hover:bg-bolt-elements-background-depth-2 dark:hover:bg-bolt-elements-background-depth-3',
-                  'focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor dark:focus:ring-bolt-elements-borderColor-dark',
+                  "p-2 rounded-lg transition-all duration-200 ease-in-out bg-transparent",
+                  "text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary",
+                  "dark:text-bolt-elements-textTertiary-dark dark:hover:text-bolt-elements-textPrimary-dark",
+                  "hover:bg-bolt-elements-background-depth-2 dark:hover:bg-bolt-elements-background-depth-3",
+                  "focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor dark:focus:ring-bolt-elements-borderColor-dark"
                 )}
               >
                 <span className="i-ph:x block w-5 h-5" aria-hidden="true" />
@@ -683,12 +759,12 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                 <motion.button
                   onClick={() => setShowAuthDialog(true)}
                   className={classNames(
-                    'px-4 py-2 rounded-lg',
-                    'bg-[#07F29C] text-white',
-                    'hover:bg-[#07F29C]/90',
-                    'transition-all duration-200',
-                    'flex items-center gap-2',
-                    'text-sm'
+                    "px-4 py-2 rounded-lg",
+                    "bg-[#07F29C] text-white",
+                    "hover:bg-[#07F29C]/90",
+                    "transition-all duration-200",
+                    "flex items-center gap-2",
+                    "text-sm"
                   )}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -706,34 +782,34 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                 <div className="bg-[#f0f0f0] dark:bg-[#1e1e1e] rounded-lg overflow-hidden border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
                   <div className="flex">
                     <button
-                      onClick={() => setActiveTab('my-repos')}
+                      onClick={() => setActiveTab("my-repos")}
                       className={classNames(
-                        'flex-1 py-3 px-4 text-center text-sm font-medium transition-colors',
-                        activeTab === 'my-repos'
-                          ? 'bg-[#e6e6e6] dark:bg-[#2a2a2a] text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark'
-                          : 'bg-[#f0f0f0] dark:bg-[#1e1e1e] text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark hover:bg-[#e6e6e6] dark:hover:bg-[#2a2a2a]/50',
+                        "flex-1 py-3 px-4 text-center text-sm font-medium transition-colors",
+                        activeTab === "my-repos"
+                          ? "bg-[#e6e6e6] dark:bg-[#2a2a2a] text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark"
+                          : "bg-[#f0f0f0] dark:bg-[#1e1e1e] text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark hover:bg-[#e6e6e6] dark:hover:bg-[#2a2a2a]/50"
                       )}
                     >
                       My Repos
                     </button>
                     <button
-                      onClick={() => setActiveTab('search')}
+                      onClick={() => setActiveTab("search")}
                       className={classNames(
-                        'flex-1 py-3 px-4 text-center text-sm font-medium transition-colors',
-                        activeTab === 'search'
-                          ? 'bg-[#e6e6e6] dark:bg-[#2a2a2a] text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark'
-                          : 'bg-[#f0f0f0] dark:bg-[#1e1e1e] text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark hover:bg-[#e6e6e6] dark:hover:bg-[#2a2a2a]/50',
+                        "flex-1 py-3 px-4 text-center text-sm font-medium transition-colors",
+                        activeTab === "search"
+                          ? "bg-[#e6e6e6] dark:bg-[#2a2a2a] text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark"
+                          : "bg-[#f0f0f0] dark:bg-[#1e1e1e] text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark hover:bg-[#e6e6e6] dark:hover:bg-[#2a2a2a]/50"
                       )}
                     >
                       Search
                     </button>
                     <button
-                      onClick={() => setActiveTab('url')}
+                      onClick={() => setActiveTab("url")}
                       className={classNames(
-                        'flex-1 py-3 px-4 text-center text-sm font-medium transition-colors',
-                        activeTab === 'url'
-                          ? 'bg-[#e6e6e6] dark:bg-[#2a2a2a] text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark'
-                          : 'bg-[#f0f0f0] dark:bg-[#1e1e1e] text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark hover:bg-[#e6e6e6] dark:hover:bg-[#2a2a2a]/50',
+                        "flex-1 py-3 px-4 text-center text-sm font-medium transition-colors",
+                        activeTab === "url"
+                          ? "bg-[#e6e6e6] dark:bg-[#2a2a2a] text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark"
+                          : "bg-[#f0f0f0] dark:bg-[#1e1e1e] text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark hover:bg-[#e6e6e6] dark:hover:bg-[#2a2a2a]/50"
                       )}
                     >
                       From URL
@@ -742,7 +818,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                 </div>
               </div>
 
-              {activeTab === 'url' ? (
+              {activeTab === "url" ? (
                 <div className="space-y-5">
                   <div className="bg-gradient-to-br from-bolt-elements-background-depth-1 to-bolt-elements-background-depth-1 dark:from-gray-800 dark:to-gray-800 p-5 rounded-xl border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
                     <h3 className="text-base font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-3 flex items-center gap-2">
@@ -760,31 +836,35 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                         value={customUrl}
                         onChange={(e) => setCustomUrl(e.target.value)}
                         className={classNames(
-                          'w-full pl-10 py-3',
-                          'border border-gray-300 dark:border-gray-600',
-                          'bg-white dark:bg-gray-800',
-                          'text-gray-900 dark:text-white',
-                          'placeholder-gray-500 dark:placeholder-gray-400',
-                          'focus:ring-2 focus:ring-[#07F29C]/30 focus:border-[#07F29C]'
+                          "w-full pl-10 py-3",
+                          "border border-gray-300 dark:border-gray-600",
+                          "bg-white dark:bg-gray-800",
+                          "text-gray-900 dark:text-white",
+                          "placeholder-gray-500 dark:placeholder-gray-400",
+                          "focus:ring-2 focus:ring-[#07F29C]/30 focus:border-[#07F29C]"
                         )}
                       />
                     </div>
 
-                    <div className={classNames(
-                      'mt-3 text-xs',
-                      'text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark',
-                      'bg-white/50 dark:bg-bolt-elements-background-depth-4/50',
-                      'p-3 rounded-lg',
-                      'border border-bolt-elements-borderColor/30 dark:border-bolt-elements-borderColor-dark/30',
-                      'backdrop-blur-sm'
-                    )}>
+                    <div
+                      className={classNames(
+                        "mt-3 text-xs",
+                        "text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark",
+                        "bg-white/50 dark:bg-bolt-elements-background-depth-4/50",
+                        "p-3 rounded-lg",
+                        "border border-bolt-elements-borderColor/30 dark:border-bolt-elements-borderColor-dark/30",
+                        "backdrop-blur-sm"
+                      )}
+                    >
                       <p className="flex items-start gap-2">
                         <span className="i-ph:info w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#07F29C]" />
                         <span>
-                          You can paste any GitHub repository URL, including specific branches or tags.
+                          You can paste any GitHub repository URL, including
+                          specific branches or tags.
                           <br />
                           <span className="text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark">
-                            Example: https://github.com/username/repository/tree/branch-name
+                            Example:
+                            https://github.com/username/repository/tree/branch-name
                           </span>
                         </span>
                       </p>
@@ -801,12 +881,19 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                     onClick={handleImport}
                     disabled={!customUrl}
                     className={classNames(
-                      'w-full h-12 px-4 py-2 rounded-xl text-black transition-all duration-200 flex items-center gap-2 justify-center',
+                      "w-full h-12 px-4 py-2 rounded-xl text-black transition-all duration-200 flex items-center gap-2 justify-center",
                       customUrl
-                        ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 shadow-md'
-                        : 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed',
+                        ? "bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 shadow-md"
+                        : "bg-gray-300 dark:bg-gray-700 cursor-not-allowed"
                     )}
-                    whileHover={customUrl ? { scale: 1.02, boxShadow: '0 4px 12px rgba(255, 215, 0, 0.3)' } : {}}
+                    whileHover={
+                      customUrl
+                        ? {
+                            scale: 1.02,
+                            boxShadow: "0 4px 12px rgba(255, 215, 0, 0.3)",
+                          }
+                        : {}
+                    }
                     whileTap={customUrl ? { scale: 0.98 } : {}}
                   >
                     <span className="i-ph:git-pull-request w-5 h-5" />
@@ -815,7 +902,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                 </div>
               ) : (
                 <>
-                  {activeTab === 'search' && (
+                  {activeTab === "search" && (
                     <div className="space-y-5 mb-5">
                       <div className="bg-gradient-to-br from-yellow-500/5 to-yellow-500/5 p-5 rounded-xl border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
                         <h3 className="text-base font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-3 flex items-center gap-2">
@@ -833,14 +920,16 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                                 type="text"
                                 placeholder="Search repositories..."
                                 value={searchQuery}
-                                onChange={(e) => handleSearchInputChange(e.target.value)}
+                                onChange={(e) =>
+                                  handleSearchInputChange(e.target.value)
+                                }
                                 className={classNames(
-                                  'w-full pl-10 py-3',
-                                  'border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
-                                  'bg-white dark:bg-gray-800',
-                                  'text-gray-900 dark:text-white',
-                                  'placeholder-gray-500 dark:placeholder-gray-400',
-                                  'focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent'
+                                  "w-full pl-10 py-3",
+                                  "border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark",
+                                  "bg-white dark:bg-gray-800",
+                                  "text-gray-900 dark:text-white",
+                                  "placeholder-gray-500 dark:placeholder-gray-400",
+                                  "focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent"
                                 )}
                               />
                             </div>
@@ -867,7 +956,9 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                           </div>
 
                           {/* Active filters */}
-                          {(filters.language || filters.stars || filters.forks) && (
+                          {(filters.language ||
+                            filters.stars ||
+                            filters.forks) && (
                             <div className="flex flex-wrap gap-2 mb-3">
                               <AnimatePresence>
                                 {filters.language && (
@@ -882,7 +973,10 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                                       setFilters(newFilters);
 
                                       if (searchQuery.trim()) {
-                                        setTimeout(() => handleSearch(searchQuery), 0);
+                                        setTimeout(
+                                          () => handleSearch(searchQuery),
+                                          0
+                                        );
                                       }
                                     }}
                                   />
@@ -899,7 +993,10 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                                       setFilters(newFilters);
 
                                       if (searchQuery.trim()) {
-                                        setTimeout(() => handleSearch(searchQuery), 0);
+                                        setTimeout(
+                                          () => handleSearch(searchQuery),
+                                          0
+                                        );
                                       }
                                     }}
                                   />
@@ -916,7 +1013,10 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                                       setFilters(newFilters);
 
                                       if (searchQuery.trim()) {
-                                        setTimeout(() => handleSearch(searchQuery), 0);
+                                        setTimeout(
+                                          () => handleSearch(searchQuery),
+                                          0
+                                        );
                                       }
                                     }}
                                   />
@@ -933,14 +1033,24 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                               <input
                                 type="text"
                                 placeholder="Language"
-                                value={filters.language || ''}
-                                onChange={(e) => handleFilterChange('language', e.target.value)}
+                                value={filters.language || ""}
+                                onChange={(e) => {
+                                  setFilters((prev) => ({
+                                    ...prev,
+                                    language: e.target.value || undefined,
+                                  }));
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" && searchQuery.trim()) {
+                                    handleSearch(searchQuery);
+                                  }
+                                }}
                                 className={classNames(
-                                  'pl-9 pr-3 py-2 rounded-lg',
-                                  'bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3',
-                                  'border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
-                                  'text-sm',
-                                  'focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent'
+                                  "pl-9 pr-3 py-2 rounded-lg",
+                                  "bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3",
+                                  "border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark",
+                                  "text-sm",
+                                  "focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent"
                                 )}
                               />
                             </div>
@@ -952,14 +1062,16 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                                 type="number"
                                 min="0"
                                 placeholder="Min stars"
-                                value={filters.stars || ''}
-                                onChange={(e) => handleFilterChange('stars', e.target.value)}
+                                value={filters.stars || ""}
+                                onChange={(e) =>
+                                  handleFilterChange("stars", e.target.value)
+                                }
                                 className={classNames(
-                                  'pl-9 pr-3 py-2 rounded-lg',
-                                  'bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3',
-                                  'border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
-                                  'text-sm',
-                                  'focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent'
+                                  "pl-9 pr-3 py-2 rounded-lg",
+                                  "bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3",
+                                  "border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark",
+                                  "text-sm",
+                                  "focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent"
                                 )}
                               />
                             </div>
@@ -971,32 +1083,37 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                                 type="number"
                                 min="0"
                                 placeholder="Min forks"
-                                value={filters.forks || ''}
-                                onChange={(e) => handleFilterChange('forks', e.target.value)}
+                                value={filters.forks || ""}
+                                onChange={(e) =>
+                                  handleFilterChange("forks", e.target.value)
+                                }
                                 className={classNames(
-                                  'pl-9 pr-3 py-2 rounded-lg',
-                                  'bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3',
-                                  'border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
-                                  'text-sm',
-                                  'focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent'
+                                  "pl-9 pr-3 py-2 rounded-lg",
+                                  "bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3",
+                                  "border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark",
+                                  "text-sm",
+                                  "focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent"
                                 )}
                               />
                             </div>
                           </div>
                         </div>
 
-                        <div className={classNames(
-                          'mt-3 text-xs',
-                          'text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark',
-                          'bg-white/50 dark:bg-bolt-elements-background-depth-4/50',
-                          'p-3 rounded-lg',
-                          'border border-bolt-elements-borderColor/30 dark:border-bolt-elements-borderColor-dark/30',
-                          'backdrop-blur-sm'
-                        )}>
+                        <div
+                          className={classNames(
+                            "mt-3 text-xs",
+                            "text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark",
+                            "bg-white/50 dark:bg-bolt-elements-background-depth-4/50",
+                            "p-3 rounded-lg",
+                            "border border-bolt-elements-borderColor/30 dark:border-bolt-elements-borderColor-dark/30",
+                            "backdrop-blur-sm"
+                          )}
+                        >
                           <p className="flex items-start gap-2">
                             <span className="i-ph:info w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#07F29C]" />
                             <span>
-                              Search for repositories by name, description, or topics. Use filters to narrow down results.
+                              Search for repositories by name, description, or
+                              topics. Use filters to narrow down results.
                             </span>
                           </p>
                         </div>
@@ -1005,11 +1122,23 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                   )}
 
                   <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 modern-scrollbar-dark-grey">
-                    {isLoading || (isConnected && activeTab === 'my-repos' && repositories.length === 0) ? (
+                    {isLoading ||
+                    (isConnected &&
+                      activeTab === "my-repos" &&
+                      repositories.length === 0) ? (
                       <div className="flex items-center justify-center h-24 gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#07F29C] animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#07F29C] animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#07F29C] animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <span
+                          className="w-2.5 h-2.5 rounded-full bg-[#07F29C] animate-bounce"
+                          style={{ animationDelay: "0ms" }}
+                        />
+                        <span
+                          className="w-2.5 h-2.5 rounded-full bg-[#07F29C] animate-bounce"
+                          style={{ animationDelay: "150ms" }}
+                        />
+                        <span
+                          className="w-2.5 h-2.5 rounded-full bg-[#07F29C] animate-bounce"
+                          style={{ animationDelay: "300ms" }}
+                        />
                       </div>
                     ) : repositories.length === 0 ? (
                       isConnected ? (
@@ -1029,7 +1158,11 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
                       )
                     ) : (
                       <RepositoryList
-                        repos={activeTab === 'my-repos' ? repositories : searchResults}
+                        repos={
+                          activeTab === "my-repos"
+                            ? repositories
+                            : searchResults
+                        }
                         isLoading={isLoading}
                         onSelect={handleRepoSelect}
                         activeTab={activeTab}
@@ -1043,7 +1176,10 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
         </Dialog.Portal>
 
         {/* GitHub Auth Dialog */}
-        <GitHubAuthDialog isOpen={showAuthDialog} onClose={handleAuthDialogClose} />
+        <GitHubAuthDialog
+          isOpen={showAuthDialog}
+          onClose={handleAuthDialogClose}
+        />
 
         {/* Repository Stats Dialog */}
         {currentStats && (
