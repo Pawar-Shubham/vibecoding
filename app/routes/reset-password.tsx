@@ -200,14 +200,14 @@ export default function ResetPassword() {
   return (
     <div className="min-h-screen bg-bolt-elements-background-depth-1 flex items-center justify-center p-4">
       <div className="bg-bolt-elements-background-depth-2 rounded-lg shadow-lg p-8 max-w-md w-full">
-        <h1 className="text-2xl font-semibold text-bolt-elements-text-default mb-6">
+        <h1 className="text-2xl font-semibold text-bolt-elements-text-primary mb-6">
           Reset Password
         </h1>
 
         {!isReady ? (
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-bolt-elements-text-accent mx-auto mb-4"></div>
-            <p className="text-bolt-elements-text-default">
+            <p className="text-bolt-elements-text-primary">
               Verifying reset token...
             </p>
           </div>
@@ -221,7 +221,7 @@ export default function ResetPassword() {
             <div className="mt-4">
               <a
                 href="/"
-                className="text-bolt-elements-text-accent hover:underline"
+                className="text-bolt-elements-text-primary hover:text-bolt-elements-text-accent hover:underline"
               >
                 Back to Home
               </a>
@@ -289,7 +289,7 @@ export default function ResetPassword() {
             <div className="mt-4 text-center">
               <a
                 href="/"
-                className="text-sm text-bolt-elements-text-accent hover:underline"
+                className="text-sm text-bolt-elements-text-primary hover:text-bolt-elements-text-accent hover:underline"
               >
                 Back to Home
               </a>
