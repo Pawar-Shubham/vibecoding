@@ -178,6 +178,31 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       onStreamingChange?.(isStreaming);
     }, [isStreaming, onStreamingChange]);
 
+    // Global drag and drop handlers to prevent browser default behavior
+    useEffect(() => {
+      const handleGlobalDragOver = (e: DragEvent) => {
+        if (e.dataTransfer?.types.includes('Files')) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      };
+
+      const handleGlobalDrop = (e: DragEvent) => {
+        if (e.dataTransfer?.types.includes('Files')) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      };
+
+      document.addEventListener('dragover', handleGlobalDragOver);
+      document.addEventListener('drop', handleGlobalDrop);
+
+      return () => {
+        document.removeEventListener('dragover', handleGlobalDragOver);
+        document.removeEventListener('drop', handleGlobalDrop);
+      };
+    }, []);
+
     useEffect(() => {
       if (
         typeof window !== "undefined" &&
@@ -324,20 +349,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       const input = document.createElement("input");
       input.type = "file";
       input.accept = "image/*";
+      input.multiple = true; // Enable multiple file selection
 
       input.onchange = async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
+        const files = Array.from((e.target as HTMLInputElement).files || []);
 
-        if (file) {
-          const reader = new FileReader();
+        files.forEach((file) => {
+          if (file.type.startsWith("image/")) {
+            const reader = new FileReader();
 
-          reader.onload = (e) => {
-            const base64Image = e.target?.result as string;
-            setUploadedFiles?.([...uploadedFiles, file]);
-            setImageDataList?.([...imageDataList, base64Image]);
-          };
-          reader.readAsDataURL(file);
-        }
+            reader.onload = (e) => {
+              const base64Image = e.target?.result as string;
+              setUploadedFiles?.([...uploadedFiles, file]);
+              setImageDataList?.([...imageDataList, base64Image]);
+            };
+            reader.readAsDataURL(file);
+          }
+        });
       };
 
       input.click();
@@ -748,19 +776,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         )}
                         onDragEnter={(e) => {
                           e.preventDefault();
+                          e.stopPropagation();
                           e.currentTarget.style.border = "2px solid #1488fc";
                         }}
                         onDragOver={(e) => {
                           e.preventDefault();
+                          e.stopPropagation();
                           e.currentTarget.style.border = "2px solid #1488fc";
                         }}
                         onDragLeave={(e) => {
                           e.preventDefault();
+                          e.stopPropagation();
                           e.currentTarget.style.border =
                             "1px solid var(--bolt-elements-borderColor)";
                         }}
                         onDrop={(e) => {
                           e.preventDefault();
+                          e.stopPropagation();
                           e.currentTarget.style.border =
                             "1px solid var(--bolt-elements-borderColor)";
 

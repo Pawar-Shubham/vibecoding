@@ -278,9 +278,9 @@ export function AuthModal({
               {forgotPassword ? (
                 "Reset Password"
               ) : (
-                <div className="flex items-center justify-center gap-2">
-                  Welcome to{" "}
-                  <span className="flex items-center">
+                <div className="flex items-end justify-center gap-0">
+                  Welcome to
+                  <span className="flex items-end -mb-0.25">
                     <img
                       src="/logo-dark-styled.png"
                       alt="logo"
