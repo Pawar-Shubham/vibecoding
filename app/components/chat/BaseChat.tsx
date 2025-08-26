@@ -36,12 +36,13 @@ import type { ModelInfo } from "~/lib/modules/llm/types";
 import ProgressCompilation from "./ProgressCompilation";
 import type { ProgressAnnotation } from "~/types/context";
 import type { ActionRunner } from "~/lib/runtime/action-runner";
+import { ConfirmationDialog } from "~/components/ui/Dialog";
 import { LOCAL_PROVIDERS } from "~/lib/stores/settings";
+import { useStore } from "@nanostores/react";
 import { SupabaseChatAlert } from "~/components/chat/SupabaseAlert";
 import { SupabaseConnection } from "./SupabaseConnection";
 import { ExpoQrModal } from "~/components/workbench/ExpoQrModal";
 import { expoUrlAtom } from "~/lib/stores/qrCodeStore";
-import { useStore } from "@nanostores/react";
 import { StickToBottom, useStickToBottomContext } from "~/lib/hooks";
 import { useStore as useChatStore } from "@nanostores/react";
 import { chatStore } from "~/lib/stores/chat";
@@ -154,6 +155,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       null
     );
     const [notchTag, setNotchTag] = useState<string | null>(null);
+    const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
+    const [pendingPrompt, setPendingPrompt] = useState<string>("");
     // Remove the notchTimeoutRef and timeout logic
 
     useEffect(() => {
@@ -181,25 +184,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     // Global drag and drop handlers to prevent browser default behavior
     useEffect(() => {
       const handleGlobalDragOver = (e: DragEvent) => {
-        if (e.dataTransfer?.types.includes('Files')) {
+        if (e.dataTransfer?.types.includes("Files")) {
           e.preventDefault();
           e.stopPropagation();
         }
       };
 
       const handleGlobalDrop = (e: DragEvent) => {
-        if (e.dataTransfer?.types.includes('Files')) {
+        if (e.dataTransfer?.types.includes("Files")) {
           e.preventDefault();
           e.stopPropagation();
         }
       };
 
-      document.addEventListener('dragover', handleGlobalDragOver);
-      document.addEventListener('drop', handleGlobalDrop);
+      document.addEventListener("dragover", handleGlobalDragOver);
+      document.addEventListener("drop", handleGlobalDrop);
 
       return () => {
-        document.removeEventListener('dragover', handleGlobalDragOver);
-        document.removeEventListener('drop', handleGlobalDrop);
+        document.removeEventListener("dragover", handleGlobalDragOver);
+        document.removeEventListener("drop", handleGlobalDrop);
       };
     }, []);
 
@@ -400,6 +403,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     };
 
+    // Function to check if API key is available for the current provider
+    const checkApiKeyAvailable = async (
+      currentProvider: ProviderInfo
+    ): Promise<boolean> => {
+      // Check client-side API keys from cookies
+      const clientApiKeys = getApiKeysFromCookies();
+      if (clientApiKeys[currentProvider.name]) {
+        return true;
+      }
+
+      // Check server-side environment variables
+      try {
+        const response = await fetch(
+          `/api/check-env-key?provider=${encodeURIComponent(currentProvider.name)}`
+        );
+        const data = (await response.json()) as { isSet: boolean };
+        return data.isSet;
+      } catch (error) {
+        console.error("Failed to check environment API key:", error);
+        return false;
+      }
+    };
+
     useEffect(() => {
       // Listen for messages from the preview iframe
       const handleMessage = async (event: MessageEvent) => {
@@ -422,7 +448,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, []);
 
     // Wrap the sendMessage handler to prepend clipboardPrepend
-    const handleSendMessageWithPrepend = (
+    const handleSendMessageWithPrepend = async (
       event: React.UIEvent,
       messageInput?: string
     ) => {
@@ -433,6 +459,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
       setNotchTag(null); // Remove the notch after sending
       console.log("Prompt sent:", finalInput);
+
       if (sendMessage) {
         // Check authentication before sending
         if (!auth) {
@@ -442,6 +469,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           const authEvent = new CustomEvent("open-auth-modal");
           window.dispatchEvent(authEvent);
           return;
+        }
+
+        // Check if API key is available for the current provider
+        if (provider) {
+          const hasApiKey = await checkApiKeyAvailable(provider);
+          if (!hasApiKey) {
+            setPendingPrompt(finalInput);
+            setShowApiKeyDialog(true);
+            return;
+          }
         }
 
         sendMessage(event, finalInput);
@@ -474,6 +511,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     //   window.addEventListener("message", handleMessage);
     //   return () => window.removeEventListener("message", handleMessage);
     // }, [input, handleInputChange]);
+
+    // Handle API key dialog actions
+    const handleApiKeyDialogConfirm = () => {
+      setShowApiKeyDialog(false);
+      setPendingPrompt("");
+      // Show model settings panel to allow user to set API key
+      setIsModelSettingsCollapsed(false);
+    };
+
+    const handleApiKeyDialogCancel = () => {
+      setShowApiKeyDialog(false);
+      setPendingPrompt("");
+    };
 
     const baseChat = (
       <div
@@ -1002,7 +1052,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       return;
                     }
 
-                    handleSendMessage?.(event, messageInput);
+                    handleSendMessageWithPrepend(event, messageInput);
                   })}
               </div>
             </div>
@@ -1020,7 +1070,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       </div>
     );
 
-    return <Tooltip.Provider delayDuration={200}>{baseChat}</Tooltip.Provider>;
+    return (
+      <Tooltip.Provider delayDuration={200}>
+        {baseChat}
+        <ConfirmationDialog
+          isOpen={showApiKeyDialog}
+          onClose={handleApiKeyDialogCancel}
+          onConfirm={handleApiKeyDialogConfirm}
+          title="API Key Required"
+          description={`To send prompts using ${provider?.name || "this provider"}, you need to set up an API key. Would you like to configure it now?`}
+          confirmLabel="Set API Key"
+          cancelLabel="Cancel"
+          variant="default"
+        />
+      </Tooltip.Provider>
+    );
   }
 );
 
