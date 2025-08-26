@@ -243,7 +243,7 @@ export default function ResetPassword() {
             <div className="mb-4">
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-bolt-elements-text-default mb-1"
+                className="block text-sm font-medium text-bolt-elements-text-primary mb-1"
               >
                 New Password
               </label>
@@ -262,7 +262,7 @@ export default function ResetPassword() {
             <div className="mb-6">
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-medium text-bolt-elements-text-default mb-1"
+                className="block text-sm font-medium text-bolt-elements-text-primary mb-1"
               >
                 Confirm New Password
               </label>
@@ -281,7 +281,7 @@ export default function ResetPassword() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-bolt-elements-background-accent hover:bg-bolt-elements-background-accent-hover text-white font-medium p-2 rounded-md transition-colors"
+              className="w-full bg-bolt-elements-background-accent hover:bg-bolt-elements-background-accent-hover text-bolt-elements-text-primary font-medium p-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Updating Password..." : "Update Password"}
             </button>
