@@ -199,7 +199,7 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-screen bg-bolt-elements-background-depth-1 flex items-center justify-center p-4">
-      <div className="bg-bolt-elements-background-depth-2 rounded-lg shadow-lg p-8 max-w-md w-full">
+      <div className="bg-bolt-elements-background-depth-2 rounded-lg shadow-lg p-8 max-w-md w-full border-2 border-green-500 shadow-green-500/20">
         <h1 className="text-2xl font-semibold text-bolt-elements-text-primary mb-6">
           Reset Password
         </h1>
@@ -281,7 +281,7 @@ export default function ResetPassword() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-bolt-elements-background-accent hover:bg-bolt-elements-background-accent-hover text-bolt-elements-text-primary font-medium p-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-green-500 hover:bg-green-400 text-black font-medium p-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-green-500/50"
             >
               {isLoading ? "Updating Password..." : "Update Password"}
             </button>
