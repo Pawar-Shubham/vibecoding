@@ -151,6 +151,10 @@ export class WorkbenchStore {
     this.#terminalStore.onTerminalResize(cols, rows);
   }
 
+  removeTerminal(terminal: ITerminal) {
+    this.#terminalStore.removeTerminal(terminal);
+  }
+
   setDocuments(files: FileMap) {
     this.#editorStore.setDocuments(files);
 

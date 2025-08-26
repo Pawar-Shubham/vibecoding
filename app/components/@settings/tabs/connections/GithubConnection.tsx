@@ -1,13 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { toast } from 'react-toastify';
-import { logStore } from '~/lib/stores/logs';
-import { classNames } from '~/utils/classNames';
-import Cookies from 'js-cookie';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
-import { Button } from '~/components/ui/Button';
-import { useAuth } from '~/lib/hooks/useAuth';
-import { supabase } from '~/lib/supabase';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { toast } from "react-toastify";
+import { logStore } from "~/lib/stores/logs";
+import { classNames } from "~/utils/classNames";
+import Cookies from "js-cookie";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "~/components/ui/Collapsible";
+import { Button } from "~/components/ui/Button";
+import { useAuth } from "~/lib/hooks/useAuth";
+import { supabase } from "~/lib/supabase";
 
 // Simplified inline implementation of useUserConnections
 const useUserConnections = () => {
@@ -20,11 +24,11 @@ const useUserConnections = () => {
 
     try {
       const { data, error } = await supabase
-        .from('user_connections')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('provider', provider)
-        .eq('is_active', true)
+        .from("user_connections")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("provider", provider)
+        .eq("is_active", true)
         .maybeSingle();
 
       if (error || !data) {
@@ -42,7 +46,7 @@ const useUserConnections = () => {
 
       return data;
     } catch (error) {
-      console.error('Error getting connection:', error);
+      console.error("Error getting connection:", error);
       return undefined;
     }
   };
@@ -53,11 +57,12 @@ const useUserConnections = () => {
     }
 
     try {
-      const encryptedToken = connectionData.token ? btoa(connectionData.token) : null;
-      
-      const { error } = await supabase
-        .from('user_connections')
-        .upsert({
+      const encryptedToken = connectionData.token
+        ? btoa(connectionData.token)
+        : null;
+
+      const { error } = await supabase.from("user_connections").upsert(
+        {
           user_id: user.id,
           provider: connectionData.provider,
           token: encryptedToken,
@@ -65,14 +70,16 @@ const useUserConnections = () => {
           user_data: connectionData.user_data || {},
           stats: connectionData.stats || {},
           is_active: true,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,provider'
-        });
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: "user_id,provider",
+        }
+      );
 
       return !error;
     } catch (error) {
-      console.error('Error saving connection:', error);
+      console.error("Error saving connection:", error);
       return false;
     }
   };
@@ -84,17 +91,17 @@ const useUserConnections = () => {
 
     try {
       const { error } = await supabase
-        .from('user_connections')
-        .update({ 
+        .from("user_connections")
+        .update({
           stats,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq('user_id', user.id)
-        .eq('provider', provider);
+        .eq("user_id", user.id)
+        .eq("provider", provider);
 
       return !error;
     } catch (error) {
-      console.error('Error updating stats:', error);
+      console.error("Error updating stats:", error);
       return false;
     }
   };
@@ -106,18 +113,18 @@ const useUserConnections = () => {
 
     try {
       const { error } = await supabase
-        .from('user_connections')
-        .update({ 
+        .from("user_connections")
+        .update({
           is_active: false,
           token: null,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq('user_id', user.id)
-        .eq('provider', provider);
+        .eq("user_id", user.id)
+        .eq("provider", provider);
 
       return !error;
     } catch (error) {
-      console.error('Error removing connection:', error);
+      console.error("Error removing connection:", error);
       return false;
     }
   };
@@ -129,7 +136,7 @@ const useUserConnections = () => {
     updateStats,
     migrateFromLocalStorage: async () => {},
     connections: [],
-    loading: false
+    loading: false,
   };
 };
 
@@ -200,7 +207,7 @@ interface GitHubStats {
 interface GitHubConnection {
   user: GitHubUserResponse | null;
   token: string;
-  tokenType: 'classic' | 'fine-grained';
+  tokenType: "classic" | "fine-grained";
   stats?: GitHubStats;
   rateLimit?: {
     limit: number;
@@ -221,61 +228,66 @@ const GithubLogo = () => (
 
 export default function GitHubConnection() {
   const { user, isAuthenticated } = useAuth();
-  const { 
-    saveConnection, 
-    getConnectionByProvider, 
-    removeConnection, 
+  const {
+    saveConnection,
+    getConnectionByProvider,
+    removeConnection,
     updateStats,
     migrateFromLocalStorage,
     connections,
-    loading: connectionsLoading
+    loading: connectionsLoading,
   } = useUserConnections();
-  
+
   const [connection, setConnection] = useState<GitHubConnection>({
     user: null,
-    token: '',
-    tokenType: 'classic',
+    token: "",
+    tokenType: "classic",
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isFetchingStats, setIsFetchingStats] = useState(false);
   const [isStatsExpanded, setIsStatsExpanded] = useState(false);
-  const tokenTypeRef = React.useRef<'classic' | 'fine-grained'>('classic');
+  const tokenTypeRef = React.useRef<"classic" | "fine-grained">("classic");
 
   const fetchGithubUser = async (token: string) => {
     try {
-      console.log('Fetching GitHub user with token:', token.substring(0, 5) + '...');
+      console.log(
+        "Fetching GitHub user with token:",
+        token.substring(0, 5) + "..."
+      );
 
       // Use server-side API endpoint instead of direct GitHub API call
       const response = await fetch(`/api/system/git-info?action=getUser`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`, // Include token in headers for validation
         },
       });
 
       if (!response.ok) {
-        console.error('Error fetching GitHub user. Status:', response.status);
+        console.error("Error fetching GitHub user. Status:", response.status);
         throw new Error(`Error: ${response.status}`);
       }
 
       // Get rate limit information from headers
       const rateLimit = {
-        limit: parseInt(response.headers.get('x-ratelimit-limit') || '0'),
-        remaining: parseInt(response.headers.get('x-ratelimit-remaining') || '0'),
-        reset: parseInt(response.headers.get('x-ratelimit-reset') || '0'),
+        limit: parseInt(response.headers.get("x-ratelimit-limit") || "0"),
+        remaining: parseInt(
+          response.headers.get("x-ratelimit-remaining") || "0"
+        ),
+        reset: parseInt(response.headers.get("x-ratelimit-reset") || "0"),
       };
 
       const data = await response.json();
-      console.log('GitHub user API response:', data);
+      console.log("GitHub user API response:", data);
 
       const { user } = data as { user: GitHubUserResponse };
 
       // Validate that we received a user object
       if (!user || !user.login) {
-        console.error('Invalid user data received:', user);
-        throw new Error('Invalid user data received');
+        console.error("Invalid user data received:", user);
+        throw new Error("Invalid user data received");
       }
 
       // Use the response data
@@ -288,70 +300,85 @@ export default function GitHubConnection() {
       }));
 
       // Set cookies for client-side access
-      Cookies.set('githubUsername', user.login);
-      Cookies.set('githubToken', token);
-      Cookies.set('git:github.com', JSON.stringify({ username: token, password: 'x-oauth-basic' }));
+      Cookies.set("githubUsername", user.login);
+      Cookies.set("githubToken", token);
+      Cookies.set(
+        "git:github.com",
+        JSON.stringify({ username: token, password: "x-oauth-basic" })
+      );
 
       // Save connection to database if user is authenticated
       if (isAuthenticated && user) {
         await saveConnection({
-          provider: 'github',
+          provider: "github",
           token,
           token_type: tokenTypeRef.current,
           user_data: user,
-          stats: {}
+          stats: {},
         });
       } else {
         // Fallback to localStorage for non-authenticated users
-      localStorage.setItem(
-        'github_connection',
-        JSON.stringify({
-          user,
-          token,
-          tokenType: tokenTypeRef.current,
-        }),
-      );
+        localStorage.setItem(
+          "github_connection",
+          JSON.stringify({
+            user,
+            token,
+            tokenType: tokenTypeRef.current,
+          })
+        );
       }
 
-      logStore.logInfo('Connected to GitHub', {
-        type: 'system',
+      logStore.logInfo("Connected to GitHub", {
+        type: "system",
         message: `Connected to GitHub as ${user.login}`,
       });
 
       // Fetch additional GitHub stats
       fetchGitHubStats(token, user);
     } catch (error) {
-      console.error('Failed to fetch GitHub user:', error);
-      logStore.logError(`GitHub authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`, {
-        type: 'system',
-        message: 'GitHub authentication failed',
-      });
+      console.error("Failed to fetch GitHub user:", error);
+      logStore.logError(
+        `GitHub authentication failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        {
+          type: "system",
+          message: "GitHub authentication failed",
+        }
+      );
 
-      toast.error(`Authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(
+        `Authentication failed: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
       throw error; // Rethrow to allow handling in the calling function
     }
   };
 
-  const fetchGitHubStats = async (token: string, user: GitHubUserResponse | null) => {
+  const fetchGitHubStats = async (
+    token: string,
+    user: GitHubUserResponse | null
+  ) => {
     setIsFetchingStats(true);
 
     try {
       // Get the current user first to ensure we have the latest value
-      const userResponse = await fetch('https://api.github.com/user', {
+      const userResponse = await fetch("https://api.github.com/user", {
         headers: {
-          Authorization: `${connection.tokenType === 'classic' ? 'token' : 'Bearer'} ${token}`,
+          Authorization: `${connection.tokenType === "classic" ? "token" : "Bearer"} ${token}`,
         },
       });
 
       if (!userResponse.ok) {
         if (userResponse.status === 401) {
-          toast.error('Your GitHub token has expired. Please reconnect your account.');
+          toast.error(
+            "Your GitHub token has expired. Please reconnect your account."
+          );
           handleDisconnect();
 
           return;
         }
 
-        throw new Error(`Failed to fetch user data: ${userResponse.statusText}`);
+        throw new Error(
+          `Failed to fetch user data: ${userResponse.statusText}`
+        );
       }
 
       const userData = (await userResponse.json()) as any;
@@ -362,34 +389,46 @@ export default function GitHubConnection() {
       let hasMore = true;
 
       while (hasMore) {
-        const reposResponse = await fetch(`https://api.github.com/user/repos?per_page=100&page=${page}`, {
-          headers: {
-            Authorization: `${connection.tokenType === 'classic' ? 'token' : 'Bearer'} ${token}`,
-          },
-        });
+        const reposResponse = await fetch(
+          `https://api.github.com/user/repos?per_page=100&page=${page}`,
+          {
+            headers: {
+              Authorization: `${connection.tokenType === "classic" ? "token" : "Bearer"} ${token}`,
+            },
+          }
+        );
 
         if (!reposResponse.ok) {
-          throw new Error(`Failed to fetch repositories: ${reposResponse.statusText}`);
+          throw new Error(
+            `Failed to fetch repositories: ${reposResponse.statusText}`
+          );
         }
 
         const repos = (await reposResponse.json()) as any[];
         allRepos = [...allRepos, ...repos];
 
         // Check if there are more pages
-        const linkHeader = reposResponse.headers.get('Link');
+        const linkHeader = reposResponse.headers.get("Link");
         hasMore = linkHeader?.includes('rel="next"') ?? false;
         page++;
       }
 
       // Calculate stats
-      const repoStats = calculateRepoStats(allRepos, token, connection.tokenType);
+      const repoStats = calculateRepoStats(
+        allRepos,
+        token,
+        connection.tokenType
+      );
 
       // Fetch recent activity
-      const eventsResponse = await fetch(`https://api.github.com/users/${userData.login}/events?per_page=10`, {
-        headers: {
-          Authorization: `${connection.tokenType === 'classic' ? 'token' : 'Bearer'} ${token}`,
-        },
-      });
+      const eventsResponse = await fetch(
+        `https://api.github.com/users/${userData.login}/events?per_page=10`,
+        {
+          headers: {
+            Authorization: `${connection.tokenType === "classic" ? "token" : "Bearer"} ${token}`,
+          },
+        }
+      );
 
       if (!eventsResponse.ok) {
         throw new Error(`Failed to fetch events: ${eventsResponse.statusText}`);
@@ -404,8 +443,14 @@ export default function GitHubConnection() {
       }));
 
       // Calculate total stars and forks
-      const totalStars = allRepos.reduce((sum: number, repo: any) => sum + repo.stargazers_count, 0);
-      const totalForks = allRepos.reduce((sum: number, repo: any) => sum + repo.forks_count, 0);
+      const totalStars = allRepos.reduce(
+        (sum: number, repo: any) => sum + repo.stargazers_count,
+        0
+      );
+      const totalForks = allRepos.reduce(
+        (sum: number, repo: any) => sum + repo.forks_count,
+        0
+      );
       const privateRepos = allRepos.filter((repo: any) => repo.private).length;
 
       // Update the stats in the store
@@ -440,26 +485,37 @@ export default function GitHubConnection() {
 
       // Save to database if authenticated
       if (isAuthenticated && user) {
-        await updateStats('github', stats);
+        await updateStats("github", stats);
       } else {
         // Fallback to localStorage for non-authenticated users
-        const currentConnection = JSON.parse(localStorage.getItem('github_connection') || '{}');
-      localStorage.setItem('github_connection', JSON.stringify(updatedConnection));
+        const currentConnection = JSON.parse(
+          localStorage.getItem("github_connection") || "{}"
+        );
+        localStorage.setItem(
+          "github_connection",
+          JSON.stringify(updatedConnection)
+        );
       }
 
       // Update state
       setConnection(updatedConnection);
 
-      toast.success('GitHub stats refreshed');
+      toast.success("GitHub stats refreshed");
     } catch (error) {
-      console.error('Error fetching GitHub stats:', error);
-      toast.error(`Failed to fetch GitHub stats: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error fetching GitHub stats:", error);
+      toast.error(
+        `Failed to fetch GitHub stats: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     } finally {
       setIsFetchingStats(false);
     }
   };
 
-  const calculateRepoStats = (repos: any[], token: string, tokenType: 'classic' | 'fine-grained') => {
+  const calculateRepoStats = (
+    repos: any[],
+    token: string,
+    tokenType: "classic" | "fine-grained"
+  ) => {
     const repoStats = {
       repos: repos.map((repo: any) => ({
         name: repo.name,
@@ -479,8 +535,8 @@ export default function GitHubConnection() {
     repos.forEach((repo: any) => {
       fetch(repo.languages_url, {
         headers: {
-          Authorization: `${tokenType === 'classic' ? 'token' : 'Bearer'} ${token}`,
-          Accept: 'application/vnd.github.v3+json',
+          Authorization: `${tokenType === "classic" ? "token" : "Bearer"} ${token}`,
+          Accept: "application/vnd.github.v3+json",
         },
       })
         .then((response) => response.json())
@@ -511,23 +567,25 @@ export default function GitHubConnection() {
         // Reset connection state first to ensure clean slate for each user
         setConnection({
           user: null,
-          token: '',
-          tokenType: 'classic',
+          token: "",
+          tokenType: "classic",
         });
-        tokenTypeRef.current = 'classic';
+        tokenTypeRef.current = "classic";
 
         // For authenticated users, check database first
         if (isAuthenticated && user) {
           // Wait a bit for connections to be fully loaded
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          const dbConnection = await getConnectionByProvider('github');
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          const dbConnection = await getConnectionByProvider("github");
           if (dbConnection) {
             const parsed = {
               user: dbConnection.user_data,
-              token: dbConnection.token || '',
-              tokenType: (dbConnection.token_type as 'classic' | 'fine-grained') || 'classic',
-              stats: dbConnection.stats
+              token: dbConnection.token || "",
+              tokenType:
+                (dbConnection.token_type as "classic" | "fine-grained") ||
+                "classic",
+              stats: dbConnection.stats,
             };
 
             // Update the ref with the parsed token type
@@ -540,27 +598,33 @@ export default function GitHubConnection() {
             if (
               parsed.user &&
               parsed.token &&
-              (!parsed.stats || !parsed.stats.repos || parsed.stats.repos.length === 0)
+              (!parsed.stats ||
+                !parsed.stats.repos ||
+                parsed.stats.repos.length === 0)
             ) {
-              console.log('Fetching missing GitHub stats for saved connection');
+              console.log("Fetching missing GitHub stats for saved connection");
               await fetchGitHubStats(parsed.token, parsed.user);
             }
-            
+
             setIsLoading(false);
             return;
           }
-          
+
           // Try to migrate from localStorage to database if no DB connection exists
           await migrateFromLocalStorage();
-          
+
           // Check again after migration
-          const dbConnectionAfterMigration = await getConnectionByProvider('github');
+          const dbConnectionAfterMigration =
+            await getConnectionByProvider("github");
           if (dbConnectionAfterMigration) {
             const parsed = {
               user: dbConnectionAfterMigration.user_data,
-              token: dbConnectionAfterMigration.token || '',
-              tokenType: (dbConnectionAfterMigration.token_type as 'classic' | 'fine-grained') || 'classic',
-              stats: dbConnectionAfterMigration.stats
+              token: dbConnectionAfterMigration.token || "",
+              tokenType:
+                (dbConnectionAfterMigration.token_type as
+                  | "classic"
+                  | "fine-grained") || "classic",
+              stats: dbConnectionAfterMigration.stats,
             };
 
             tokenTypeRef.current = parsed.tokenType;
@@ -571,43 +635,45 @@ export default function GitHubConnection() {
         }
 
         // Fallback to localStorage for non-authenticated users or if no database connection
-      const savedConnection = localStorage.getItem('github_connection');
+        const savedConnection = localStorage.getItem("github_connection");
 
-      if (savedConnection) {
-        try {
-          const parsed = JSON.parse(savedConnection);
+        if (savedConnection) {
+          try {
+            const parsed = JSON.parse(savedConnection);
 
-          if (!parsed.tokenType) {
-            parsed.tokenType = 'classic';
+            if (!parsed.tokenType) {
+              parsed.tokenType = "classic";
+            }
+
+            // Update the ref with the parsed token type
+            tokenTypeRef.current = parsed.tokenType;
+
+            // Set the connection
+            setConnection(parsed);
+
+            // If we have a token but no stats or incomplete stats, fetch them
+            if (
+              parsed.user &&
+              parsed.token &&
+              (!parsed.stats ||
+                !parsed.stats.repos ||
+                parsed.stats.repos.length === 0)
+            ) {
+              console.log("Fetching missing GitHub stats for saved connection");
+              await fetchGitHubStats(parsed.token, parsed.user);
+            }
+          } catch (error) {
+            console.error("Error parsing saved GitHub connection:", error);
+            localStorage.removeItem("github_connection");
           }
-
-          // Update the ref with the parsed token type
-          tokenTypeRef.current = parsed.tokenType;
-
-          // Set the connection
-          setConnection(parsed);
-
-          // If we have a token but no stats or incomplete stats, fetch them
-          if (
-            parsed.user &&
-            parsed.token &&
-            (!parsed.stats || !parsed.stats.repos || parsed.stats.repos.length === 0)
-          ) {
-            console.log('Fetching missing GitHub stats for saved connection');
-            await fetchGitHubStats(parsed.token, parsed.user);
-          }
-        } catch (error) {
-          console.error('Error parsing saved GitHub connection:', error);
-          localStorage.removeItem('github_connection');
+        } else {
+          // No fallback to environment tokens - each user should have their own connections
+          // This ensures proper user isolation and prevents sharing connections between users
         }
-      } else {
-        // No fallback to environment tokens - each user should have their own connections
-        // This ensures proper user isolation and prevents sharing connections between users
-      }
       } catch (error) {
-        console.error('Error loading GitHub connection:', error);
+        console.error("Error loading GitHub connection:", error);
       } finally {
-      setIsLoading(false);
+        setIsLoading(false);
       }
     };
 
@@ -624,30 +690,35 @@ export default function GitHubConnection() {
     const data = connection.user;
 
     if (token) {
-      Cookies.set('githubToken', token);
-      Cookies.set('git:github.com', JSON.stringify({ username: token, password: 'x-oauth-basic' }));
+      Cookies.set("githubToken", token);
+      Cookies.set(
+        "git:github.com",
+        JSON.stringify({ username: token, password: "x-oauth-basic" })
+      );
     }
 
     if (data) {
-      Cookies.set('githubUsername', data.login);
+      Cookies.set("githubUsername", data.login);
     }
   }, [connection]);
 
   // Add function to update rate limits
   const updateRateLimits = async (token: string) => {
     try {
-      const response = await fetch('https://api.github.com/rate_limit', {
+      const response = await fetch("https://api.github.com/rate_limit", {
         headers: {
           Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github.v3+json',
+          Accept: "application/vnd.github.v3+json",
         },
       });
 
       if (response.ok) {
         const rateLimit = {
-          limit: parseInt(response.headers.get('x-ratelimit-limit') || '0'),
-          remaining: parseInt(response.headers.get('x-ratelimit-remaining') || '0'),
-          reset: parseInt(response.headers.get('x-ratelimit-reset') || '0'),
+          limit: parseInt(response.headers.get("x-ratelimit-limit") || "0"),
+          remaining: parseInt(
+            response.headers.get("x-ratelimit-remaining") || "0"
+          ),
+          reset: parseInt(response.headers.get("x-ratelimit-reset") || "0"),
         };
 
         setConnection((prev) => ({
@@ -656,7 +727,7 @@ export default function GitHubConnection() {
         }));
       }
     } catch (error) {
-      console.error('Failed to fetch rate limits:', error);
+      console.error("Failed to fetch rate limits:", error);
     }
   };
 
@@ -693,14 +764,20 @@ export default function GitHubConnection() {
       // Ensure user is set in state after connecting
       setConnection((prev) => ({ ...prev, user: prev.user }));
 
-      toast.success('Connected to GitHub successfully');
+      toast.success("Connected to GitHub successfully");
     } catch (error) {
-      console.error('Failed to connect to GitHub:', error);
+      console.error("Failed to connect to GitHub:", error);
 
       // Reset connection state on failure
-      setConnection({ user: null, token: connection.token, tokenType: connection.tokenType });
+      setConnection({
+        user: null,
+        token: connection.token,
+        tokenType: connection.tokenType,
+      });
 
-      toast.error(`Failed to connect to GitHub: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(
+        `Failed to connect to GitHub: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     } finally {
       setIsConnecting(false);
     }
@@ -709,21 +786,21 @@ export default function GitHubConnection() {
   const handleDisconnect = async () => {
     // Remove from database if authenticated
     if (isAuthenticated) {
-      await removeConnection('github');
+      await removeConnection("github");
     } else {
       // Fallback to localStorage for non-authenticated users
-    localStorage.removeItem('github_connection');
+      localStorage.removeItem("github_connection");
     }
 
     // Remove all GitHub-related cookies
-    Cookies.remove('githubToken');
-    Cookies.remove('githubUsername');
-    Cookies.remove('git:github.com');
+    Cookies.remove("githubToken");
+    Cookies.remove("githubUsername");
+    Cookies.remove("git:github.com");
 
     // Reset the token type ref
-    tokenTypeRef.current = 'classic';
-    setConnection({ user: null, token: '', tokenType: 'classic' });
-    toast.success('Disconnected from GitHub');
+    tokenTypeRef.current = "classic";
+    setConnection({ user: null, token: "", tokenType: "classic" });
+    toast.success("Disconnected from GitHub");
   };
 
   return (
@@ -747,9 +824,13 @@ export default function GitHubConnection() {
           <div className="text-xs text-bolt-elements-textSecondary bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 p-3 rounded-lg mb-4">
             <p className="flex items-center gap-1 mb-1">
               <span className="i-ph:warning w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400" />
-              <span className="font-medium">Sign in required:</span> Please sign in to save your connections securely to your account.
+              <span className="font-medium">Sign in required:</span> Please sign
+              in to save your connections securely to your account.
             </p>
-            <p>Without signing in, connections will only be stored locally and may be lost.</p>
+            <p>
+              Without signing in, connections will only be stored locally and
+              may be lost.
+            </p>
           </div>
         )}
 
@@ -757,14 +838,14 @@ export default function GitHubConnection() {
           <div className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-1 p-3 rounded-lg mb-4">
             <p className="flex items-center gap-1 mb-1">
               <span className="i-ph:lightbulb w-3.5 h-3.5 text-bolt-elements-icon-success dark:text-bolt-elements-icon-success" />
-              <span className="font-medium">Tip:</span> You can also set the{' '}
+              <span className="font-medium">Tip:</span> You can also set the{" "}
               <code className="px-1 py-0.5 bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-2 rounded">
                 VITE_GITHUB_ACCESS_TOKEN
-              </code>{' '}
+              </code>{" "}
               environment variable to connect automatically.
             </p>
             <p>
-              For fine-grained tokens, also set{' '}
+              For fine-grained tokens, also set{" "}
               <code className="px-1 py-0.5 bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-2 rounded">
                 VITE_GITHUB_TOKEN_TYPE=fine-grained
               </code>
@@ -780,59 +861,129 @@ export default function GitHubConnection() {
               <select
                 value={connection.tokenType}
                 onChange={(e) => {
-                  const newTokenType = e.target.value as 'classic' | 'fine-grained';
+                  const newTokenType = e.target.value as
+                    | "classic"
+                    | "fine-grained";
                   tokenTypeRef.current = newTokenType;
-                  setConnection((prev) => ({ ...prev, tokenType: newTokenType }));
+                  setConnection((prev) => ({
+                    ...prev,
+                    tokenType: newTokenType,
+                  }));
                 }}
                 disabled={isConnecting || !!connection.user}
                 className={classNames(
-                  'w-full px-3 py-2 rounded-lg text-sm appearance-none',
-                  'bg-white dark:bg-[#1A1A1A]',
-                  'border border-gray-200 dark:border-bolt-elements-borderColor',
-                  'text-gray-900 dark:text-white',
-                  'focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-bolt-elements-item-contentAccent',
-                  'disabled:opacity-50',
-                  'pr-10', // Add padding for the custom arrow
+                  "w-full px-3 py-2 rounded-lg text-sm appearance-none",
+                  "bg-white dark:bg-[#1A1A1A]",
+                  "border border-gray-200 dark:border-bolt-elements-borderColor",
+                  "text-gray-900 dark:text-white",
+                  "focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-bolt-elements-item-contentAccent",
+                  "disabled:opacity-50",
+                  "pr-10" // Add padding for the custom arrow
                 )}
               >
-                <option value="classic" className="bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white">Personal Access Token (Classic)</option>
-                <option value="fine-grained" className="bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white">Fine-grained Token</option>
+                <option
+                  value="classic"
+                  className="bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white"
+                >
+                  Personal Access Token (Classic)
+                </option>
+                <option
+                  value="fine-grained"
+                  className="bg-white dark:bg-[#1A1A1A] text-gray-900 dark:text-white"
+                >
+                  Fine-grained Token
+                </option>
               </select>
               {/* Custom dropdown arrow */}
-              <div className={classNames(
-                'absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none',
-                'w-4 h-4 text-gray-500 dark:text-gray-400',
-                connection.user ? 'text-gray-400 dark:text-gray-500' : 'text-gray-500 dark:text-gray-400'
-              )}>
+              <div
+                className={classNames(
+                  "absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none",
+                  "w-4 h-4 text-gray-500 dark:text-gray-400",
+                  connection.user
+                    ? "text-gray-400 dark:text-gray-500"
+                    : "text-gray-500 dark:text-gray-400"
+                )}
+              >
                 <div className="i-ph:caret-down w-4 h-4" />
               </div>
-                          </div>
             </div>
+          </div>
 
           <div>
-            <label className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-2">
-              {connection.tokenType === 'classic' ? 'Personal Access Token' : 'Fine-grained Token'}
-            </label>
+            <div className="flex items-center gap-2 mb-2">
+              <label className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
+                {connection.tokenType === "classic"
+                  ? "Personal Access Token"
+                  : "Fine-grained Token"}
+              </label>
+              <div className="relative group">
+                <button
+                  type="button"
+                  className="w-4 h-4 rounded-full bg-bolt-elements-textTertiary hover:bg-bolt-elements-textSecondary text-white flex items-center justify-center text-xs font-medium transition-colors"
+                  aria-label="Token information"
+                >
+                  i
+                </button>
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="text-sm space-y-3">
+                    <div>
+                      <h4 className="font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-1">
+                        How to create a GitHub token:
+                      </h4>
+                      <ol className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark space-y-1 list-decimal list-inside">
+                        <li>Go to GitHub Settings → Developer settings</li>
+                        <li>Click "Personal access tokens"</li>
+                        <li>Generate a new token</li>
+                        <li>Select required scopes and copy the token</li>
+                        <li>Paste the token in the field below</li>
+                      </ol>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-1">
+                        Required scopes:
+                      </h4>
+                      <div className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
+                        <span className="inline-block bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 px-2 py-1 rounded mr-1 mb-1">
+                          repo
+                        </span>
+                        <span className="inline-block bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 px-2 py-1 rounded mr-1 mb-1">
+                          read:org
+                        </span>
+                        <span className="inline-block bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 px-2 py-1 rounded mr-1 mb-1">
+                          read:user
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Tooltip arrow */}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-bolt-elements-borderColor dark:border-t-bolt-elements-borderColor-dark"></div>
+                </div>
+              </div>
+            </div>
             <input
               type="password"
               value={connection.token}
-              onChange={(e) => setConnection((prev) => ({ ...prev, token: e.target.value }))}
+              onChange={(e) =>
+                setConnection((prev) => ({ ...prev, token: e.target.value }))
+              }
               disabled={isConnecting || !!connection.user}
               placeholder={`Enter your GitHub ${
-                connection.tokenType === 'classic' ? 'personal access token' : 'fine-grained token'
+                connection.tokenType === "classic"
+                  ? "personal access token"
+                  : "fine-grained token"
               }`}
               className={classNames(
-                'w-full px-3 py-2 rounded-lg text-sm',
-                'bg-[#F8F8F8] dark:bg-[#1A1A1A]',
-                'border border-[#E5E5E5] dark:border-[#333333]',
-                'text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary',
-                'focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive',
-                'disabled:opacity-50',
+                "w-full px-3 py-2 rounded-lg text-sm",
+                "bg-[#F8F8F8] dark:bg-[#1A1A1A]",
+                "border border-[#E5E5E5] dark:border-[#333333]",
+                "text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary",
+                "focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive",
+                "disabled:opacity-50"
               )}
             />
             <div className="mt-2 text-sm text-bolt-elements-textSecondary">
               <a
-                href={`https://github.com/settings/tokens${connection.tokenType === 'fine-grained' ? '/beta' : '/new'}`}
+                href={`https://github.com/settings/tokens${connection.tokenType === "fine-grained" ? "/beta" : "/new"}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-bolt-elements-borderColorActive hover:underline inline-flex items-center gap-1"
@@ -842,10 +993,10 @@ export default function GitHubConnection() {
               </a>
               <span className="mx-2">•</span>
               <span>
-                Required scopes:{' '}
-                {connection.tokenType === 'classic'
-                  ? 'repo, read:org, read:user'
-                  : 'Repository access, Organization access'}
+                Required scopes:{" "}
+                {connection.tokenType === "classic"
+                  ? "repo, read:org, read:user"
+                  : "Repository access, Organization access"}
               </span>
             </div>
           </div>
@@ -857,11 +1008,11 @@ export default function GitHubConnection() {
               onClick={handleConnect}
               disabled={isConnecting || !connection.token}
               className={classNames(
-                'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                'bg-[#303030] text-white',
-                'hover:bg-[#5E41D0] hover:text-white',
-                'disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200',
-                'transform active:scale-95',
+                "px-4 py-2 rounded-lg text-sm flex items-center gap-2",
+                "bg-[#303030] text-white",
+                "hover:bg-[#5E41D0] hover:text-white",
+                "disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200",
+                "transform active:scale-95"
               )}
             >
               {isConnecting ? (
@@ -883,9 +1034,9 @@ export default function GitHubConnection() {
                   <button
                     onClick={handleDisconnect}
                     className={classNames(
-                      'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                      'bg-red-500 text-white',
-                      'hover:bg-red-600',
+                      "px-4 py-2 rounded-lg text-sm flex items-center gap-2",
+                      "bg-red-500 text-white",
+                      "hover:bg-red-600"
                     )}
                   >
                     <div className="i-ph:plug w-4 h-4" />
@@ -899,7 +1050,13 @@ export default function GitHubConnection() {
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => window.open('https://github.com/dashboard', '_blank', 'noopener,noreferrer')}
+                    onClick={() =>
+                      window.open(
+                        "https://github.com/dashboard",
+                        "_blank",
+                        "noopener,noreferrer"
+                      )
+                    }
                     className="flex items-center gap-2 hover:bg-bolt-elements-item-backgroundActive/10 hover:text-bolt-elements-textPrimary dark:hover:text-bolt-elements-textPrimary transition-colors"
                   >
                     <div className="i-ph:layout w-4 h-4" />
@@ -950,17 +1107,22 @@ export default function GitHubConnection() {
               </div>
             </div>
 
-            <Collapsible open={isStatsExpanded} onOpenChange={setIsStatsExpanded}>
+            <Collapsible
+              open={isStatsExpanded}
+              onOpenChange={setIsStatsExpanded}
+            >
               <CollapsibleTrigger asChild>
                 <div className="flex items-center justify-between p-4 rounded-lg bg-bolt-elements-background dark:bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor hover:border-bolt-elements-borderColorActive/70 dark:hover:border-bolt-elements-borderColorActive/70 transition-all duration-200">
                   <div className="flex items-center gap-2">
                     <div className="i-ph:chart-bar w-4 h-4 text-bolt-elements-item-contentAccent" />
-                    <span className="text-sm font-medium text-bolt-elements-textPrimary">GitHub Stats</span>
+                    <span className="text-sm font-medium text-bolt-elements-textPrimary">
+                      GitHub Stats
+                    </span>
                   </div>
                   <div
                     className={classNames(
-                      'i-ph:caret-down w-4 h-4 transform transition-transform duration-200 text-bolt-elements-textSecondary',
-                      isStatsExpanded ? 'rotate-180' : '',
+                      "i-ph:caret-down w-4 h-4 transform transition-transform duration-200 text-bolt-elements-textSecondary",
+                      isStatsExpanded ? "rotate-180" : ""
                     )}
                   />
                 </div>
@@ -969,7 +1131,9 @@ export default function GitHubConnection() {
                 <div className="space-y-4 mt-4">
                   {/* Languages Section */}
                   <div className="mb-6">
-                    <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-3">Top Languages</h4>
+                    <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-3">
+                      Top Languages
+                    </h4>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(connection.stats.languages)
                         .sort(([, a], [, b]) => b - a)
@@ -989,19 +1153,23 @@ export default function GitHubConnection() {
                   <div className="grid grid-cols-4 gap-4 mb-6">
                     {[
                       {
-                        label: 'Member Since',
-                        value: new Date(connection.user.created_at).toLocaleDateString(),
+                        label: "Member Since",
+                        value: new Date(
+                          connection.user.created_at
+                        ).toLocaleDateString(),
                       },
                       {
-                        label: 'Public Gists',
+                        label: "Public Gists",
                         value: connection.stats.publicGists,
                       },
                       {
-                        label: 'Organizations',
-                        value: connection.stats.organizations ? connection.stats.organizations.length : 0,
+                        label: "Organizations",
+                        value: connection.stats.organizations
+                          ? connection.stats.organizations.length
+                          : 0,
                       },
                       {
-                        label: 'Languages',
+                        label: "Languages",
                         value: Object.keys(connection.stats.languages).length,
                       },
                     ].map((stat, index) => (
@@ -1009,8 +1177,12 @@ export default function GitHubConnection() {
                         key={index}
                         className="flex flex-col p-3 rounded-lg bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor"
                       >
-                        <span className="text-xs text-bolt-elements-textSecondary">{stat.label}</span>
-                        <span className="text-lg font-medium text-bolt-elements-textPrimary">{stat.value}</span>
+                        <span className="text-xs text-bolt-elements-textSecondary">
+                          {stat.label}
+                        </span>
+                        <span className="text-lg font-medium text-bolt-elements-textPrimary">
+                          {stat.value}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -1019,15 +1191,17 @@ export default function GitHubConnection() {
                   <div className="mt-4">
                     <div className="space-y-4">
                       <div>
-                        <h5 className="text-sm font-medium text-bolt-elements-textPrimary mb-2">Repository Stats</h5>
+                        <h5 className="text-sm font-medium text-bolt-elements-textPrimary mb-2">
+                          Repository Stats
+                        </h5>
                         <div className="grid grid-cols-2 gap-4">
                           {[
                             {
-                              label: 'Public Repos',
+                              label: "Public Repos",
                               value: connection.stats.publicRepos,
                             },
                             {
-                              label: 'Private Repos',
+                              label: "Private Repos",
                               value: connection.stats.privateRepos,
                             },
                           ].map((stat, index) => (
@@ -1035,43 +1209,10 @@ export default function GitHubConnection() {
                               key={index}
                               className="flex flex-col p-3 rounded-lg bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor"
                             >
-                              <span className="text-xs text-bolt-elements-textSecondary">{stat.label}</span>
-                              <span className="text-lg font-medium text-bolt-elements-textPrimary">{stat.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h5 className="text-sm font-medium text-bolt-elements-textPrimary mb-2">Contribution Stats</h5>
-                        <div className="grid grid-cols-3 gap-4">
-                          {[
-                            {
-                              label: 'Stars',
-                              value: connection.stats.stars || 0,
-                              icon: 'i-ph:star',
-                              iconColor: 'text-bolt-elements-icon-warning',
-                            },
-                            {
-                              label: 'Forks',
-                              value: connection.stats.forks || 0,
-                              icon: 'i-ph:git-fork',
-                              iconColor: 'text-bolt-elements-icon-info',
-                            },
-                            {
-                              label: 'Followers',
-                              value: connection.stats.followers || 0,
-                              icon: 'i-ph:users',
-                              iconColor: 'text-bolt-elements-icon-success',
-                            },
-                          ].map((stat, index) => (
-                            <div
-                              key={index}
-                              className="flex flex-col p-3 rounded-lg bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor"
-                            >
-                              <span className="text-xs text-bolt-elements-textSecondary">{stat.label}</span>
-                              <span className="text-lg font-medium text-bolt-elements-textPrimary flex items-center gap-1">
-                                <div className={`${stat.icon} w-4 h-4 ${stat.iconColor}`} />
+                              <span className="text-xs text-bolt-elements-textSecondary">
+                                {stat.label}
+                              </span>
+                              <span className="text-lg font-medium text-bolt-elements-textPrimary">
                                 {stat.value}
                               </span>
                             </div>
@@ -1080,15 +1221,60 @@ export default function GitHubConnection() {
                       </div>
 
                       <div>
-                        <h5 className="text-sm font-medium text-bolt-elements-textPrimary mb-2">Gists</h5>
+                        <h5 className="text-sm font-medium text-bolt-elements-textPrimary mb-2">
+                          Contribution Stats
+                        </h5>
+                        <div className="grid grid-cols-3 gap-4">
+                          {[
+                            {
+                              label: "Stars",
+                              value: connection.stats.stars || 0,
+                              icon: "i-ph:star",
+                              iconColor: "text-bolt-elements-icon-warning",
+                            },
+                            {
+                              label: "Forks",
+                              value: connection.stats.forks || 0,
+                              icon: "i-ph:git-fork",
+                              iconColor: "text-bolt-elements-icon-info",
+                            },
+                            {
+                              label: "Followers",
+                              value: connection.stats.followers || 0,
+                              icon: "i-ph:users",
+                              iconColor: "text-bolt-elements-icon-success",
+                            },
+                          ].map((stat, index) => (
+                            <div
+                              key={index}
+                              className="flex flex-col p-3 rounded-lg bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor"
+                            >
+                              <span className="text-xs text-bolt-elements-textSecondary">
+                                {stat.label}
+                              </span>
+                              <span className="text-lg font-medium text-bolt-elements-textPrimary flex items-center gap-1">
+                                <div
+                                  className={`${stat.icon} w-4 h-4 ${stat.iconColor}`}
+                                />
+                                {stat.value}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h5 className="text-sm font-medium text-bolt-elements-textPrimary mb-2">
+                          Gists
+                        </h5>
                         <div className="grid grid-cols-2 gap-4">
                           {[
                             {
-                              label: 'Public',
+                              label: "Public",
                               value: connection.stats.publicGists,
                             },
                             {
-                              label: 'Private',
+                              label: "Private",
                               value: connection.stats.privateGists || 0,
                             },
                           ].map((stat, index) => (
@@ -1096,8 +1282,12 @@ export default function GitHubConnection() {
                               key={index}
                               className="flex flex-col p-3 rounded-lg bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor"
                             >
-                              <span className="text-xs text-bolt-elements-textSecondary">{stat.label}</span>
-                              <span className="text-lg font-medium text-bolt-elements-textPrimary">{stat.value}</span>
+                              <span className="text-xs text-bolt-elements-textSecondary">
+                                {stat.label}
+                              </span>
+                              <span className="text-lg font-medium text-bolt-elements-textPrimary">
+                                {stat.value}
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -1105,7 +1295,10 @@ export default function GitHubConnection() {
 
                       <div className="pt-2 border-t border-bolt-elements-borderColor">
                         <span className="text-xs text-bolt-elements-textSecondary">
-                          Last updated: {new Date(connection.stats.lastUpdated).toLocaleString()}
+                          Last updated:{" "}
+                          {new Date(
+                            connection.stats.lastUpdated
+                          ).toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -1113,7 +1306,9 @@ export default function GitHubConnection() {
 
                   {/* Repositories Section */}
                   <div className="space-y-4">
-                    <h4 className="text-sm font-medium text-bolt-elements-textPrimary">Recent Repositories</h4>
+                    <h4 className="text-sm font-medium text-bolt-elements-textPrimary">
+                      Recent Repositories
+                    </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {connection.stats.repos.map((repo) => (
                         <a
@@ -1132,11 +1327,17 @@ export default function GitHubConnection() {
                                 </h5>
                               </div>
                               <div className="flex items-center gap-3 text-xs text-bolt-elements-textSecondary">
-                                <span className="flex items-center gap-1" title="Stars">
+                                <span
+                                  className="flex items-center gap-1"
+                                  title="Stars"
+                                >
                                   <div className="i-ph:star w-3.5 h-3.5 text-bolt-elements-icon-warning" />
                                   {repo.stargazers_count.toLocaleString()}
                                 </span>
-                                <span className="flex items-center gap-1" title="Forks">
+                                <span
+                                  className="flex items-center gap-1"
+                                  title="Forks"
+                                >
                                   <div className="i-ph:git-fork w-3.5 h-3.5 text-bolt-elements-icon-info" />
                                   {repo.forks_count.toLocaleString()}
                                 </span>
@@ -1150,17 +1351,26 @@ export default function GitHubConnection() {
                             )}
 
                             <div className="flex items-center gap-3 text-xs text-bolt-elements-textSecondary">
-                              <span className="flex items-center gap-1" title="Default Branch">
+                              <span
+                                className="flex items-center gap-1"
+                                title="Default Branch"
+                              >
                                 <div className="i-ph:git-branch w-3.5 h-3.5" />
                                 {repo.default_branch}
                               </span>
-                              <span className="flex items-center gap-1" title="Last Updated">
+                              <span
+                                className="flex items-center gap-1"
+                                title="Last Updated"
+                              >
                                 <div className="i-ph:clock w-3.5 h-3.5" />
-                                {new Date(repo.updated_at).toLocaleDateString(undefined, {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric',
-                                })}
+                                {new Date(repo.updated_at).toLocaleDateString(
+                                  undefined,
+                                  {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                  }
+                                )}
                               </span>
                               <span className="flex items-center gap-1 ml-auto group-hover:text-bolt-elements-item-contentAccent transition-colors">
                                 <div className="i-ph:arrow-square-out w-3.5 h-3.5" />
