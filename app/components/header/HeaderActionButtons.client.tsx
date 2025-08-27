@@ -77,7 +77,6 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         {isDropdownOpen && (
           <div className="absolute right-2 flex flex-col gap-1 z-50 p-1 mt-1 min-w-[13.5rem] bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-300 dark:border-bolt-elements-borderColor">
             <Button
-              active
               onClick={() => {
                 onNetlifyDeploy();
                 setIsDropdownOpen(false);

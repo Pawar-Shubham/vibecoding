@@ -207,15 +207,22 @@ button.forgot-password:hover {
   outline: none;
 }
 
+/* Stronger error styling */
 .auth-error {
-  background-color: rgba(239, 68, 68, 0.2);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #ffffff;
+  background-color: #FEE2E2; /* light red */
+  border: 1px solid #FCA5A5; /* stronger border */
+  color: #991B1B; /* dark red text for readability */
   border-radius: 6px;
   padding: 12px;
   margin-bottom: 16px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+}
+
+:root[data-theme='dark'] .auth-error {
+  background-color: rgba(239, 68, 68, 0.28); /* deeper red on dark */
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #FCA5A5; /* softer red text on dark */
 }
 
 .auth-success {

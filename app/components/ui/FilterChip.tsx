@@ -45,7 +45,7 @@ export function FilterChip({ label, value, onRemove, active = false, icon, class
       className={classNames(
         'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
         active
-          ? 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30'
+          ? 'bg-[#07F29C]/15 text-[#07F29C] dark:text-[#07F29C] border border-[#07F29C]/30'
           : 'bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
         onRemove && 'pr-1',
         className,
@@ -61,9 +61,9 @@ export function FilterChip({ label, value, onRemove, active = false, icon, class
         {value !== undefined && (
           <span
             className={
-              active
-                ? 'text-purple-700 dark:text-purple-300 font-semibold'
-                : 'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark'
+                          active
+              ? 'text-[#07F29C] dark:text-[#07F29C] font-semibold'
+              : 'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark'
             }
           >
             {value}
@@ -71,22 +71,22 @@ export function FilterChip({ label, value, onRemove, active = false, icon, class
         )}
       </span>
 
-      {/* Remove button */}
-      {onRemove && (
-        <button
-          type="button"
-          onClick={onRemove}
-          className={classNames(
-            'ml-1 p-0.5 rounded-full hover:bg-bolt-elements-background-depth-3 dark:hover:bg-bolt-elements-background-depth-4 transition-colors',
-            active
-              ? 'text-purple-600 dark:text-purple-400'
-              : 'text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark',
-          )}
-          aria-label={`Remove ${label} filter`}
-        >
-          <span className="i-ph:x w-3 h-3" />
-        </button>
-      )}
+             {/* Remove button */}
+       {onRemove && (
+         <button
+           type="button"
+           onClick={onRemove}
+           className={classNames(
+             'ml-1 transition-colors bg-transparent border-0 p-0',
+             active
+               ? 'text-[#07F29C] dark:text-[#07F29C]'
+               : 'text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark',
+           )}
+           aria-label={`Remove ${label} filter`}
+         >
+           <span className="text-xs font-bold">×</span>
+         </button>
+       )}
     </motion.div>
   );
 }

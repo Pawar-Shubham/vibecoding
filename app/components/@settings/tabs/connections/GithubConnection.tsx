@@ -834,24 +834,7 @@ export default function GitHubConnection() {
           </div>
         )}
 
-        {!connection.user && (
-          <div className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-1 p-3 rounded-lg mb-4">
-            <p className="flex items-center gap-1 mb-1">
-              <span className="i-ph:lightbulb w-3.5 h-3.5 text-bolt-elements-icon-success dark:text-bolt-elements-icon-success" />
-              <span className="font-medium">Tip:</span> You can also set the{" "}
-              <code className="px-1 py-0.5 bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-2 rounded">
-                VITE_GITHUB_ACCESS_TOKEN
-              </code>{" "}
-              environment variable to connect automatically.
-            </p>
-            <p>
-              For fine-grained tokens, also set{" "}
-              <code className="px-1 py-0.5 bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-2 rounded">
-                VITE_GITHUB_TOKEN_TYPE=fine-grained
-              </code>
-            </p>
-          </div>
-        )}
+        {/* Env var tip removed per request */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-2">
@@ -924,7 +907,7 @@ export default function GitHubConnection() {
                 >
                   i
                 </button>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                   <div className="text-sm space-y-3">
                     <div>
                       <h4 className="font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-1">
@@ -956,7 +939,7 @@ export default function GitHubConnection() {
                     </div>
                   </div>
                   {/* Tooltip arrow */}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-bolt-elements-borderColor dark:border-t-bolt-elements-borderColor-dark"></div>
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-l-transparent border-r-transparent border-b-bolt-elements-borderColor dark:border-b-bolt-elements-borderColor-dark"></div>
                 </div>
               </div>
             </div>
@@ -1010,7 +993,7 @@ export default function GitHubConnection() {
               className={classNames(
                 "px-4 py-2 rounded-lg text-sm flex items-center gap-2",
                 "bg-[#303030] text-white",
-                "hover:bg-[#5E41D0] hover:text-white",
+                "hover:bg-[#07F29C] hover:text-black",
                 "disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200",
                 "transform active:scale-95"
               )}

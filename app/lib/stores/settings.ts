@@ -327,6 +327,29 @@ interface SettingsStore {
   setSelectedTab: (tab: string) => void;
 }
 
+// Global state for opening settings panel with specific tab
+export const settingsPanelStore = atom<{
+  isOpen: boolean;
+  initialTab?: 'settings' | 'connection' | 'cloud-providers';
+}>({
+  isOpen: false,
+  initialTab: 'settings',
+});
+
+export const openSettingsPanel = (tab?: 'settings' | 'connection' | 'cloud-providers') => {
+  settingsPanelStore.set({
+    isOpen: true,
+    initialTab: tab || 'settings',
+  });
+};
+
+export const closeSettingsPanel = () => {
+  settingsPanelStore.set({
+    isOpen: false,
+    initialTab: 'settings',
+  });
+};
+
 export const useSettingsStore = create<SettingsStore>((set) => ({
   isOpen: false,
   selectedTab: 'user', // Default tab

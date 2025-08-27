@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from '@nanostores/react';
-import { FaXTwitter, FaDiscord } from 'react-icons/fa6';
+import { FaDiscord } from 'react-icons/fa6';
 import { chatStore } from '~/lib/stores/chat';
 import { FeedbackButton } from './feedback/FeedbackButton';
 
@@ -21,7 +21,7 @@ export function SocialMediaIcons() {
         className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
         title="Follow us on X (Twitter)"
       >
-        <FaXTwitter className="w-6 h-6" />
+        <div className="i-simple-icons:x text-xl" />
       </a>
 		<a
 			href="https://discord.gg/UrPWWrzPqt"

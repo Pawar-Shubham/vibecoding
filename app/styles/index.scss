@@ -207,6 +207,23 @@ html[data-theme='dark'] {
   transform: translateX(320px);
 }
 
+/* Ensure consistent sidebar backdrop overlay */
+.sidebar-backdrop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 998 !important;
+  background-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+html[data-theme='dark'] .sidebar-backdrop {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+}
+
 /* Remove the old background container styles since we're using direct background images */
 .background-container {
   display: none;
@@ -321,4 +338,17 @@ html[data-theme='dark'] .subtoolbar-panel {
 /* Hide number input spinners for Firefox */
 .no-spinner {
   -moz-appearance: textfield;
+}
+
+/* Sidebar backdrop styles for uniform overlay */
+.sidebar-backdrop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 998 !important;
+  pointer-events: auto !important;
 }

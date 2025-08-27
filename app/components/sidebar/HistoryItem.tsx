@@ -147,6 +147,7 @@ export function HistoryItem({
         <ChatActionButton
           toolTipContent="Export chat"
           icon="i-ph:export text-lg"
+          className="hover:!text-[#07F29C] dark:hover:!text-[#07F29C]"
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -156,6 +157,7 @@ export function HistoryItem({
         <ChatActionButton
           toolTipContent="Duplicate chat"
           icon="i-ph:copy text-lg"
+          className="hover:!text-[#07F29C] dark:hover:!text-[#07F29C]"
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();

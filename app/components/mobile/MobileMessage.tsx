@@ -68,7 +68,7 @@ export function MobileMessage() {
             className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             title="Follow us on X (Twitter)"
           >
-            <div className="i-simple-icons:twitter text-xl" />
+            <div className="i-simple-icons:x text-xl" />
           </a>
           <a
             href="https://www.linkedin.com/company/vibesxcoded/about/"

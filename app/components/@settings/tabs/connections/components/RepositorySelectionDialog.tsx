@@ -126,6 +126,8 @@ export function RepositorySelectionDialog({
       }
     }
     if (isOpen) {
+      // Reset repositories when dialog opens to avoid showing stale data
+      setRepositories([]);
       fetchGithubToken();
     }
   }, [isOpen, isAuthenticated, user?.id]);
@@ -142,7 +144,7 @@ export function RepositorySelectionDialog({
     setShowAuthDialog(false);
 
     // If we're on the my-repos tab, refresh the repository list
-    if (activeTab === "my-repos") {
+    if (activeTab === "my-repos" && githubToken) {
       fetchUserRepos();
     }
   };
@@ -154,12 +156,15 @@ export function RepositorySelectionDialog({
     // No fallback to environment tokens - users must connect manually for proper isolation
   }, [isOpen]);
 
-  // Fetch repositories when dialog opens or tab changes
+  // Fetch repositories when dialog opens, tab changes, or githubToken becomes available
   useEffect(() => {
-    if (isOpen && activeTab === "my-repos") {
+    if (isOpen && activeTab === "my-repos" && githubToken) {
       fetchUserRepos();
+    } else if (isOpen && activeTab === "my-repos" && !githubToken) {
+      // Reset loading state when not connected
+      setIsLoading(false);
     }
-  }, [isOpen, activeTab]);
+  }, [isOpen, activeTab, githubToken]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -172,6 +177,7 @@ export function RepositorySelectionDialog({
 
   const fetchUserRepos = async () => {
     if (!githubToken) {
+      setIsLoading(false);
       return;
     }
 
@@ -747,33 +753,7 @@ export function RepositorySelectionDialog({
               </Dialog.Close>
             </div>
 
-            {/* Auth Info Banner */}
-            {!isConnected && (
-              <div className="p-4 border-b border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark flex items-center justify-between bg-gradient-to-r from-bolt-elements-background-depth-2 to-bolt-elements-background-depth-1 dark:from-bolt-elements-background-depth-3 dark:to-bolt-elements-background-depth-2">
-                <div className="flex items-center gap-2">
-                  <span className="i-ph:info text-yellow-500" />
-                  <span className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
-                    Need to access private repositories?
-                  </span>
-                </div>
-                <motion.button
-                  onClick={() => setShowAuthDialog(true)}
-                  className={classNames(
-                    "px-4 py-2 rounded-lg",
-                    "bg-[#07F29C] text-white",
-                    "hover:bg-[#07F29C]/90",
-                    "transition-all duration-200",
-                    "flex items-center gap-2",
-                    "text-sm"
-                  )}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <span className="i-ph:github-logo w-4 h-4" />
-                  Connect GitHub Account
-                </motion.button>
-              </div>
-            )}
+            {/* Auth Info Banner - Removed per request */}
 
             {/* Content */}
             <div className="p-5">
@@ -822,7 +802,7 @@ export function RepositorySelectionDialog({
                 <div className="space-y-5">
                   <div className="bg-gradient-to-br from-bolt-elements-background-depth-1 to-bolt-elements-background-depth-1 dark:from-gray-800 dark:to-gray-800 p-5 rounded-xl border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
                     <h3 className="text-base font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-3 flex items-center gap-2">
-                      <span className="i-ph:link-simple w-4 h-4 text-yellow-500" />
+                      <span className="i-ph:link-simple w-4 h-4 text-[#07F29C]" />
                       Repository URL
                     </h3>
 
@@ -830,18 +810,18 @@ export function RepositorySelectionDialog({
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
                         <span className="i-ph:github-logo w-5 h-5 block" />
                       </div>
-                      <Input
+                      <input
                         type="text"
                         placeholder="Enter GitHub repository URL (e.g., https://github.com/user/repo)"
                         value={customUrl}
                         onChange={(e) => setCustomUrl(e.target.value)}
                         className={classNames(
-                          "w-full pl-10 py-3",
-                          "border border-gray-300 dark:border-gray-600",
+                          "w-full pl-10 py-3 rounded-lg",
+                          "border-2 border-gray-300 dark:border-gray-600",
                           "bg-white dark:bg-gray-800",
                           "text-gray-900 dark:text-white",
                           "placeholder-gray-500 dark:placeholder-gray-400",
-                          "focus:ring-2 focus:ring-[#07F29C]/30 focus:border-[#07F29C]"
+                          "focus:outline-none focus:border-[#07F29C] focus:ring-0 focus:ring-offset-0"
                         )}
                       />
                     </div>
@@ -883,14 +863,14 @@ export function RepositorySelectionDialog({
                     className={classNames(
                       "w-full h-12 px-4 py-2 rounded-xl text-black transition-all duration-200 flex items-center gap-2 justify-center",
                       customUrl
-                        ? "bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 shadow-md"
+                        ? "bg-gradient-to-r from-[#07F29C] to-[#07F29C]/90 hover:from-[#07F29C]/90 hover:to-[#07F29C] shadow-md"
                         : "bg-gray-300 dark:bg-gray-700 cursor-not-allowed"
                     )}
                     whileHover={
                       customUrl
                         ? {
                             scale: 1.02,
-                            boxShadow: "0 4px 12px rgba(255, 215, 0, 0.3)",
+                            boxShadow: "0 4px 12px rgba(7, 242, 156, 0.3)",
                           }
                         : {}
                     }
@@ -904,9 +884,9 @@ export function RepositorySelectionDialog({
                 <>
                   {activeTab === "search" && (
                     <div className="space-y-5 mb-5">
-                      <div className="bg-gradient-to-br from-yellow-500/5 to-yellow-500/5 p-5 rounded-xl border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
+                      <div className="bg-gradient-to-br from-bolt-elements-background-depth-1 to-bolt-elements-background-depth-1 dark:from-gray-800 dark:to-gray-800 p-5 rounded-xl border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
                         <h3 className="text-base font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-3 flex items-center gap-2">
-                          <span className="i-ph:magnifying-glass w-4 h-4 text-yellow-500" />
+                          <span className="i-ph:magnifying-glass w-4 h-4 text-[#07F29C]" />
                           Search GitHub
                         </h3>
 
@@ -924,12 +904,12 @@ export function RepositorySelectionDialog({
                                   handleSearchInputChange(e.target.value)
                                 }
                                 className={classNames(
-                                  "w-full pl-10 py-3",
-                                  "border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark",
+                                  "w-full pl-10 py-3 rounded-lg",
+                                  "border-2 border-gray-300 dark:border-gray-600",
                                   "bg-white dark:bg-gray-800",
                                   "text-gray-900 dark:text-white",
                                   "placeholder-gray-500 dark:placeholder-gray-400",
-                                  "focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent"
+                                  "focus:outline-none focus:border-[#07F29C]"
                                 )}
                               />
                             </div>
@@ -1048,9 +1028,10 @@ export function RepositorySelectionDialog({
                                 className={classNames(
                                   "pl-9 pr-3 py-2 rounded-lg",
                                   "bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3",
-                                  "border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark",
-                                  "text-sm",
-                                  "focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent"
+                                  "border-2 border-gray-300 dark:border-gray-600",
+                                  "text-sm text-gray-900 dark:text-white",
+                                  "placeholder-gray-500 dark:placeholder-gray-400",
+                                  "focus:outline-none focus:border-[#07F29C]"
                                 )}
                               />
                             </div>
@@ -1069,9 +1050,10 @@ export function RepositorySelectionDialog({
                                 className={classNames(
                                   "pl-9 pr-3 py-2 rounded-lg",
                                   "bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3",
-                                  "border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark",
-                                  "text-sm",
-                                  "focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent"
+                                  "border-2 border-gray-300 dark:border-gray-600",
+                                  "text-sm text-gray-900 dark:text-white",
+                                  "placeholder-gray-500 dark:placeholder-gray-400",
+                                  "focus:outline-none focus:border-[#07F29C]"
                                 )}
                               />
                             </div>
@@ -1090,9 +1072,10 @@ export function RepositorySelectionDialog({
                                 className={classNames(
                                   "pl-9 pr-3 py-2 rounded-lg",
                                   "bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3",
-                                  "border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark",
-                                  "text-sm",
-                                  "focus:ring-2 focus:ring-[#07F29C]/30 focus:border-transparent"
+                                  "border-2 border-gray-300 dark:border-gray-600",
+                                  "text-sm text-gray-900 dark:text-white",
+                                  "placeholder-gray-500 dark:placeholder-gray-400",
+                                  "focus:outline-none focus:border-[#07F29C]"
                                 )}
                               />
                             </div>
@@ -1122,10 +1105,7 @@ export function RepositorySelectionDialog({
                   )}
 
                   <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 modern-scrollbar-dark-grey">
-                    {isLoading ||
-                    (isConnected &&
-                      activeTab === "my-repos" &&
-                      repositories.length === 0) ? (
+                    {isLoading && isConnected && activeTab === "my-repos" ? (
                       <div className="flex items-center justify-center h-24 gap-2">
                         <span
                           className="w-2.5 h-2.5 rounded-full bg-[#07F29C] animate-bounce"
@@ -1140,7 +1120,7 @@ export function RepositorySelectionDialog({
                           style={{ animationDelay: "300ms" }}
                         />
                       </div>
-                    ) : repositories.length === 0 ? (
+                    ) : (activeTab === "my-repos" && repositories.length === 0) ? (
                       isConnected ? (
                         <EmptyState
                           icon="i-ph:git-branch"
@@ -1163,7 +1143,7 @@ export function RepositorySelectionDialog({
                             ? repositories
                             : searchResults
                         }
-                        isLoading={isLoading}
+                        isLoading={isLoading && activeTab === "search"}
                         onSelect={handleRepoSelect}
                         activeTab={activeTab}
                       />

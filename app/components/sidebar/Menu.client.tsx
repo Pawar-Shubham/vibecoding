@@ -1,5 +1,6 @@
 import { motion, type Variants } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
 import { ClientOnly } from "remix-utils/client-only";
 import {
@@ -33,7 +34,7 @@ import { useStore } from "@nanostores/react";
 import { profileStore } from "~/lib/stores/profile";
 import { authStore } from "~/lib/stores/auth";
 import { useAuth } from "~/lib/hooks/useAuth";
-import { useSettingsStore } from "~/lib/stores/settings";
+import { useSettingsStore, settingsPanelStore, closeSettingsPanel } from "~/lib/stores/settings";
 import { signOut } from "~/lib/supabase";
 import { ControlPanel } from "~/components/@settings/core/ControlPanel";
 import { sidebarStore } from "~/lib/stores/sidebar";
@@ -124,6 +125,7 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const settingsStore = useSettingsStore();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const settingsPanel = useStore(settingsPanelStore);
 
   const loadEntries = useCallback(async () => {
     if (db && user?.id) {
@@ -411,6 +413,7 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
 
   const handleCloseSettings = () => {
     setIsSettingsOpen(false);
+    closeSettingsPanel();
   };
 
   // Add touch event handlers
@@ -772,21 +775,26 @@ const MenuComponent = ({ isLandingPage = false }: MenuProps) => {
         </div>
       </motion.div>
 
-      {/* Backdrop */}
-      {isSidebarOpen && (
+      {/* Backdrop - Portaled to document.body for uniform overlay */}
+      {isSidebarOpen && typeof document !== 'undefined' && createPortal(
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[998] bg-black/20 dark:bg-black/40"
+          className="fixed inset-0 z-[998] bg-black/20 dark:bg-black/40 sidebar-backdrop"
           onClick={() => sidebarStore.set(false)}
-        />
+        />,
+        document.body
       )}
 
       {/* Settings panel */}
-      {isSettingsOpen && (
-        <ControlPanel open={isSettingsOpen} onClose={handleCloseSettings} />
+      {(isSettingsOpen || settingsPanel.isOpen) && (
+        <ControlPanel 
+          open={isSettingsOpen || settingsPanel.isOpen} 
+          onClose={handleCloseSettings} 
+          initialTab={settingsPanel.initialTab}
+        />
       )}
 
       <DialogRoot open={dialogContent !== null}>

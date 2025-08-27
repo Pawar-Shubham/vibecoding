@@ -23,6 +23,7 @@ import CloudProvidersTab from "~/components/@settings/tabs/providers/cloud/Cloud
 interface ControlPanelProps {
   open: boolean;
   onClose: () => void;
+  initialTab?: ControlPanelTabType;
 }
 
 // Only the tabs used in this simplified control panel
@@ -34,8 +35,8 @@ const TAB_LABELS: Record<ControlPanelTabType, string> = {
   "cloud-providers": "Cloud Providers",
 } as const;
 
-export function ControlPanel({ open, onClose }: ControlPanelProps) {
-  const [activeTab, setActiveTab] = useState<ControlPanelTabType>("settings"); // Default to 'settings' (General)
+export function ControlPanel({ open, onClose, initialTab }: ControlPanelProps) {
+  const [activeTab, setActiveTab] = useState<ControlPanelTabType>(initialTab || "settings"); // Use initialTab if provided, otherwise default to 'settings'
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   // Define the tab order
@@ -61,13 +62,13 @@ export function ControlPanel({ open, onClose }: ControlPanelProps) {
   // Reset to default view when modal opens/closes
   useEffect(() => {
     if (!open) {
-      setActiveTab("settings");
+      setActiveTab(initialTab || "settings");
       setLoadingTab(null);
       setShowMobileSidebar(false);
     } else {
-      setActiveTab("settings");
+      setActiveTab(initialTab || "settings");
     }
-  }, [open]);
+  }, [open, initialTab]);
 
   // Handle closing
   const handleClose = () => {
@@ -218,7 +219,7 @@ export function ControlPanel({ open, onClose }: ControlPanelProps) {
                   </button>
                   <button
                     onClick={onClose}
-                    className="p-2 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex items-center justify-center"
+                    className="p-0 bg-transparent hover:bg-transparent border-0 focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-200 transition-colors flex items-center justify-center leading-none"
                     aria-label="Close settings"
                   >
                     <svg
@@ -312,7 +313,7 @@ export function ControlPanel({ open, onClose }: ControlPanelProps) {
                   </h3>
                   <button
                     onClick={onClose}
-                    className="p-2 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex items-center justify-center flex-shrink-0"
+                    className="p-0 bg-transparent hover:bg-transparent border-0 focus:outline-none focus:ring-0 text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-200 transition-colors flex items-center justify-center flex-shrink-0 leading-none"
                     aria-label="Close settings"
                   >
                     <svg

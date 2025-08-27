@@ -44,8 +44,9 @@ const WithTooltip = forwardRef(
                 max-h-[300px]
                 select-none
                 rounded-md
-                bg-bolt-elements-background-depth-3
-                text-bolt-elements-textPrimary
+                bg-white dark:bg-[#1f1f1f]
+                border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark
+                text-gray-900 dark:text-gray-100
                 text-sm
                 leading-tight
                 shadow-lg
@@ -66,7 +67,7 @@ const WithTooltip = forwardRef(
               <div className="break-words">{tooltip}</div>
               <TooltipPrimitive.Arrow
                 className={`
-                  fill-bolt-elements-background-depth-3
+                  fill-white dark:fill-[#1f1f1f]
                   ${arrowClassName}
                 `}
                 width={12}

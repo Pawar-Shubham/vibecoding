@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import Cookies from 'js-cookie';
 import type { GitHubUserResponse } from '~/types/GitHub';
 import { classNames } from '~/utils/classNames';
+import { openSettingsPanel } from '~/lib/stores/settings';
 
 interface GitHubAuthDialogProps {
   isOpen: boolean;
@@ -12,6 +13,11 @@ interface GitHubAuthDialogProps {
 }
 
 export function GitHubAuthDialog({ isOpen, onClose }: GitHubAuthDialogProps) {
+  const handleGoToSettings = () => {
+    openSettingsPanel('connection');
+    onClose();
+  };
+
   return (
     <Dialog.Root open={isOpen}>
       <Dialog.Portal>
@@ -54,13 +60,11 @@ export function GitHubAuthDialog({ isOpen, onClose }: GitHubAuthDialogProps) {
                 Once connected, you can use your account here without entering your token again.
               </p>
               <button
-                onClick={() => {
-                  window.location.href = '/settings';
-                }}
+                onClick={handleGoToSettings}
                 className={classNames(
                   'px-6 py-2 rounded-lg',
-                  'bg-[#07F29C] text-white',
-                  'hover:bg-[#07F29C]/90',
+                  '!bg-[#07F29C] !text-black',
+                  'hover:!bg-[#07F29C]/90',
                   'transition-all duration-200',
                   'text-sm font-medium'
                 )}

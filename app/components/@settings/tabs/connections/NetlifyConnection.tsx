@@ -931,7 +931,7 @@ export default function NetlifyConnection() {
                 className={classNames(
                   'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
                   'bg-[#303030] text-white',
-                  'hover:bg-[#5E41D0] hover:text-white',
+                  'hover:bg-[#07F29C] hover:text-black',
                   'disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200',
                   'transform active:scale-95',
                 )}

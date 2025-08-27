@@ -44,7 +44,7 @@ export default function Index() {
              className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
              title="Follow us on X (Twitter)"
            >
-             <div className="i-simple-icons:twitter text-2xl" />
+             <div className="i-simple-icons:x text-2xl" />
            </a>
            <a
              href="https://www.linkedin.com/company/vibesxcoded/about/"

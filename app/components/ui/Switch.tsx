@@ -12,12 +12,16 @@ export const Switch = memo(({ className, onCheckedChange, checked }: SwitchProps
   return (
     <SwitchPrimitive.Root
       className={classNames(
-        'relative h-6 w-11 cursor-pointer rounded-full bg-bolt-elements-button-primary-background',
+        'relative h-6 w-11 cursor-pointer rounded-full',
+        // Off state: clearer neutral track
+        'bg-gray-200 dark:bg-[#141414]',
         'transition-colors duration-200 ease-in-out',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900',
         'disabled:cursor-not-allowed disabled:opacity-30',
-        'data-[state=checked]:bg-bolt-elements-item-contentAccent',
-        'border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
+        // Checked state: brand accent (force in both themes)
+        'data-[state=checked]:bg-[#07F29C] dark:data-[state=checked]:bg-[#07F29C] data-[state=checked]:border-[#07F29C]',
+        // Stronger border contrast in off state
+        'border border-gray-300 dark:border-gray-600',
         className,
       )}
       checked={checked}
