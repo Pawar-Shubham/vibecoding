@@ -79,9 +79,9 @@ interface BaseChatProps {
   importChat?: (description: string, messages: Message[]) => Promise<void>;
   exportChat?: () => void;
   uploadedFiles?: File[];
-  setUploadedFiles?: (files: File[]) => void;
+  setUploadedFiles?: (files: File[] | ((prev: File[]) => File[])) => void;
   imageDataList?: string[];
-  setImageDataList?: (dataList: string[]) => void;
+  setImageDataList?: (dataList: string[] | ((prev: string[]) => string[])) => void;
   actionAlert?: ActionAlert;
   clearAlert?: () => void;
   supabaseAlert?: SupabaseAlert;
@@ -131,6 +131,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     },
     ref
   ) => {
+    console.log('BaseChat - Props received:', { uploadedFiles, imageDataList, setUploadedFiles: !!setUploadedFiles, setImageDataList: !!setImageDataList });
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(
       getApiKeysFromCookies()
@@ -157,6 +158,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [notchTag, setNotchTag] = useState<string | null>(null);
     const [showApiKeyDialog, setShowApiKeyDialog] = useState(false);
     const [pendingPrompt, setPendingPrompt] = useState<string>("");
+    const [isProcessingImages, setIsProcessingImages] = useState(false);
     // Remove the notchTimeoutRef and timeout logic
 
     useEffect(() => {
@@ -164,6 +166,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setQrModalOpen(true);
       }
     }, [expoUrl]);
+
+    // Debug logging for state changes
+    useEffect(() => {
+      console.log('BaseChat - State changed:', { uploadedFiles, imageDataList });
+    }, [uploadedFiles, imageDataList]);
 
     useEffect(() => {
       if (data) {
@@ -184,14 +191,34 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     // Global drag and drop handlers to prevent browser default behavior
     useEffect(() => {
       const handleGlobalDragOver = (e: DragEvent) => {
-        if (e.dataTransfer?.types.includes("Files")) {
+        // Only prevent default if we're not over the textarea
+        const target = e.target as HTMLElement;
+        const isOverTextarea = target.closest('textarea') || target.closest('.MaterialPrompt');
+        
+        console.log('Global drag over:', { 
+          target: target.tagName, 
+          isOverTextarea, 
+          hasFiles: e.dataTransfer?.types.includes("Files") 
+        });
+        
+        if (e.dataTransfer?.types.includes("Files") && !isOverTextarea) {
           e.preventDefault();
           e.stopPropagation();
         }
       };
 
       const handleGlobalDrop = (e: DragEvent) => {
-        if (e.dataTransfer?.types.includes("Files")) {
+        // Only prevent default if we're not over the textarea
+        const target = e.target as HTMLElement;
+        const isOverTextarea = target.closest('textarea') || target.closest('.MaterialPrompt');
+        
+        console.log('Global drop:', { 
+          target: target.tagName, 
+          isOverTextarea, 
+          hasFiles: e.dataTransfer?.types.includes("Files") 
+        });
+        
+        if (e.dataTransfer?.types.includes("Files") && !isOverTextarea) {
           e.preventDefault();
           e.stopPropagation();
         }
@@ -349,6 +376,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     };
 
     const handleFileUpload = () => {
+      console.log('File upload - Current state:', { uploadedFiles, imageDataList });
       const input = document.createElement("input");
       input.type = "file";
       input.accept = "image/*";
@@ -356,49 +384,206 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       input.onchange = async (e) => {
         const files = Array.from((e.target as HTMLInputElement).files || []);
+        const imageFiles: File[] = [];
+        const imageDataPromises: Promise<string>[] = [];
 
-        files.forEach((file) => {
-          if (file.type.startsWith("image/")) {
-            const reader = new FileReader();
+                                  // Filter and process only image files
+                          files.forEach((file) => {
+                            if (file.type.startsWith("image/")) {
+                              // Validate file size (max 10MB per image)
+                              if (file.size > 10 * 1024 * 1024) {
+                                toast.error(`Image ${file.name} is too large (max 10MB)`);
+                                return;
+                              }
 
-            reader.onload = (e) => {
-              const base64Image = e.target?.result as string;
-              setUploadedFiles?.([...uploadedFiles, file]);
-              setImageDataList?.([...imageDataList, base64Image]);
-            };
-            reader.readAsDataURL(file);
+                              imageFiles.push(file);
+                              
+                              // Create a promise for reading the file
+                              const dataPromise = new Promise<string>((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = (e) => {
+                                  const base64Image = e.target?.result as string;
+                                  resolve(base64Image);
+                                };
+                                reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+                                reader.readAsDataURL(file);
+                              });
+                              
+                              imageDataPromises.push(dataPromise);
+                            }
+                          });
+
+        // Process all images at once
+        if (imageFiles.length > 0) {
+          setIsProcessingImages(true);
+          try {
+            const imageDataResults = await Promise.allSettled(imageDataPromises);
+            
+            // Filter successful results
+            const successfulResults = imageDataResults
+              .map((result, index) => result.status === 'fulfilled' ? { data: result.value, index } : null)
+              .filter((item): item is { data: string; index: number } => item !== null);
+            
+            const failedCount = imageDataResults.length - successfulResults.length;
+            
+            if (successfulResults.length > 0) {
+              // Update state with successful images
+              const successfulFiles = successfulResults.map(({ index }) => imageFiles[index]);
+              const successfulData = successfulResults.map(({ data }) => data);
+              
+              if (setUploadedFiles) {
+                setUploadedFiles((prevFiles: File[]) => {
+                  const newFiles = [...(prevFiles || []), ...successfulFiles];
+                  console.log('File upload - Setting uploaded files:', { prevFiles, newFiles, successfulFiles });
+                  return newFiles;
+                });
+              }
+              if (setImageDataList) {
+                setImageDataList((prevData: string[]) => {
+                  const newData = [...(prevData || []), ...successfulData];
+                  console.log('File upload - Setting image data list:', { prevData, newData, successfulData });
+                  return newData;
+                });
+              }
+              
+              // Success message removed
+              
+              // Show warning for failed images
+              if (failedCount > 0) {
+                toast.warning(`${failedCount} image${failedCount > 1 ? 's' : ''} failed to process`);
+              }
+            } else {
+              toast.error('All images failed to process');
+            }
+          } catch (error) {
+            console.error('Error processing uploaded images:', error);
+            toast.error('Failed to process images');
+          } finally {
+            setIsProcessingImages(false);
           }
-        });
+        }
+
+        // Clear the input for future uploads
+        if (input.files) {
+          input.value = '';
+        }
       };
 
       input.click();
     };
 
     const handlePaste = async (e: React.ClipboardEvent) => {
+      console.log('Paste - Current state:', { uploadedFiles, imageDataList });
       const items = e.clipboardData?.items;
 
       if (!items) {
         return;
       }
 
+      let hasImages = false;
+      let hasUnsupportedContent = false;
+      const imageFiles: File[] = [];
+      const imageDataPromises: Promise<string>[] = [];
+
+      // First pass: collect all image items and prevent default
       for (const item of items) {
         if (item.type.startsWith("image/")) {
+          hasImages = true;
           e.preventDefault();
 
           const file = item.getAsFile();
-
           if (file) {
-            const reader = new FileReader();
+            // Validate file size (max 10MB per image)
+            if (file.size > 10 * 1024 * 1024) {
+              toast.error(`Image ${file.name} is too large (max 10MB)`);
+              continue;
+            }
 
-            reader.onload = (e) => {
-              const base64Image = e.target?.result as string;
-              setUploadedFiles?.([...uploadedFiles, file]);
-              setImageDataList?.([...imageDataList, base64Image]);
-            };
-            reader.readAsDataURL(file);
+            imageFiles.push(file);
+            
+            // Create a promise for reading the file
+            const dataPromise = new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const base64Image = e.target?.result as string;
+                resolve(base64Image);
+              };
+              reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+              reader.readAsDataURL(file);
+            });
+            
+            imageDataPromises.push(dataPromise);
           }
+        } else if (item.type.startsWith("text/")) {
+          // Allow text to be pasted normally
+          continue;
+        } else {
+          hasUnsupportedContent = true;
+        }
+      }
 
-          break;
+      // If we have images, process them all
+      if (hasImages && imageFiles.length > 0) {
+        setIsProcessingImages(true);
+        try {
+          const imageDataResults = await Promise.allSettled(imageDataPromises);
+          
+          // Filter successful results
+          const successfulResults = imageDataResults
+            .map((result, index) => result.status === 'fulfilled' ? { data: result.value, index } : null)
+            .filter((item): item is { data: string; index: number } => item !== null);
+          
+          const failedCount = imageDataResults.length - successfulResults.length;
+          
+          if (successfulResults.length > 0) {
+            // Update state with successful images
+            const successfulFiles = successfulResults.map(({ index }) => imageFiles[index]);
+            const successfulData = successfulResults.map(({ data }) => data);
+            
+            if (setUploadedFiles) {
+              setUploadedFiles((prevFiles: File[]) => {
+                const newFiles = [...(prevFiles || []), ...successfulFiles];
+                console.log('Paste - Setting uploaded files:', { prevFiles, newFiles, successfulFiles });
+                return newFiles;
+              });
+            }
+            if (setImageDataList) {
+              setImageDataList((prevData: string[]) => {
+                const newData = [...(prevData || []), ...successfulData];
+                console.log('Paste - Setting image data list:', { prevData, newData, successfulData });
+                return newData;
+              });
+            }
+            
+            // Success message removed
+            
+            // Show warning for failed images
+            if (failedCount > 0) {
+              toast.warning(`${failedCount} image${failedCount > 1 ? 's' : ''} failed to process`);
+            }
+          } else {
+            toast.error('All images failed to process');
+          }
+        } catch (error) {
+          console.error('Error processing pasted images:', error);
+          toast.error('Failed to process images');
+        } finally {
+          setIsProcessingImages(false);
+        }
+      }
+
+      // Show feedback for clipboard content
+      if (!hasImages) {
+        if (hasUnsupportedContent) {
+          toast.warning('Unsupported content in clipboard. Only images and text are supported.');
+        } else if (items.length > 0) {
+          // Check if there's only text
+          const hasText = Array.from(items).some(item => item.type.startsWith('text/'));
+          if (!hasText) {
+            toast.info('No images found in clipboard. You can paste images or use the upload button.');
+          }
+        } else {
+          toast.info('Clipboard is empty. Copy an image first, then paste it here.');
         }
       }
     };
@@ -751,14 +936,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <FilePreview
                       files={uploadedFiles}
                       imageDataList={imageDataList}
-                      onRemove={(index) => {
-                        setUploadedFiles?.(
-                          uploadedFiles.filter((_, i) => i !== index)
-                        );
-                        setImageDataList?.(
-                          imageDataList.filter((_, i) => i !== index)
-                        );
-                      }}
+                      isProcessing={isProcessingImages}
+                                              onRemove={(index) => {
+                          if (setUploadedFiles) {
+                            setUploadedFiles((prevFiles: File[]) => {
+                              const newFiles = (prevFiles || []).filter((_, i) => i !== index);
+                              console.log('Remove - Setting uploaded files:', { prevFiles, newFiles, index });
+                              return newFiles;
+                            });
+                          }
+                          if (setImageDataList) {
+                            setImageDataList((prevData: string[]) => {
+                              const newData = (prevData || []).filter((_, i) => i !== index);
+                              console.log('Remove - Setting image data list:', { prevData, newData, index });
+                              return newData;
+                            });
+                          }
+                        }}
                     />
                     <ClientOnly>
                       {() => (
@@ -771,6 +965,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       )}
                     </ClientOnly>
                     <div className="relative backdrop-blur">
+                      {/* Image processing indicator */}
+                      {isProcessingImages && (
+                        <div className="absolute -top-8 left-4 z-10 flex items-center gap-2 text-sm text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 px-3 py-1 rounded-lg border border-bolt-elements-borderColor">
+                          <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress animate-spin"></div>
+                          <span>Processing images...</span>
+                        </div>
+                      )}
                       {/* Notch above prompt textarea */}
                       {notchTag && (
                         <div
@@ -825,43 +1026,152 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           notchTag ? "border-2" : ""
                         )}
                         onDragEnter={(e) => {
+                          console.log('Drag & Drop - Drag enter event');
                           e.preventDefault();
                           e.stopPropagation();
                           e.currentTarget.style.border = "2px solid #1488fc";
                         }}
                         onDragOver={(e) => {
+                          console.log('Drag & Drop - Drag over event');
                           e.preventDefault();
                           e.stopPropagation();
                           e.currentTarget.style.border = "2px solid #1488fc";
                         }}
                         onDragLeave={(e) => {
+                          console.log('Drag & Drop - Drag leave event');
                           e.preventDefault();
                           e.stopPropagation();
                           e.currentTarget.style.border =
                             "1px solid var(--bolt-elements-borderColor)";
                         }}
                         onDrop={(e) => {
+                          console.log('Drag & Drop - Current state:', { uploadedFiles, imageDataList });
+                          console.log('Drag & Drop - Event data:', { 
+                            dataTransfer: e.dataTransfer,
+                            files: e.dataTransfer.files,
+                            types: e.dataTransfer.types,
+                            items: e.dataTransfer.items
+                          });
+                          
+                          // Ensure we have files to process
+                          if (!e.dataTransfer || !e.dataTransfer.files || e.dataTransfer.files.length === 0) {
+                            console.log('Drag & Drop - No files in dataTransfer');
+                            return;
+                          }
+                          
                           e.preventDefault();
                           e.stopPropagation();
                           e.currentTarget.style.border =
                             "1px solid var(--bolt-elements-borderColor)";
 
                           const files = Array.from(e.dataTransfer.files);
-                          files.forEach((file) => {
-                            if (file.type.startsWith("image/")) {
-                              const reader = new FileReader();
+                          console.log('Drag & Drop - Files array:', files);
+                          const imageFiles: File[] = [];
+                          const imageDataPromises: Promise<string>[] = [];
 
-                              reader.onload = (e) => {
-                                const base64Image = e.target?.result as string;
-                                setUploadedFiles?.([...uploadedFiles, file]);
-                                setImageDataList?.([
-                                  ...imageDataList,
-                                  base64Image,
-                                ]);
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          });
+                                  // Filter and process only image files
+                                  console.log('Drag & Drop - Processing files:', files);
+                                  files.forEach((file) => {
+                                    console.log('Drag & Drop - Processing file:', { 
+                                      name: file.name, 
+                                      type: file.type, 
+                                      size: file.size,
+                                      isImage: file.type.startsWith("image/")
+                                    });
+                                    if (file.type.startsWith("image/")) {
+                                      // Validate file size (max 10MB per image)
+                                      if (file.size > 10 * 1024 * 1024) {
+                                        toast.error(`Image ${file.name} is too large (max 10MB)`);
+                                        return;
+                                      }
+
+                                      imageFiles.push(file);
+                                      console.log('Drag & Drop - Added image file:', file.name);
+                                      
+                                      // Create a promise for reading the file
+                                      const dataPromise = new Promise<string>((resolve, reject) => {
+                                        const reader = new FileReader();
+                                        reader.onload = (e) => {
+                                          const base64Image = e.target?.result as string;
+                                          console.log('Drag & Drop - File read successfully:', file.name);
+                                          resolve(base64Image);
+                                        };
+                                        reader.onerror = () => {
+                                          console.error('Drag & Drop - File read error:', file.name);
+                                          reject(new Error(`Failed to read ${file.name}`));
+                                        };
+                                        reader.readAsDataURL(file);
+                                      });
+                                      
+                                      imageDataPromises.push(dataPromise);
+                                    } else {
+                                      console.log('Drag & Drop - Skipping non-image file:', file.name, file.type);
+                                    }
+                                  });
+
+                          // Process all images at once
+                          console.log('Drag & Drop - Final image files:', imageFiles);
+                          console.log('Drag & Drop - Image data promises:', imageDataPromises.length);
+                          if (imageFiles.length > 0) {
+                            setIsProcessingImages(true);
+                            console.log('Drag & Drop - Starting to process images...');
+                            Promise.allSettled(imageDataPromises)
+                              .then((imageDataResults) => {
+                                console.log('Drag & Drop - Promise.allSettled results:', imageDataResults);
+                                // Filter successful results
+                                const successfulResults = imageDataResults
+                                  .map((result, index) => result.status === 'fulfilled' ? { data: result.value, index } : null)
+                                  .filter((item): item is { data: string; index: number } => item !== null);
+                                
+                                console.log('Drag & Drop - Successful results:', successfulResults);
+                                const failedCount = imageDataResults.length - successfulResults.length;
+                                
+                                if (successfulResults.length > 0) {
+                                  // Update state with successful images
+                                  const successfulFiles = successfulResults.map(({ index }) => imageFiles[index]);
+                                  const successfulData = successfulResults.map(({ data }) => data);
+                                  
+                                  if (setUploadedFiles) {
+                                    console.log('Drag & Drop - About to call setUploadedFiles with:', successfulFiles);
+                                    setUploadedFiles((prevFiles: File[]) => {
+                                      const newFiles = [...(prevFiles || []), ...successfulFiles];
+                                      console.log('Drag & Drop - Setting uploaded files:', { prevFiles, newFiles, successfulFiles });
+                                      return newFiles;
+                                    });
+                                    console.log('Drag & Drop - setUploadedFiles called');
+                                  } else {
+                                    console.log('Drag & Drop - setUploadedFiles is not available');
+                                  }
+                                  if (setImageDataList) {
+                                    console.log('Drag & Drop - About to call setImageDataList with:', successfulData.length, 'items');
+                                    setImageDataList((prevData: string[]) => {
+                                      const newData = [...(prevData || []), ...successfulData];
+                                      console.log('Drag & Drop - Setting image data list:', { prevData, newData, successfulData });
+                                      return newData;
+                                    });
+                                    console.log('Drag & Drop - setImageDataList called');
+                                  } else {
+                                    console.log('Drag & Drop - setImageDataList is not available');
+                                  }
+                                  
+                                  // Success message removed
+                                  
+                                  // Show warning for failed images
+                                  if (failedCount > 0) {
+                                    toast.warning(`${failedCount} image${failedCount > 1 ? 's' : ''} failed to process`);
+                                  }
+                                } else {
+                                  toast.error('All images failed to process');
+                                }
+                              })
+                              .catch((error) => {
+                                console.error('Error processing dropped images:', error);
+                                toast.error('Failed to process images');
+                              })
+                              .finally(() => {
+                                setIsProcessingImages(false);
+                              });
+                          }
                         }}
                         onKeyDown={(event) => {
                           if (event.key === "Enter") {
@@ -894,11 +1204,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           maxHeight: TEXTAREA_MAX_HEIGHT,
                           borderColor: notchTag
                             ? "var(--bolt-elements-borderColorActive, #6D28D9)"
+                            : isProcessingImages
+                            ? "var(--bolt-elements-loader-progress, #1488fc)"
                             : undefined,
                           borderRadius: "8px",
-                          borderStyle: notchTag ? "solid" : undefined,
+                          borderStyle: notchTag || isProcessingImages ? "solid" : undefined,
+                          backgroundColor: isProcessingImages ? "rgba(20, 136, 252, 0.05)" : undefined,
                         }}
-                        placeholder="How can VxC help you today?"
+                        placeholder={isProcessingImages ? "Processing images..." : "How can VxC help you today?"}
                         translate="no"
                       />
                       <div className="flex justify-between items-center text-sm p-4 pt-2">
@@ -924,8 +1237,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                             title="Upload file"
                             className="transition-all p-2 sm:p-2.5 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center"
                             onClick={() => handleFileUpload()}
+                            disabled={isProcessingImages}
                           >
-                            <div className="i-ph:paperclip text-lg sm:text-xl flex-shrink-0"></div>
+                            {isProcessingImages ? (
+                              <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-lg sm:text-xl animate-spin flex-shrink-0"></div>
+                            ) : (
+                              <div className="i-ph:paperclip text-lg sm:text-xl flex-shrink-0"></div>
+                            )}
                           </IconButton>
                           <IconButton
                             title="Enhance prompt"
